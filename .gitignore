@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.env
+
+# Sensitive data (keep these local)
+# Uncomment if you want to exclude large data files
+# *.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
