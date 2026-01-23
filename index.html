@@ -748,122 +748,175 @@
             // Get today's queue from outreach_queue
             const today = new Date().toISOString().split('T')[0];
 
-            let query = supabase
-                .from('outreach_queue')
-                .select('queue_id, channel, status, meta')
-                .gte('next_action_at', today)
-                .lt('next_action_at', today + 'T23:59:59');
+            try {
+                let query = supabase
+                    .from('outreach_queue')
+                    .select('queue_id, channel, status, meta')
+                    .gte('next_action_at', today)
+                    .lt('next_action_at', today + 'T23:59:59');
 
-            if (currentChannel !== 'all') {
-                query = query.eq('channel', currentChannel);
-            }
-
-            const { data: queueData, error } = await query;
-
-            if (error) {
-                console.error('Queue error:', error);
-                return;
-            }
-
-            // Update KPI card
-            document.getElementById('todayQueue').textContent = queueData?.length || 0;
-
-            // Process tier data
-            const tierCounts = { V1: 0, V2: 0, V3: 0, V4: 0 };
-            const audienceCounts = {
-                owner_alive: 0,
-                owner_deceased: 0,
-                relative_owner_alive: 0,
-                relative_owner_deceased: 0
-            };
-
-            queueData?.forEach(item => {
-                const tier = item.meta?.urgency_tier;
-                const audience = item.meta?.audience_type;
-
-                if (tier && tierCounts.hasOwnProperty(tier)) {
-                    tierCounts[tier]++;
+                if (currentChannel !== 'all') {
+                    query = query.eq('channel', currentChannel);
                 }
-                if (audience && audienceCounts.hasOwnProperty(audience)) {
-                    audienceCounts[audience]++;
+
+                const { data: queueData, error } = await query;
+
+                if (error) {
+                    // Table doesn't exist or other error - show placeholder
+                    console.log('Queue table not available:', error.message);
+                    document.getElementById('todayQueue').textContent = 'N/A';
+                    tierChart.data.datasets[0].data = [0, 0, 0, 0];
+                    tierChart.update();
+                    audienceChart.data.datasets[0].data = [0, 0, 0, 0];
+                    audienceChart.update();
+                    return;
                 }
-            });
 
-            // Update charts
-            tierChart.data.datasets[0].data = [
-                tierCounts.V1,
-                tierCounts.V2,
-                tierCounts.V3,
-                tierCounts.V4
-            ];
-            tierChart.update();
+                // Update KPI card
+                document.getElementById('todayQueue').textContent = queueData?.length || 0;
 
-            audienceChart.data.datasets[0].data = [
-                audienceCounts.owner_alive,
-                audienceCounts.owner_deceased,
-                audienceCounts.relative_owner_alive,
-                audienceCounts.relative_owner_deceased
-            ];
-            audienceChart.update();
+                // Process tier data
+                const tierCounts = { V1: 0, V2: 0, V3: 0, V4: 0 };
+                const audienceCounts = {
+                    owner_alive: 0,
+                    owner_deceased: 0,
+                    relative_owner_alive: 0,
+                    relative_owner_deceased: 0
+                };
+
+                queueData?.forEach(item => {
+                    const tier = item.meta?.urgency_tier;
+                    const audience = item.meta?.audience_type;
+
+                    if (tier && tierCounts.hasOwnProperty(tier)) {
+                        tierCounts[tier]++;
+                    }
+                    if (audience && audienceCounts.hasOwnProperty(audience)) {
+                        audienceCounts[audience]++;
+                    }
+                });
+
+                // Update charts
+                tierChart.data.datasets[0].data = [
+                    tierCounts.V1,
+                    tierCounts.V2,
+                    tierCounts.V3,
+                    tierCounts.V4
+                ];
+                tierChart.update();
+
+                audienceChart.data.datasets[0].data = [
+                    audienceCounts.owner_alive,
+                    audienceCounts.owner_deceased,
+                    audienceCounts.relative_owner_alive,
+                    audienceCounts.relative_owner_deceased
+                ];
+                audienceChart.update();
+            } catch (e) {
+                console.error('Queue data error:', e);
+                document.getElementById('todayQueue').textContent = 'N/A';
+            }
         }
 
         async function loadMessageStats() {
             // Get message stats for response rate
             const today = new Date().toISOString().split('T')[0];
 
-            const { data: messages, error } = await supabase
-                .from('messages')
-                .select('direction')
-                .gte('created_at', today);
+            try {
+                const { data: messages, error } = await supabase
+                    .from('messages')
+                    .select('direction')
+                    .gte('created_at', today);
 
-            if (error) {
-                console.error('Messages error:', error);
-                return;
+                if (error) {
+                    // Table doesn't exist - use Twilio data as fallback
+                    console.log('Messages table not available:', error.message);
+                    document.getElementById('responseRate').textContent = 'N/A';
+                    document.getElementById('responseCount').textContent = 'see Twilio data';
+                    document.getElementById('funnelSent').textContent = 'N/A';
+                    document.getElementById('funnelReplied').textContent = 'N/A';
+                    document.getElementById('funnelReplyRate').textContent = 'N/A';
+                    return;
+                }
+
+                const outbound = messages?.filter(m => m.direction === 'outbound').length || 0;
+                const inbound = messages?.filter(m => m.direction === 'inbound').length || 0;
+                const rate = outbound > 0 ? ((inbound / outbound) * 100).toFixed(1) : 0;
+
+                document.getElementById('responseRate').textContent = rate + '%';
+                document.getElementById('responseCount').textContent = inbound + ' replies';
+
+                // Funnel data (simplified)
+                document.getElementById('funnelSent').textContent = outbound.toLocaleString();
+                document.getElementById('funnelReplied').textContent = inbound.toLocaleString();
+                document.getElementById('funnelReplyRate').textContent = rate + '%';
+            } catch (e) {
+                console.error('Message stats error:', e);
+                document.getElementById('responseRate').textContent = 'N/A';
             }
-
-            const outbound = messages?.filter(m => m.direction === 'outbound').length || 0;
-            const inbound = messages?.filter(m => m.direction === 'inbound').length || 0;
-            const rate = outbound > 0 ? ((inbound / outbound) * 100).toFixed(1) : 0;
-
-            document.getElementById('responseRate').textContent = rate + '%';
-            document.getElementById('responseCount').textContent = inbound + ' replies';
-
-            // Funnel data (simplified)
-            document.getElementById('funnelSent').textContent = outbound.toLocaleString();
-            document.getElementById('funnelReplied').textContent = inbound.toLocaleString();
-            document.getElementById('funnelReplyRate').textContent = rate + '%';
         }
 
         async function loadTwilioData() {
             // Load from ops.twilio_daily_costs table (populated from Twilio API)
-            const today = new Date().toISOString().split('T')[0];
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            const monthStart = now.toISOString().slice(0, 7) + '-01'; // First of current month
 
-            // Use ops schema for twilio_daily_costs table
-            const { data: costs, error } = await supabase
-                .schema('ops')
-                .from('twilio_daily_costs')
-                .select('*')
-                .eq('date', today)
-                .single();
+            try {
+                // Get this month's totals
+                const { data: monthlyData, error: monthError } = await supabase
+                    .schema('ops')
+                    .from('twilio_daily_costs')
+                    .select('*')
+                    .gte('date', monthStart)
+                    .lte('date', today);
 
-            if (costs) {
-                document.getElementById('smsCost').textContent = '$' + (costs.sms_cost || 0).toFixed(2);
-                document.getElementById('smsCount').textContent = (costs.sms_outbound_count + costs.sms_inbound_count) || 0;
-                document.getElementById('smsCostPer').textContent = '$' + ((costs.sms_cost / (costs.sms_outbound_count || 1)) || 0).toFixed(4);
+                if (monthError) {
+                    console.error('Twilio data error:', monthError);
+                    return;
+                }
 
-                document.getElementById('voiceCost').textContent = '$' + (costs.call_cost || 0).toFixed(2);
-                document.getElementById('callCount').textContent = (costs.call_outbound_count + costs.call_inbound_count) || 0;
-                document.getElementById('callMinutes').textContent = costs.call_minutes || 0;
-                document.getElementById('voiceCostPer').textContent = '$' + ((costs.call_cost / (costs.call_minutes || 1)) || 0).toFixed(4);
+                if (monthlyData && monthlyData.length > 0) {
+                    // Calculate monthly totals
+                    const totals = monthlyData.reduce((acc, day) => {
+                        acc.sms_cost += parseFloat(day.sms_cost) || 0;
+                        acc.sms_outbound += day.sms_outbound_count || 0;
+                        acc.sms_inbound += day.sms_inbound_count || 0;
+                        acc.call_cost += parseFloat(day.call_cost) || 0;
+                        acc.call_outbound += day.call_outbound_count || 0;
+                        acc.call_inbound += day.call_inbound_count || 0;
+                        acc.call_minutes += day.call_minutes || 0;
+                        acc.total_cost += parseFloat(day.total_cost) || 0;
+                        return acc;
+                    }, { sms_cost: 0, sms_outbound: 0, sms_inbound: 0, call_cost: 0, call_outbound: 0, call_inbound: 0, call_minutes: 0, total_cost: 0 });
 
-                document.getElementById('totalCost').textContent = '$' + (costs.total_cost || 0).toFixed(2);
-                document.getElementById('todayCost').textContent = '$' + (costs.total_cost || 0).toFixed(2);
-            } else {
-                // Placeholder if no data
-                document.getElementById('smsCost').textContent = '$0.00';
-                document.getElementById('voiceCost').textContent = '$0.00';
-                document.getElementById('totalCost').textContent = '$0.00';
-                document.getElementById('todayCost').textContent = '$0.00';
+                    const totalSms = totals.sms_outbound + totals.sms_inbound;
+                    const totalCalls = totals.call_outbound + totals.call_inbound;
+
+                    document.getElementById('smsCost').textContent = '$' + totals.sms_cost.toFixed(2);
+                    document.getElementById('smsCount').textContent = totalSms.toLocaleString();
+                    document.getElementById('smsCostPer').textContent = '$' + (totalSms > 0 ? (totals.sms_cost / totalSms).toFixed(4) : '0.0000');
+
+                    document.getElementById('voiceCost').textContent = '$' + totals.call_cost.toFixed(2);
+                    document.getElementById('callCount').textContent = totalCalls.toLocaleString();
+                    document.getElementById('callMinutes').textContent = totals.call_minutes.toLocaleString();
+                    document.getElementById('voiceCostPer').textContent = '$' + (totals.call_minutes > 0 ? (totals.call_cost / totals.call_minutes).toFixed(4) : '0.0000');
+
+                    document.getElementById('totalCost').textContent = '$' + totals.total_cost.toFixed(2);
+                    document.getElementById('todayCost').textContent = '$' + totals.total_cost.toFixed(2);
+
+                    // Update footer with data range
+                    document.getElementById('lastUpdated').textContent =
+                        `${monthlyData.length} days this month | Total: $${totals.total_cost.toFixed(2)}`;
+                } else {
+                    document.getElementById('smsCost').textContent = '$0.00';
+                    document.getElementById('voiceCost').textContent = '$0.00';
+                    document.getElementById('totalCost').textContent = '$0.00';
+                    document.getElementById('todayCost').textContent = '$0.00';
+                    document.getElementById('lastUpdated').textContent = 'No data for this month';
+                }
+            } catch (e) {
+                console.error('Error loading Twilio data:', e);
             }
         }
     </script>
