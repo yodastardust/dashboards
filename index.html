@@ -643,7 +643,7 @@
         const GHL_CALENDAR_1ST = 'gBD1ts4ZdRzWaMzti2Ck';
         const GHL_CALENDAR_2ND = 'WM8EhHF8mZjCPQAHXJxp';
 
-        let supabase;
+        let sbClient;
         let tierChart, audienceChart;
         let currentChannel = 'all';
 
@@ -651,7 +651,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('KPI Dashboard initializing...');
             try {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 console.log('Supabase client created');
 
                 initCharts();
@@ -759,7 +759,7 @@
             const today = new Date().toISOString().split('T')[0];
 
             try {
-                let query = supabase
+                let query = sbClient
                     .from('outreach_queue')
                     .select('queue_id, channel, status, meta')
                     .gte('next_action_at', today)
@@ -833,7 +833,7 @@
             const today = new Date().toISOString().split('T')[0];
 
             try {
-                const { data: messages, error } = await supabase
+                const { data: messages, error } = await sbClient
                     .from('messages')
                     .select('direction')
                     .gte('created_at', today);
