@@ -860,21 +860,48 @@
             // Load from ops.twilio_daily_costs table (populated from Twilio API)
             const now = new Date();
             const today = now.toISOString().split('T')[0];
-            const monthStart = now.toISOString().slice(0, 7) + '-01'; // First of current month
+
+            // Get selected date range
+            const dateRange = document.getElementById('dateRange').value;
+            let startDate;
+            let periodLabel;
+
+            switch(dateRange) {
+                case 'today':
+                    startDate = today;
+                    periodLabel = 'Today';
+                    break;
+                case 'week':
+                    const weekAgo = new Date(now);
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    startDate = weekAgo.toISOString().split('T')[0];
+                    periodLabel = 'This Week';
+                    break;
+                case 'month':
+                default:
+                    startDate = now.toISOString().slice(0, 7) + '-01';
+                    periodLabel = 'This Month';
+                    break;
+            }
 
             try {
-                // Get this month's totals
-                const { data: monthlyData, error: monthError } = await supabase
-                    .schema('ops')
-                    .from('twilio_daily_costs')
-                    .select('*')
-                    .gte('date', monthStart)
-                    .lte('date', today);
+                // Use direct REST API for ops schema (Supabase JS .schema() has issues)
+                const url = `${SUPABASE_URL}/rest/v1/twilio_daily_costs?date=gte.${startDate}&date=lte.${today}&order=date.desc`;
+                const response = await fetch(url, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Accept-Profile': 'ops'
+                    }
+                });
 
-                if (monthError) {
-                    console.error('Twilio data error:', monthError);
+                if (!response.ok) {
+                    console.error('Twilio data error:', response.status, await response.text());
                     return;
                 }
+
+                const monthlyData = await response.json();
+                console.log('Loaded Twilio data:', monthlyData.length, 'days');
 
                 if (monthlyData && monthlyData.length > 0) {
                     // Calculate monthly totals
@@ -907,7 +934,7 @@
 
                     // Update footer with data range
                     document.getElementById('lastUpdated').textContent =
-                        `${monthlyData.length} days this month | Total: $${totals.total_cost.toFixed(2)}`;
+                        `${periodLabel}: ${monthlyData.length} days | Total: $${totals.total_cost.toFixed(2)}`;
                 } else {
                     document.getElementById('smsCost').textContent = '$0.00';
                     document.getElementById('voiceCost').textContent = '$0.00';
