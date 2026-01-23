@@ -649,11 +649,21 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log('KPI Dashboard initializing...');
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('Supabase client created');
 
-            initCharts();
-            setupEventListeners();
-            await refreshData();
+                initCharts();
+                console.log('Charts initialized');
+                setupEventListeners();
+                console.log('Event listeners set up');
+                await refreshData();
+                console.log('Initial data refresh complete');
+            } catch (initError) {
+                console.error('Init error:', initError);
+                document.getElementById('lastUpdated').textContent = 'Init Error: ' + initError.message;
+            }
 
             // Auto-refresh every 60 seconds
             setInterval(refreshData, 60000);
@@ -887,21 +897,31 @@
             try {
                 // Use direct REST API for ops schema (Supabase JS .schema() has issues)
                 const url = `${SUPABASE_URL}/rest/v1/twilio_daily_costs?date=gte.${startDate}&date=lte.${today}&order=date.desc`;
+                console.log('Fetching Twilio data from:', url);
+                document.getElementById('lastUpdated').textContent = 'Loading...';
+
                 const response = await fetch(url, {
+                    method: 'GET',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                        'Accept-Profile': 'ops'
+                        'Accept-Profile': 'ops',
+                        'Content-Type': 'application/json'
                     }
                 });
 
+                console.log('Response status:', response.status);
+
                 if (!response.ok) {
-                    console.error('Twilio data error:', response.status, await response.text());
+                    const errText = await response.text();
+                    console.error('Twilio data error:', response.status, errText);
+                    document.getElementById('lastUpdated').textContent = 'Error: ' + response.status;
+                    document.getElementById('smsCost').textContent = 'Error';
                     return;
                 }
 
                 const monthlyData = await response.json();
-                console.log('Loaded Twilio data:', monthlyData.length, 'days');
+                console.log('Loaded Twilio data:', monthlyData.length, 'days', monthlyData[0]);
 
                 if (monthlyData && monthlyData.length > 0) {
                     // Calculate monthly totals
@@ -944,6 +964,8 @@
                 }
             } catch (e) {
                 console.error('Error loading Twilio data:', e);
+                document.getElementById('lastUpdated').textContent = 'JS Error: ' + e.message;
+                document.getElementById('smsCost').textContent = 'ERR';
             }
         }
     </script>
