@@ -570,44 +570,60 @@
 
         // Initialize
         async function init() {
-            updateConnectionStatus('syncing', 'Loading data...');
+            try {
+                console.log('Init starting...');
+                updateConnectionStatus('syncing', 'Loading data...');
 
-            // Try to load from Supabase first, fallback to JSON
-            if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-                try {
-                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                    await loadFromSupabase();
-                    isSupabaseConnected = true;
-                    updateConnectionStatus('online', 'Live - Supabase');
-                    // Set up real-time subscription
-                    subscribeToChanges();
-                } catch (e) {
-                    console.log('Supabase not available, loading from JSON');
+                // Try to load from Supabase first, fallback to JSON
+                if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+                    try {
+                        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                        await loadFromSupabase();
+                        isSupabaseConnected = true;
+                        updateConnectionStatus('online', 'Live - Supabase');
+                        // Set up real-time subscription
+                        subscribeToChanges();
+                    } catch (e) {
+                        console.log('Supabase not available, loading from JSON', e);
+                        await loadFromJSON();
+                    }
+                } else {
+                    console.log('No Supabase config, loading from JSON...');
                     await loadFromJSON();
                 }
-            } else {
-                await loadFromJSON();
-            }
 
-            setupEventListeners();
-            renderContactList();
-            updateHeaderStats();
+                console.log('Data loaded:', contactsData.length, 'contacts');
+                setupEventListeners();
+                renderContactList();
+                updateHeaderStats();
+                console.log('Init complete');
+            } catch (error) {
+                console.error('Init error:', error);
+                document.getElementById('contact-list').innerHTML = '<div class="empty-state">Error loading data. Check console.</div>';
+            }
         }
 
         async function loadFromJSON() {
             try {
+                console.log('Fetching JSON...');
                 const response = await fetch('full_analysis_with_transcripts.json');
+                console.log('Response status:', response.status);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 contactsData = await response.json();
-                updateConnectionStatus('offline', 'Static Data');
+                console.log('Parsed', contactsData.length, 'contacts from JSON');
+                updateConnectionStatus('offline', 'Static Data - ' + contactsData.length + ' contacts');
             } catch (e) {
+                console.error('First fetch failed:', e);
                 // Try alternative path
                 try {
                     const response = await fetch('./full_analysis_with_transcripts.json');
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     contactsData = await response.json();
                     updateConnectionStatus('offline', 'Static Data');
                 } catch (e2) {
                     console.error('Failed to load data:', e2);
                     updateConnectionStatus('offline', 'Error loading data');
+                    throw e2; // Re-throw to be caught by init()
                 }
             }
         }
