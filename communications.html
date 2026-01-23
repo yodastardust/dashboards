@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lead Communications Dashboard - Stop My Auction Now</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e4e4e4;
+        }
+
+        .header {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 30px;
+        }
+
+        .header-stat {
+            text-align: center;
+        }
+
+        .header-stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .header-stat-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            width: 350px;
+            background: rgba(255,255,255,0.03);
+            border-right: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search-box {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        .search-box input::placeholder {
+            color: #666;
+        }
+
+        .filters {
+            padding: 10px 15px;
+            display: flex;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            background: transparent;
+            color: #888;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active {
+            background: #00d4ff;
+            color: #000;
+            border-color: #00d4ff;
+        }
+
+        .filter-btn:hover {
+            border-color: #00d4ff;
+        }
+
+        .contact-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .contact-item {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .contact-item:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .contact-item.active {
+            background: rgba(0,212,255,0.1);
+            border-left: 3px solid #00d4ff;
+        }
+
+        .contact-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .contact-phone {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .contact-meta {
+            display: flex;
+            gap: 15px;
+            margin-top: 8px;
+            font-size: 0.75rem;
+        }
+
+        .contact-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .meta-calls { color: #00d4ff; }
+        .meta-sms { color: #7b2cbf; }
+        .meta-transcripts { color: #00ff88; }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .contact-header {
+            padding: 20px 30px;
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .contact-header h2 {
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .contact-details {
+            display: flex;
+            gap: 30px;
+            font-size: 0.85rem;
+            color: #888;
+            flex-wrap: wrap;
+        }
+
+        .contact-details span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .tabs {
+            display: flex;
+            padding: 0 30px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .tab {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: #888;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: #fff;
+        }
+
+        .tab.active {
+            color: #00d4ff;
+            border-bottom-color: #00d4ff;
+        }
+
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 30px;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 20px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00d4ff;
+        }
+
+        .timeline-item.sms::before { background: #7b2cbf; }
+        .timeline-item.retell::before { background: #00ff88; }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .timeline-type {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .timeline-type .badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        .badge-call { background: rgba(0,212,255,0.2); color: #00d4ff; }
+        .badge-sms { background: rgba(123,44,191,0.2); color: #7b2cbf; }
+        .badge-retell { background: rgba(0,255,136,0.2); color: #00ff88; }
+        .badge-inbound { background: rgba(0,255,136,0.2); color: #00ff88; }
+        .badge-outbound { background: rgba(255,165,0,0.2); color: #ffa500; }
+
+        .timeline-date {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .timeline-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .timeline-content {
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .transcript-line {
+            margin-bottom: 10px;
+        }
+
+        .transcript-line.agent {
+            color: #00d4ff;
+        }
+
+        .transcript-line.user {
+            color: #00ff88;
+        }
+
+        .transcript-speaker {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .sms-bubble {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+        }
+
+        .sms-bubble.outbound {
+            background: #00d4ff;
+            color: #000;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+
+        .sms-bubble.inbound {
+            background: rgba(255,255,255,0.1);
+            border-bottom-left-radius: 5px;
+        }
+
+        .call-summary {
+            background: rgba(0,212,255,0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border-left: 3px solid #00d4ff;
+        }
+
+        .call-summary-label {
+            font-size: 0.75rem;
+            color: #00d4ff;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .sentiment-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin-left: 10px;
+        }
+
+        .sentiment-positive { background: rgba(0,255,136,0.2); color: #00ff88; }
+        .sentiment-neutral { background: rgba(255,255,255,0.1); color: #888; }
+        .sentiment-negative { background: rgba(255,100,100,0.2); color: #ff6464; }
+
+        .no-selection {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+        }
+
+        .no-selection svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.03);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stat-card-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .stat-card-label {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff88;
+        }
+
+        .status-dot.offline { background: #ff6464; }
+        .status-dot.syncing { background: #ffa500; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .last-updated {
+            font-size: 0.75rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Lead Communications Dashboard</h1>
+        <div class="header-stats">
+            <div class="header-stat">
+                <div class="header-stat-value" id="total-contacts">-</div>
+                <div class="header-stat-label">Total Leads</div>
+            </div>
+            <div class="header-stat">
+                <div class="header-stat-value" id="total-calls">-</div>
+                <div class="header-stat-label">Total Calls</div>
+            </div>
+            <div class="header-stat">
+                <div class="header-stat-value" id="total-sms">-</div>
+                <div class="header-stat-label">Total SMS</div>
+            </div>
+            <div class="header-stat">
+                <div class="header-stat-value" id="total-transcripts">-</div>
+                <div class="header-stat-label">Transcripts</div>
+            </div>
+            <div class="connection-status">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="connection-text">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search by name, phone, or address...">
+            </div>
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="with-transcripts">With Transcripts</button>
+                <button class="filter-btn" data-filter="with-sms">With SMS</button>
+                <button class="filter-btn" data-filter="high-touch">10+ Touches</button>
+            </div>
+            <div class="contact-list" id="contact-list">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div id="no-selection" class="no-selection">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <p>Select a lead to view their communication history</p>
+            </div>
+
+            <div id="contact-view" style="display: none; height: 100%; display: flex; flex-direction: column;">
+                <div class="contact-header">
+                    <h2 id="selected-name">-</h2>
+                    <div class="contact-details">
+                        <span id="selected-phone">-</span>
+                        <span id="selected-address">-</span>
+                        <span id="selected-auction">-</span>
+                        <span id="selected-added">-</span>
+                    </div>
+                </div>
+
+                <div class="tabs">
+                    <div class="tab active" data-tab="timeline">Timeline</div>
+                    <div class="tab" data-tab="transcripts">Retell Transcripts</div>
+                    <div class="tab" data-tab="sms">SMS Conversation</div>
+                    <div class="tab" data-tab="calls">Call Log</div>
+                </div>
+
+                <div class="tab-content" id="tab-content">
+                    <!-- Content loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data will be loaded from JSON file or Supabase
+        let contactsData = [];
+        let selectedContact = null;
+        let currentFilter = 'all';
+        let currentTab = 'timeline';
+
+        // Supabase configuration (will be enabled when connected)
+        const SUPABASE_URL = ''; // Add your Supabase URL
+        const SUPABASE_ANON_KEY = ''; // Add your Supabase anon key
+        let supabase = null;
+        let isSupabaseConnected = false;
+
+        // Initialize
+        async function init() {
+            updateConnectionStatus('syncing', 'Loading data...');
+
+            // Try to load from Supabase first, fallback to JSON
+            if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+                try {
+                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    await loadFromSupabase();
+                    isSupabaseConnected = true;
+                    updateConnectionStatus('online', 'Live - Supabase');
+                    // Set up real-time subscription
+                    subscribeToChanges();
+                } catch (e) {
+                    console.log('Supabase not available, loading from JSON');
+                    await loadFromJSON();
+                }
+            } else {
+                await loadFromJSON();
+            }
+
+            setupEventListeners();
+            renderContactList();
+            updateHeaderStats();
+        }
+
+        async function loadFromJSON() {
+            try {
+                const response = await fetch('full_analysis_with_transcripts.json');
+                contactsData = await response.json();
+                updateConnectionStatus('offline', 'Static Data');
+            } catch (e) {
+                // Try alternative path
+                try {
+                    const response = await fetch('./full_analysis_with_transcripts.json');
+                    contactsData = await response.json();
+                    updateConnectionStatus('offline', 'Static Data');
+                } catch (e2) {
+                    console.error('Failed to load data:', e2);
+                    updateConnectionStatus('offline', 'Error loading data');
+                }
+            }
+        }
+
+        async function loadFromSupabase() {
+            const { data, error } = await supabase
+                .from('appointment_touches')
+                .select('*')
+                .order('date_added', { ascending: false });
+
+            if (error) throw error;
+            contactsData = data;
+        }
+
+        function subscribeToChanges() {
+            if (!supabase) return;
+
+            supabase
+                .channel('appointment_touches_changes')
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'appointment_touches'
+                }, payload => {
+                    console.log('Real-time update:', payload);
+                    loadFromSupabase().then(() => {
+                        renderContactList();
+                        updateHeaderStats();
+                        if (selectedContact) {
+                            const updated = contactsData.find(c => c.contact_id === selectedContact.contact_id);
+                            if (updated) {
+                                selectContact(updated);
+                            }
+                        }
+                    });
+                })
+                .subscribe();
+        }
+
+        function updateConnectionStatus(status, text) {
+            const dot = document.getElementById('status-dot');
+            const textEl = document.getElementById('connection-text');
+
+            dot.className = 'status-dot';
+            if (status === 'offline') dot.classList.add('offline');
+            if (status === 'syncing') dot.classList.add('syncing');
+
+            textEl.textContent = text;
+        }
+
+        function setupEventListeners() {
+            // Search
+            document.getElementById('search-input').addEventListener('input', (e) => {
+                renderContactList(e.target.value);
+            });
+
+            // Filters
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentFilter = btn.dataset.filter;
+                    renderContactList();
+                });
+            });
+
+            // Tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentTab = tab.dataset.tab;
+                    renderTabContent();
+                });
+            });
+        }
+
+        function filterContacts(contacts, searchTerm = '') {
+            let filtered = contacts;
+
+            // Apply filter
+            switch (currentFilter) {
+                case 'with-transcripts':
+                    filtered = filtered.filter(c => c.retell_transcriptions && c.retell_transcriptions.length > 0);
+                    break;
+                case 'with-sms':
+                    filtered = filtered.filter(c => c.sms_conversation && c.sms_conversation.length > 0);
+                    break;
+                case 'high-touch':
+                    filtered = filtered.filter(c => c.total_touches >= 10);
+                    break;
+            }
+
+            // Apply search
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                filtered = filtered.filter(c =>
+                    (c.name && c.name.toLowerCase().includes(term)) ||
+                    (c.phone && c.phone.includes(term)) ||
+                    (c.property_address && c.property_address.toLowerCase().includes(term))
+                );
+            }
+
+            return filtered;
+        }
+
+        function renderContactList(searchTerm = '') {
+            const list = document.getElementById('contact-list');
+            const filtered = filterContacts(contactsData, searchTerm);
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="empty-state">No contacts found</div>';
+                return;
+            }
+
+            list.innerHTML = filtered.map(contact => `
+                <div class="contact-item ${selectedContact && selectedContact.contact_id === contact.contact_id ? 'active' : ''}"
+                     data-id="${contact.contact_id}">
+                    <div class="contact-name">${contact.name || 'Unknown'}</div>
+                    <div class="contact-phone">${contact.phone || '-'}</div>
+                    <div class="contact-meta">
+                        <span class="meta-calls">📞 ${contact.call_details ? contact.call_details.length : 0}</span>
+                        <span class="meta-sms">💬 ${contact.sms_conversation ? contact.sms_conversation.length : 0}</span>
+                        <span class="meta-transcripts">🎙️ ${contact.retell_transcriptions ? contact.retell_transcriptions.length : 0}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Add click handlers
+            list.querySelectorAll('.contact-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const contact = contactsData.find(c => c.contact_id === item.dataset.id);
+                    selectContact(contact);
+                });
+            });
+        }
+
+        function selectContact(contact) {
+            selectedContact = contact;
+
+            // Update UI
+            document.getElementById('no-selection').style.display = 'none';
+            document.getElementById('contact-view').style.display = 'flex';
+
+            // Update contact header
+            document.getElementById('selected-name').textContent = contact.name || 'Unknown';
+            document.getElementById('selected-phone').textContent = `📞 ${contact.phone || '-'}`;
+            document.getElementById('selected-address').textContent = contact.property_address ? `📍 ${contact.property_address}` : '';
+            document.getElementById('selected-auction').textContent = contact.auction_date ? `🔨 Auction: ${contact.auction_date}` : '';
+            document.getElementById('selected-added').textContent = contact.date_added ? `📅 Added: ${formatDate(contact.date_added)}` : '';
+
+            // Update contact list to show active state
+            document.querySelectorAll('.contact-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.id === contact.contact_id);
+            });
+
+            renderTabContent();
+        }
+
+        function renderTabContent() {
+            if (!selectedContact) return;
+
+            const content = document.getElementById('tab-content');
+
+            switch (currentTab) {
+                case 'timeline':
+                    renderTimeline(content);
+                    break;
+                case 'transcripts':
+                    renderTranscripts(content);
+                    break;
+                case 'sms':
+                    renderSMS(content);
+                    break;
+                case 'calls':
+                    renderCalls(content);
+                    break;
+            }
+        }
+
+        function renderTimeline(container) {
+            // Combine all events and sort by date
+            const events = [];
+
+            // Add calls
+            if (selectedContact.call_details) {
+                selectedContact.call_details.forEach(call => {
+                    events.push({
+                        type: 'call',
+                        date: new Date(call.date),
+                        data: call
+                    });
+                });
+            }
+
+            // Add SMS
+            if (selectedContact.sms_conversation) {
+                selectedContact.sms_conversation.forEach(sms => {
+                    events.push({
+                        type: 'sms',
+                        date: new Date(sms.date),
+                        data: sms
+                    });
+                });
+            }
+
+            // Add Retell transcripts
+            if (selectedContact.retell_transcriptions) {
+                selectedContact.retell_transcriptions.forEach(transcript => {
+                    events.push({
+                        type: 'retell',
+                        date: new Date(transcript.date),
+                        data: transcript
+                    });
+                });
+            }
+
+            // Sort by date descending
+            events.sort((a, b) => b.date - a.date);
+
+            if (events.length === 0) {
+                container.innerHTML = '<div class="empty-state">No communications recorded</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="timeline">
+                    ${events.map(event => renderTimelineItem(event)).join('')}
+                </div>
+            `;
+        }
+
+        function renderTimelineItem(event) {
+            const { type, date, data } = event;
+
+            let typeLabel, directionLabel, content;
+
+            switch (type) {
+                case 'call':
+                    typeLabel = `<span class="badge badge-call">Call</span>`;
+                    directionLabel = data.direction.includes('originating') ?
+                        '<span class="badge badge-inbound">Inbound</span>' :
+                        '<span class="badge badge-outbound">Outbound</span>';
+                    content = `
+                        <div class="timeline-meta">
+                            <span>Duration: ${data.duration || 0}s</span>
+                            <span>Status: ${data.status}</span>
+                            <span>From: ${data.from}</span>
+                            <span>To: ${data.to}</span>
+                        </div>
+                    `;
+                    break;
+
+                case 'sms':
+                    typeLabel = `<span class="badge badge-sms">SMS</span>`;
+                    directionLabel = data.direction === 'inbound' ?
+                        '<span class="badge badge-inbound">Inbound</span>' :
+                        '<span class="badge badge-outbound">Outbound</span>';
+                    content = `
+                        <div class="timeline-content">
+                            ${data.body || 'No message content'}
+                        </div>
+                    `;
+                    break;
+
+                case 'retell':
+                    typeLabel = `<span class="badge badge-retell">AI Call</span>`;
+                    directionLabel = data.direction === 'inbound' ?
+                        '<span class="badge badge-inbound">Inbound</span>' :
+                        '<span class="badge badge-outbound">Outbound</span>';
+                    const sentiment = data.user_sentiment || 'Neutral';
+                    const sentimentClass = sentiment.toLowerCase() === 'positive' ? 'sentiment-positive' :
+                                          sentiment.toLowerCase() === 'negative' ? 'sentiment-negative' : 'sentiment-neutral';
+                    content = `
+                        <div class="timeline-meta">
+                            <span>Duration: ${Math.round(data.duration_sec || 0)}s</span>
+                            <span>Successful: ${data.call_successful ? 'Yes' : 'No'}</span>
+                            <span class="sentiment-badge ${sentimentClass}">${sentiment}</span>
+                        </div>
+                        ${data.call_summary ? `
+                            <div class="call-summary">
+                                <div class="call-summary-label">AI Summary</div>
+                                ${data.call_summary}
+                            </div>
+                        ` : ''}
+                        <div class="timeline-content" style="margin-top: 10px;">
+                            ${formatTranscript(data.transcript)}
+                        </div>
+                    `;
+                    break;
+            }
+
+            return `
+                <div class="timeline-item ${type}">
+                    <div class="timeline-header">
+                        <div class="timeline-type">
+                            ${typeLabel}
+                            ${directionLabel}
+                        </div>
+                        <div class="timeline-date">${formatDateTime(date)}</div>
+                    </div>
+                    ${content}
+                </div>
+            `;
+        }
+
+        function renderTranscripts(container) {
+            const transcripts = selectedContact.retell_transcriptions || [];
+
+            if (transcripts.length === 0) {
+                container.innerHTML = '<div class="empty-state">No Retell transcripts available</div>';
+                return;
+            }
+
+            container.innerHTML = transcripts.map(t => `
+                <div class="timeline-item retell">
+                    <div class="timeline-header">
+                        <div class="timeline-type">
+                            <span class="badge badge-retell">AI Call</span>
+                            <span class="badge ${t.direction === 'inbound' ? 'badge-inbound' : 'badge-outbound'}">
+                                ${t.direction === 'inbound' ? 'Inbound' : 'Outbound'}
+                            </span>
+                            <span class="sentiment-badge sentiment-${(t.user_sentiment || 'neutral').toLowerCase()}">
+                                ${t.user_sentiment || 'Neutral'}
+                            </span>
+                        </div>
+                        <div class="timeline-date">${formatDateTime(new Date(t.date))}</div>
+                    </div>
+                    <div class="timeline-meta">
+                        <span>Duration: ${Math.round(t.duration_sec || 0)}s</span>
+                        <span>Successful: ${t.call_successful ? 'Yes ✓' : 'No ✗'}</span>
+                    </div>
+                    ${t.call_summary ? `
+                        <div class="call-summary">
+                            <div class="call-summary-label">AI Summary</div>
+                            ${t.call_summary}
+                        </div>
+                    ` : ''}
+                    <div class="timeline-content" style="margin-top: 15px; max-height: 500px;">
+                        <div class="call-summary-label" style="margin-bottom: 10px;">Full Transcript</div>
+                        ${formatTranscript(t.transcript)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderSMS(container) {
+            const messages = selectedContact.sms_conversation || [];
+
+            if (messages.length === 0) {
+                container.innerHTML = '<div class="empty-state">No SMS messages recorded</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div style="padding: 20px;">
+                    ${messages.map(msg => `
+                        <div class="sms-bubble ${msg.direction}">
+                            <div style="font-size: 0.75rem; color: ${msg.direction === 'outbound' ? '#333' : '#888'}; margin-bottom: 5px;">
+                                ${formatDateTime(new Date(msg.date))}
+                            </div>
+                            ${msg.body || 'No message content'}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderCalls(container) {
+            const calls = selectedContact.call_details || [];
+
+            if (calls.length === 0) {
+                container.innerHTML = '<div class="empty-state">No calls recorded</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <th style="text-align: left; padding: 12px; color: #888;">Date</th>
+                            <th style="text-align: left; padding: 12px; color: #888;">Direction</th>
+                            <th style="text-align: left; padding: 12px; color: #888;">Duration</th>
+                            <th style="text-align: left; padding: 12px; color: #888;">Status</th>
+                            <th style="text-align: left; padding: 12px; color: #888;">From/To</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${calls.map(call => `
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                <td style="padding: 12px;">${formatDateTime(new Date(call.date))}</td>
+                                <td style="padding: 12px;">
+                                    <span class="badge ${call.direction.includes('originating') ? 'badge-inbound' : 'badge-outbound'}">
+                                        ${call.direction.includes('originating') ? 'Inbound' : 'Outbound'}
+                                    </span>
+                                </td>
+                                <td style="padding: 12px;">${call.duration || 0}s</td>
+                                <td style="padding: 12px;">${call.status}</td>
+                                <td style="padding: 12px; font-size: 0.85rem; color: #888;">
+                                    ${call.from} → ${call.to}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function formatTranscript(transcript) {
+            if (!transcript) return '<em>No transcript available</em>';
+
+            // Parse transcript into lines
+            const lines = transcript.split('\n').filter(l => l.trim());
+
+            return lines.map(line => {
+                if (line.startsWith('Agent:')) {
+                    return `<div class="transcript-line agent"><span class="transcript-speaker">Agent:</span>${line.replace('Agent:', '')}</div>`;
+                } else if (line.startsWith('User:')) {
+                    return `<div class="transcript-line user"><span class="transcript-speaker">User:</span>${line.replace('User:', '')}</div>`;
+                }
+                return `<div class="transcript-line">${line}</div>`;
+            }).join('');
+        }
+
+        function formatDate(dateStr) {
+            try {
+                return new Date(dateStr).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+            } catch {
+                return dateStr;
+            }
+        }
+
+        function formatDateTime(date) {
+            try {
+                return date.toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+            } catch {
+                return date.toString();
+            }
+        }
+
+        function updateHeaderStats() {
+            document.getElementById('total-contacts').textContent = contactsData.length;
+
+            let totalCalls = 0;
+            let totalSMS = 0;
+            let totalTranscripts = 0;
+
+            contactsData.forEach(c => {
+                totalCalls += (c.call_details || []).length;
+                totalSMS += (c.sms_conversation || []).length;
+                totalTranscripts += (c.retell_transcriptions || []).length;
+            });
+
+            document.getElementById('total-calls').textContent = totalCalls.toLocaleString();
+            document.getElementById('total-sms').textContent = totalSMS.toLocaleString();
+            document.getElementById('total-transcripts').textContent = totalTranscripts.toLocaleString();
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

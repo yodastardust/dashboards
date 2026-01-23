@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketing Analysis: Touches to First Appointment</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .slide {
+            min-height: 100vh;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+            page-break-after: always;
+        }
+
+        .slide-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 40px;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .slide-subtitle {
+            font-size: 1.5rem;
+            color: #a0aec0;
+            margin-bottom: 30px;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        .metric-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,212,255,0.2);
+        }
+
+        .metric-value {
+            font-size: 4rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .metric-label {
+            font-size: 1.2rem;
+            color: #a0aec0;
+            margin-top: 10px;
+        }
+
+        .chart-container {
+            background: rgba(255,255,255,0.03);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 30px 0;
+            max-width: 900px;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .insight-box {
+            background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(124,58,237,0.1));
+            border-left: 4px solid #00d4ff;
+            padding: 30px;
+            border-radius: 0 15px 15px 0;
+            margin: 20px 0;
+        }
+
+        .insight-box h3 {
+            color: #00d4ff;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+
+        .insight-box p {
+            color: #e2e8f0;
+            line-height: 1.8;
+            font-size: 1.1rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .data-table th {
+            background: rgba(0,212,255,0.2);
+            padding: 15px 20px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid rgba(0,212,255,0.3);
+        }
+
+        .data-table td {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .data-table tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .highlight {
+            background: linear-gradient(90deg, rgba(0,212,255,0.2), rgba(124,58,237,0.2));
+            padding: 5px 15px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            color: #00d4ff;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .footer {
+            margin-top: auto;
+            padding-top: 40px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .recommendation-card {
+            background: linear-gradient(135deg, #065f46, #064e3b);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 15px 0;
+        }
+
+        .recommendation-card h4 {
+            color: #34d399;
+            margin-bottom: 10px;
+        }
+
+        @media print {
+            .slide {
+                page-break-after: always;
+                min-height: 100vh;
+            }
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Slide 1: Title -->
+<div class="slide">
+    <div class="logo-area">
+        <div class="logo-text">Stop My Auction Now</div>
+    </div>
+    <h1 class="slide-title">Lead Conversion Analysis</h1>
+    <p class="slide-subtitle">Touches to First Appointment: A Data-Driven Marketing Report</p>
+    <div class="metric-grid">
+        <div class="metric-card">
+            <div class="metric-value">753</div>
+            <div class="metric-label">Contacts Analyzed</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">4,827</div>
+            <div class="metric-label">Touch Points Tracked</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">4.8</div>
+            <div class="metric-label">Avg Touches to Convert</div>
+        </div>
+    </div>
+    <div class="footer">Analysis Date: January 2026 | Data Sources: Twilio, Go High Level, Retell AI</div>
+</div>
+
+<!-- Slide 2: Executive Summary -->
+<div class="slide">
+    <h1 class="slide-title">Executive Summary</h1>
+    <div class="two-column">
+        <div>
+            <div class="insight-box">
+                <h3>Key Finding</h3>
+                <p>On average, it takes <strong>4.8 touches</strong> (4.3 calls + 0.4 SMS) to convert a lead into a first appointment. The optimal contact window is <strong>14-59 days before auction</strong>, accounting for 59% of successful conversions.</p>
+            </div>
+            <div class="insight-box">
+                <h3>Data Coverage</h3>
+                <p>93.6% of converted leads have auction date data, enabling precise timing analysis. 99.3% have Twilio activity records for complete touch tracking.</p>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="summaryChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 3: Touch Distribution -->
+<div class="slide">
+    <h1 class="slide-title">How Many Touches Does It Take?</h1>
+    <p class="slide-subtitle">Distribution of touches before first appointment booking</p>
+    <div class="two-column">
+        <div class="chart-container">
+            <canvas id="touchDistChart"></canvas>
+        </div>
+        <div>
+            <div class="insight-box">
+                <h3>Quick Wins (1-2 touches)</h3>
+                <p><strong>44.2%</strong> of leads convert within 1-2 touches. These are likely highly motivated sellers responding to urgency.</p>
+            </div>
+            <div class="insight-box">
+                <h3>Persistence Pays</h3>
+                <p><strong>9.3%</strong> require 10+ touches. Don't give up on leads - nearly 1 in 10 conversions come from persistent follow-up.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 4: Timing Analysis -->
+<div class="slide">
+    <h1 class="slide-title">When to Contact: Timing is Everything</h1>
+    <p class="slide-subtitle">Successful touches relative to auction date</p>
+    <div class="chart-container" style="max-width: 100%;">
+        <canvas id="timingChart"></canvas>
+    </div>
+    <div class="insight-box" style="margin-top: 30px;">
+        <h3>The Sweet Spot: 14-59 Days Before Auction</h3>
+        <p>59.4% of all successful conversion touches happen in this window. Start outreach 60 days out, intensify at 30 days, and maximize effort in the 14-29 day range.</p>
+    </div>
+</div>
+
+<!-- Slide 5: Channel Performance -->
+<div class="slide">
+    <h1 class="slide-title">Channel Analysis: Calls vs SMS</h1>
+    <div class="metric-grid">
+        <div class="metric-card">
+            <div class="metric-value">3,235</div>
+            <div class="metric-label">Total Calls</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">324</div>
+            <div class="metric-label">Total SMS</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">91%</div>
+            <div class="metric-label">Calls</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">9%</div>
+            <div class="metric-label">SMS</div>
+        </div>
+    </div>
+    <div class="two-column" style="margin-top: 40px;">
+        <div class="chart-container">
+            <canvas id="channelChart"></canvas>
+        </div>
+        <div>
+            <div class="insight-box">
+                <h3>Calls Dominate</h3>
+                <p>Voice calls account for 91% of successful touches. The AI-powered Retell calls are highly effective at creating urgency and booking appointments on the spot.</p>
+            </div>
+            <div class="insight-box">
+                <h3>SMS Opportunity</h3>
+                <p>With only 9% of touches being SMS, there's potential to experiment with more text-based outreach for leads who don't answer calls.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 6: By Auction Type -->
+<div class="slide">
+    <h1 class="slide-title">Performance by Auction Type</h1>
+    <p class="slide-subtitle">Average touches to convert by property situation</p>
+    <div class="two-column">
+        <div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Auction Type</th>
+                        <th>Contacts</th>
+                        <th>Avg Touches</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Tax Deed</td>
+                        <td>347</td>
+                        <td class="highlight">5.3</td>
+                    </tr>
+                    <tr>
+                        <td>Foreclosure</td>
+                        <td>258</td>
+                        <td>4.2</td>
+                    </tr>
+                    <tr>
+                        <td>Foreclosure - HOA</td>
+                        <td>93</td>
+                        <td>4.3</td>
+                    </tr>
+                    <tr>
+                        <td>Other/Unknown</td>
+                        <td>55</td>
+                        <td>3.9</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div>
+            <div class="insight-box">
+                <h3>Tax Deed = More Touches</h3>
+                <p>Tax deed leads require 5.3 touches on average - about 25% more than foreclosure leads. This may be due to less urgency awareness or different owner profiles.</p>
+            </div>
+            <div class="insight-box">
+                <h3>Foreclosure Converts Faster</h3>
+                <p>Foreclosure leads (4.2 touches) may be more aware of their situation and timeline, making them quicker to engage.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 7: Recommendations -->
+<div class="slide">
+    <h1 class="slide-title">Strategic Recommendations</h1>
+    <div class="metric-grid" style="grid-template-columns: repeat(2, 1fr);">
+        <div class="recommendation-card">
+            <h4>1. Start Early, Peak at 30 Days</h4>
+            <p>Begin outreach 60+ days before auction. Increase cadence at 30 days. Maximum effort at 14-29 days before auction.</p>
+        </div>
+        <div class="recommendation-card">
+            <h4>2. Plan for 5 Touches</h4>
+            <p>Budget and schedule for an average of 5 contact attempts per lead. 44% will convert in 1-2, but 56% need more persistence.</p>
+        </div>
+        <div class="recommendation-card">
+            <h4>3. Prioritize Calls</h4>
+            <p>Voice calls are 10x more effective than SMS for this audience. AI voice agents are performing well at booking appointments.</p>
+        </div>
+        <div class="recommendation-card">
+            <h4>4. Don't Abandon After 5</h4>
+            <p>Nearly 10% of conversions happen after 10+ touches. Maintain contact cadence for the full lead lifecycle.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Slide 8: Next Steps -->
+<div class="slide">
+    <h1 class="slide-title">Next Steps</h1>
+    <div class="insight-box">
+        <h3>Automated Daily Tracking</h3>
+        <p>An n8n workflow has been configured to automatically track these metrics daily and store results in Supabase for ongoing analysis and dashboards.</p>
+    </div>
+    <div class="metric-grid" style="margin-top: 40px;">
+        <div class="metric-card">
+            <div class="metric-value" style="font-size: 2rem;">Daily Reports</div>
+            <div class="metric-label">Automated to Supabase</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value" style="font-size: 2rem;">Real-Time</div>
+            <div class="metric-label">Conversion Tracking</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value" style="font-size: 2rem;">Optimized</div>
+            <div class="metric-label">Contact Cadence</div>
+        </div>
+    </div>
+    <div class="footer" style="text-align: center; font-size: 1.2rem; margin-top: 60px;">
+        Questions? Let's discuss how to implement these insights.
+    </div>
+</div>
+
+<script>
+// Summary Donut Chart
+new Chart(document.getElementById('summaryChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Calls (4.3)', 'SMS (0.4)'],
+        datasets: [{
+            data: [4.3, 0.4],
+            backgroundColor: ['#00d4ff', '#7c3aed'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { color: '#fff', font: { size: 14 } }
+            },
+            title: {
+                display: true,
+                text: 'Average Touches by Channel',
+                color: '#fff',
+                font: { size: 18 }
+            }
+        }
+    }
+});
+
+// Touch Distribution Bar Chart
+new Chart(document.getElementById('touchDistChart'), {
+    type: 'bar',
+    data: {
+        labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '10+'],
+        datasets: [{
+            label: 'Contacts',
+            data: [173, 160, 95, 58, 40, 38, 36, 30, 27, 21, 70],
+            backgroundColor: 'rgba(0, 212, 255, 0.7)',
+            borderColor: '#00d4ff',
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            title: {
+                display: true,
+                text: 'Number of Touches Before Conversion',
+                color: '#fff',
+                font: { size: 16 }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { color: '#a0aec0' },
+                grid: { color: 'rgba(255,255,255,0.1)' }
+            },
+            x: {
+                ticks: { color: '#a0aec0' },
+                grid: { display: false }
+            }
+        }
+    }
+});
+
+// Timing Analysis Chart
+new Chart(document.getElementById('timingChart'), {
+    type: 'bar',
+    data: {
+        labels: ['90+ days', '60-89 days', '30-59 days', '14-29 days', '7-13 days', '1-6 days', 'Day of', 'After'],
+        datasets: [{
+            label: 'Successful Touches',
+            data: [294, 488, 978, 843, 315, 142, 5, 2],
+            backgroundColor: [
+                'rgba(100, 116, 139, 0.7)',
+                'rgba(124, 58, 237, 0.7)',
+                'rgba(0, 212, 255, 0.9)',
+                'rgba(52, 211, 153, 0.9)',
+                'rgba(251, 191, 36, 0.7)',
+                'rgba(239, 68, 68, 0.7)',
+                'rgba(239, 68, 68, 0.5)',
+                'rgba(239, 68, 68, 0.3)'
+            ],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        indexAxis: 'y',
+        plugins: {
+            legend: { display: false },
+            title: {
+                display: true,
+                text: 'When Successful Touches Occur (Days Before Auction)',
+                color: '#fff',
+                font: { size: 16 }
+            }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: { color: '#a0aec0' },
+                grid: { color: 'rgba(255,255,255,0.1)' }
+            },
+            y: {
+                ticks: { color: '#a0aec0' },
+                grid: { display: false }
+            }
+        }
+    }
+});
+
+// Channel Pie Chart
+new Chart(document.getElementById('channelChart'), {
+    type: 'pie',
+    data: {
+        labels: ['Calls (3,235)', 'SMS (324)'],
+        datasets: [{
+            data: [3235, 324],
+            backgroundColor: ['#00d4ff', '#7c3aed'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { color: '#fff', font: { size: 14 } }
+            },
+            title: {
+                display: true,
+                text: 'Total Touches by Channel',
+                color: '#fff',
+                font: { size: 16 }
+            }
+        }
+    }
+});
+</script>
+
+</body>
+</html>
