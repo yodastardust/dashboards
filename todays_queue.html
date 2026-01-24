@@ -826,7 +826,9 @@
         }
 
         function aggregateForOrderSheet(rawData) {
-            // Sort by priority_rank (from meta), then next_action_at
+            const COUNTY_BATCH_SIZE = 10; // Match dispatcher: 10 per county before cycling
+
+            // Step 1: Sort by priority within each county (matching dispatcher SQL)
             const sortedData = [...rawData].sort((a, b) => {
                 const priorityA = a.meta?.priority_rank || 999999;
                 const priorityB = b.meta?.priority_rank || 999999;
@@ -834,9 +836,31 @@
                 return new Date(a.next_action_at) - new Date(b.next_action_at);
             });
 
-            // Group by channel, tier, county, audience, status - maintaining order
+            // Step 2: Assign county_seq (position within each county)
+            const countySeq = {};
+            sortedData.forEach(item => {
+                const county = item.county || 'Unknown';
+                countySeq[county] = (countySeq[county] || 0) + 1;
+                item._county_seq = countySeq[county];
+            });
+
+            // Step 3: Sort by county rotation order (like dispatcher SQL)
+            // ORDER BY: batch_number, county, county_seq
+            sortedData.sort((a, b) => {
+                const batchA = Math.floor((a._county_seq - 1) / COUNTY_BATCH_SIZE);
+                const batchB = Math.floor((b._county_seq - 1) / COUNTY_BATCH_SIZE);
+                if (batchA !== batchB) return batchA - batchB;
+
+                const countyA = (a.county || 'Unknown').toLowerCase();
+                const countyB = (b.county || 'Unknown').toLowerCase();
+                if (countyA !== countyB) return countyA.localeCompare(countyB);
+
+                return a._county_seq - b._county_seq;
+            });
+
+            // Step 4: Group consecutive items, but cap at COUNTY_BATCH_SIZE per group
             const groups = [];
-            const groupMap = {};
+            let currentGroup = null;
 
             sortedData.forEach((item, index) => {
                 const channel = item.channel || 'unknown';
@@ -844,31 +868,30 @@
                 const county = item.county || 'Unknown';
                 const audience = item.meta?.audience_type || 'Unknown';
                 const status = item.status || 'unknown';
+                const batchNum = Math.floor((item._county_seq - 1) / COUNTY_BATCH_SIZE);
 
-                const key = `${channel}|${tier}|${county}|${audience}|${status}`;
+                const key = `${channel}|${tier}|${county}|${audience}|${status}|${batchNum}`;
 
-                if (!groupMap[key]) {
-                    groupMap[key] = {
+                // Start new group if key changes or we've hit the batch size limit
+                if (!currentGroup || currentGroup._key !== key) {
+                    currentGroup = {
+                        _key: key,
                         channel,
                         tier,
                         county,
                         audience,
                         status,
                         count: 0,
-                        firstIndex: index,
                         items: []
                     };
-                    groups.push(groupMap[key]);
+                    groups.push(currentGroup);
                 }
 
-                groupMap[key].count++;
-                groupMap[key].items.push(item);
+                currentGroup.count++;
+                currentGroup.items.push(item);
             });
 
-            // Sort groups by their first item's position (maintains send order)
-            groups.sort((a, b) => a.firstIndex - b.firstIndex);
-
-            // Calculate estimated send times based on 3/minute rate
+            // Step 5: Calculate estimated send times based on 3/minute rate
             let runningTotal = 0;
             groups.forEach(group => {
                 group.startPosition = runningTotal + 1;
