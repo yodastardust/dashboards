@@ -297,6 +297,10 @@
             height: 200px;
         }
 
+        .chart-container.wide {
+            height: 150px;
+        }
+
         .charts-row {
             display: flex;
             gap: 10px;
@@ -304,6 +308,10 @@
 
         .charts-row .chart-frame {
             flex: 1;
+        }
+
+        .chart-frame.full-width {
+            margin-top: 10px;
         }
 
         .summary-box {
@@ -508,11 +516,11 @@
                         <canvas id="audienceChart"></canvas>
                     </div>
                 </div>
-                <div class="chart-frame">
-                    <div class="chart-title">&#x25CF; HOURLY SCHEDULE</div>
-                    <div class="chart-container">
-                        <canvas id="hourlyChart"></canvas>
-                    </div>
+            </div>
+            <div class="chart-frame full-width">
+                <div class="chart-title">&#x25CF; HOURLY SCHEDULE</div>
+                <div class="chart-container wide">
+                    <canvas id="hourlyChart"></canvas>
                 </div>
             </div>
 
