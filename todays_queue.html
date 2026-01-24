@@ -304,6 +304,18 @@
             margin-top: 3px;
         }
 
+        .rate-limit-badge {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 10px;
+            background: rgba(0, 212, 255, 0.15);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 12px;
+            font-size: 0.75rem;
+            color: #00d4ff;
+            font-weight: 500;
+        }
+
         .filter-controls {
             display: flex;
             gap: 10px;
@@ -654,6 +666,7 @@
                 <div>
                     <div class="section-title">Send Order</div>
                     <div class="section-subtitle">Messages are sent in this order: Priority Rank → Scheduled Time → Created Time</div>
+                    <div class="rate-limit-badge">⚡ 3 msgs/min • 8 AM - 8 PM Eastern</div>
                 </div>
                 <div class="filter-controls">
                     <button class="filter-btn active" data-filter="all">All</button>
