@@ -519,10 +519,9 @@
             updateStatus('loading', 'Loading queue data...');
 
             try {
-                await Promise.all([
-                    loadTodaysQueue(),
-                    loadHourlyData()
-                ]);
+                // Load queue first, then hourly (depends on raw data)
+                await loadTodaysQueue();
+                await loadHourlyData();
 
                 const now = new Date();
                 updateStatus('success', `Last updated: ${now.toLocaleTimeString()}`);
@@ -544,8 +543,9 @@
         }
 
         async function loadTodaysQueue() {
-            // Query the dashboard.v_todays_queue view
-            const url = `${SUPABASE_URL}/rest/v1/v_todays_queue`;
+            // Query public.outreach_queue directly for today's data
+            const today = new Date().toISOString().split('T')[0];
+            const url = `${SUPABASE_URL}/rest/v1/outreach_queue?next_action_at=gte.${today}&next_action_at=lt.${today}T23:59:59&select=queue_id,channel,status,next_action_at,meta`;
 
             console.log('Fetching today\'s queue from:', url);
 
@@ -554,7 +554,6 @@
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
                     'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                    'Accept-Profile': 'dashboard',
                     'Content-Type': 'application/json'
                 }
             });
@@ -565,11 +564,55 @@
                 throw new Error(`Failed to fetch queue: ${response.status}`);
             }
 
-            const data = await response.json();
-            console.log('Queue data:', data);
+            const rawData = await response.json();
+            console.log('Raw queue data:', rawData.length, 'items');
 
-            allQueueData = data;
-            processQueueData(data);
+            // Store raw data for hourly chart
+            rawQueueItems = rawData;
+
+            // Aggregate raw data for display
+            allQueueData = aggregateQueueData(rawData);
+            processQueueData(allQueueData);
+        }
+
+        function aggregateQueueData(rawData) {
+            // Group by channel, tier, audience, status
+            const groups = {};
+
+            rawData.forEach(item => {
+                const channel = item.channel || 'unknown';
+                const tier = item.meta?.urgency_tier || 'Unknown';
+                const audience = item.meta?.audience_type || 'Unknown';
+                const status = item.status || 'unknown';
+
+                const key = `${channel}|${tier}|${audience}|${status}`;
+
+                if (!groups[key]) {
+                    groups[key] = {
+                        channel,
+                        tier,
+                        audience,
+                        status,
+                        count: 0,
+                        earliest: null,
+                        latest: null
+                    };
+                }
+
+                groups[key].count++;
+
+                const actionTime = item.next_action_at;
+                if (actionTime) {
+                    if (!groups[key].earliest || actionTime < groups[key].earliest) {
+                        groups[key].earliest = actionTime;
+                    }
+                    if (!groups[key].latest || actionTime > groups[key].latest) {
+                        groups[key].latest = actionTime;
+                    }
+                }
+            });
+
+            return Object.values(groups);
         }
 
         function processQueueData(data) {
@@ -697,31 +740,34 @@
             return audience.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         }
 
+        let rawQueueItems = []; // Store raw data for hourly calculation
+
         async function loadHourlyData() {
-            // Query the dashboard.v_hourly_queue view for today
-            const today = new Date().toISOString().split('T')[0];
-            const url = `${SUPABASE_URL}/rest/v1/v_hourly_queue?scheduled_date=eq.${today}`;
-
-            console.log('Fetching hourly data from:', url);
-
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                    'Accept-Profile': 'dashboard',
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                console.warn('Hourly data not available');
+            // Hourly data is computed from the raw queue items
+            // This is called after loadTodaysQueue sets rawQueueItems
+            if (rawQueueItems.length === 0) {
+                console.log('No queue items for hourly chart');
+                updateHourlyChart([]);
                 return;
             }
 
-            const data = await response.json();
-            console.log('Hourly data:', data);
+            // Aggregate by hour
+            const hourlyData = {};
+            rawQueueItems.forEach(item => {
+                if (item.next_action_at) {
+                    const hour = new Date(item.next_action_at).getHours();
+                    const channel = item.channel || 'unknown';
+                    const key = `${hour}|${channel}`;
 
+                    if (!hourlyData[key]) {
+                        hourlyData[key] = { hour, channel, count: 0 };
+                    }
+                    hourlyData[key].count++;
+                }
+            });
+
+            const data = Object.values(hourlyData);
+            console.log('Hourly data computed:', data);
             updateHourlyChart(data);
         }
 
