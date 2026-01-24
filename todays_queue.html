@@ -344,6 +344,27 @@
             color: #ff4757;
         }
 
+        .badge.warning {
+            background: rgba(255, 152, 0, 0.2);
+            color: #ff9800;
+        }
+
+        .compliance-warning {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .compliance-warning .warn-icon {
+            color: #ff9800;
+            font-size: 1rem;
+        }
+
+        .time-violation {
+            color: #ff4757;
+            font-weight: bold;
+        }
+
         .empty-state {
             text-align: center;
             padding: 40px;
@@ -432,6 +453,11 @@
                 <div class="kpi-value sent" id="sentCount">--</div>
                 <div class="kpi-subtext">delivered</div>
             </div>
+            <div class="kpi-card" id="violationCard" style="display:none;">
+                <div class="kpi-label">Time Violations</div>
+                <div class="kpi-value" style="background: linear-gradient(90deg, #ff4757, #ff9800); -webkit-background-clip: text;" id="violationCount">0</div>
+                <div class="kpi-subtext">outside 8am-8pm</div>
+            </div>
         </div>
 
         <!-- Charts -->
@@ -473,6 +499,7 @@
                     <tr>
                         <th>Channel</th>
                         <th>Tier</th>
+                        <th>County</th>
                         <th>Audience</th>
                         <th>Status</th>
                         <th>Scheduled</th>
@@ -481,7 +508,7 @@
                 </thead>
                 <tbody id="queueTableBody">
                     <tr>
-                        <td colspan="6" class="empty-state">
+                        <td colspan="7" class="empty-state">
                             <div class="empty-state-icon">📋</div>
                             <div>Loading queue data...</div>
                         </td>
@@ -545,7 +572,7 @@
         async function loadTodaysQueue() {
             // Query public.outreach_queue directly for today's data
             const today = new Date().toISOString().split('T')[0];
-            const url = `${SUPABASE_URL}/rest/v1/outreach_queue?next_action_at=gte.${today}&next_action_at=lt.${today}T23:59:59&select=queue_id,channel,status,next_action_at,meta`;
+            const url = `${SUPABASE_URL}/rest/v1/outreach_queue?next_action_at=gte.${today}&next_action_at=lt.${today}T23:59:59&select=queue_id,channel,status,next_action_at,meta,raw_row_id`;
 
             console.log('Fetching today\'s queue from:', url);
 
@@ -567,6 +594,42 @@
             const rawData = await response.json();
             console.log('Raw queue data:', rawData.length, 'items');
 
+            // Fetch property data to get county
+            const rawRowIds = [...new Set(rawData.map(r => r.raw_row_id).filter(Boolean))];
+            let propertyMap = {};
+
+            if (rawRowIds.length > 0) {
+                // Fetch in batches of 100
+                for (let i = 0; i < rawRowIds.length; i += 100) {
+                    const batch = rawRowIds.slice(i, i + 100);
+                    const propUrl = `${SUPABASE_URL}/rest/v1/marketing_ready_rows?raw_row_id=in.(${batch.join(',')})&select=raw_row_id,county,property_address`;
+
+                    const propResponse = await fetch(propUrl, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (propResponse.ok) {
+                        const propData = await propResponse.json();
+                        propData.forEach(p => {
+                            propertyMap[p.raw_row_id] = { county: p.county, address: p.property_address };
+                        });
+                    }
+                }
+                console.log('Property data loaded:', Object.keys(propertyMap).length, 'properties');
+            }
+
+            // Enrich queue data with property info
+            rawData.forEach(item => {
+                if (item.raw_row_id && propertyMap[item.raw_row_id]) {
+                    item.county = propertyMap[item.raw_row_id].county;
+                    item.property_address = propertyMap[item.raw_row_id].address;
+                }
+            });
+
             // Store raw data for hourly chart
             rawQueueItems = rawData;
 
@@ -576,26 +639,29 @@
         }
 
         function aggregateQueueData(rawData) {
-            // Group by channel, tier, audience, status
+            // Group by channel, tier, county, audience, status
             const groups = {};
 
             rawData.forEach(item => {
                 const channel = item.channel || 'unknown';
                 const tier = item.meta?.urgency_tier || 'Unknown';
+                const county = item.county || 'Unknown';
                 const audience = item.meta?.audience_type || 'Unknown';
                 const status = item.status || 'unknown';
 
-                const key = `${channel}|${tier}|${audience}|${status}`;
+                const key = `${channel}|${tier}|${county}|${audience}|${status}`;
 
                 if (!groups[key]) {
                     groups[key] = {
                         channel,
                         tier,
+                        county,
                         audience,
                         status,
                         count: 0,
                         earliest: null,
-                        latest: null
+                        latest: null,
+                        hasTimeViolation: false
                     };
                 }
 
@@ -608,6 +674,14 @@
                     }
                     if (!groups[key].latest || actionTime > groups[key].latest) {
                         groups[key].latest = actionTime;
+                    }
+
+                    // Check for 8am-8pm compliance (SMS only)
+                    if (channel === 'sms') {
+                        const hour = new Date(actionTime).getHours();
+                        if (hour < 8 || hour >= 20) {
+                            groups[key].hasTimeViolation = true;
+                        }
                     }
                 }
             });
@@ -622,6 +696,7 @@
             let voiceCount = 0;
             let pendingCount = 0;
             let sentCount = 0;
+            let violationCount = 0;
 
             const tierCounts = { V1: 0, V2: 0, V3: 0, V4: 0 };
             const audienceCounts = {};
@@ -638,6 +713,9 @@
                 if (row.status === 'queued') pendingCount += count;
                 if (row.status === 'sent') sentCount += count;
 
+                // Time violation counts
+                if (row.hasTimeViolation) violationCount += count;
+
                 // Tier counts
                 const tier = row.tier || 'Unknown';
                 if (tierCounts[tier] !== undefined) tierCounts[tier] += count;
@@ -646,6 +724,15 @@
                 const audience = row.audience || 'Unknown';
                 audienceCounts[audience] = (audienceCounts[audience] || 0) + count;
             });
+
+            // Show/hide violation card
+            const violationCard = document.getElementById('violationCard');
+            if (violationCount > 0) {
+                violationCard.style.display = 'block';
+                document.getElementById('violationCount').textContent = violationCount.toLocaleString();
+            } else {
+                violationCard.style.display = 'none';
+            }
 
             // Update KPI cards
             document.getElementById('totalQueued').textContent = totalQueued.toLocaleString();
@@ -842,7 +929,7 @@
             if (!data || data.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="empty-state">
+                        <td colspan="7" class="empty-state">
                             <div class="empty-state-icon">📭</div>
                             <div>No messages scheduled for today</div>
                         </td>
@@ -851,23 +938,30 @@
                 return;
             }
 
-            // Sort by tier priority
+            // Sort by tier priority, then county
             const tierOrder = { V1: 1, V2: 2, V3: 3, V4: 4 };
-            data.sort((a, b) => (tierOrder[a.tier] || 5) - (tierOrder[b.tier] || 5));
+            data.sort((a, b) => {
+                const tierDiff = (tierOrder[a.tier] || 5) - (tierOrder[b.tier] || 5);
+                if (tierDiff !== 0) return tierDiff;
+                return (a.county || '').localeCompare(b.county || '');
+            });
 
-            tbody.innerHTML = data.map(row => `
+            tbody.innerHTML = data.map(row => {
+                const timeDisplay = formatTimeRange(row.earliest, row.latest, row.hasTimeViolation);
+                return `
                 <tr data-channel="${row.channel}" data-status="${row.status}">
                     <td><span class="badge ${row.channel}">${(row.channel || '').toUpperCase()}</span></td>
                     <td><span class="badge ${(row.tier || '').toLowerCase()}">${row.tier || '-'}</span></td>
+                    <td>${row.county || '-'}</td>
                     <td>${formatAudienceLabel(row.audience)}</td>
                     <td><span class="badge ${row.status}">${row.status || '-'}</span></td>
-                    <td>${formatTimeRange(row.earliest, row.latest)}</td>
+                    <td>${timeDisplay}</td>
                     <td><strong>${parseInt(row.count).toLocaleString()}</strong></td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
-        function formatTimeRange(earliest, latest) {
+        function formatTimeRange(earliest, latest, hasViolation = false) {
             if (!earliest) return '-';
 
             const earlyTime = new Date(earliest).toLocaleTimeString('en-US', {
@@ -876,15 +970,22 @@
                 hour12: true
             });
 
-            if (!latest || earliest === latest) return earlyTime;
+            let display;
+            if (!latest || earliest === latest) {
+                display = earlyTime;
+            } else {
+                const lateTime = new Date(latest).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+                display = `${earlyTime} - ${lateTime}`;
+            }
 
-            const lateTime = new Date(latest).toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-            });
-
-            return `${earlyTime} - ${lateTime}`;
+            if (hasViolation) {
+                return `<span class="compliance-warning"><span class="warn-icon">⚠️</span><span class="time-violation">${display}</span></span>`;
+            }
+            return display;
         }
 
         function filterTable(filter) {
