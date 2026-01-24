@@ -1144,12 +1144,23 @@
                     ? `${row.startPosition} - ${row.endPosition}`
                     : `${row.startPosition}`;
 
-                const estTime = calculateEstSendTime(row.startPosition);
-                const estTimeDisplay = estTime.toLocaleTimeString('en-US', {
+                // Calculate start time (when first message in group sends)
+                const estStartTime = calculateEstSendTime(row.startPosition);
+                // Calculate end time (when last message in group sends)
+                const estEndTime = calculateEstSendTime(row.endPosition);
+
+                const formatTime = (t) => t.toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
                     hour12: true
                 });
+
+                // Show range if group spans more than 1 minute
+                const startTimeStr = formatTime(estStartTime);
+                const endTimeStr = formatTime(estEndTime);
+                const estTimeDisplay = (row.count > 3 && startTimeStr !== endTimeStr)
+                    ? `${startTimeStr} - ${endTimeStr}`
+                    : startTimeStr;
 
                 // Highlight current batch
                 const isCurrentBatch = row.startPosition <= currentBatchStart + 3 &&
