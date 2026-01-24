@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Today's Queue - Stop My Auction Now</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e4e4e4;
+        }
+
+        .header {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-link {
+            padding: 8px 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.05);
+            color: #aaa;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .refresh-btn {
+            padding: 8px 20px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .refresh-btn:hover {
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 20px 30px;
+        }
+
+        /* Status Banner */
+        .status-banner {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-banner.loading {
+            background: rgba(255, 193, 7, 0.1);
+            border-color: rgba(255, 193, 7, 0.3);
+        }
+
+        .status-banner.error {
+            background: rgba(255, 71, 87, 0.1);
+            border-color: rgba(255, 71, 87, 0.3);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00d4ff;
+            animation: pulse 2s infinite;
+        }
+
+        .status-banner.loading .status-dot {
+            background: #ffc107;
+        }
+
+        .status-banner.error .status-dot {
+            background: #ff4757;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Dispatch Info Banner */
+        .dispatch-info {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dispatch-info-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .dispatch-icon {
+            font-size: 1.5rem;
+        }
+
+        .dispatch-text h3 {
+            color: #00ff88;
+            font-size: 1rem;
+            margin-bottom: 3px;
+        }
+
+        .dispatch-text p {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .dispatch-stats {
+            display: flex;
+            gap: 30px;
+        }
+
+        .dispatch-stat {
+            text-align: center;
+        }
+
+        .dispatch-stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .dispatch-stat-label {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        /* KPI Cards Row */
+        .kpi-cards {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .kpi-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .kpi-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .kpi-value.sms {
+            background: linear-gradient(90deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+        }
+
+        .kpi-value.voice {
+            background: linear-gradient(90deg, #7b2cbf, #ff6b9d);
+            -webkit-background-clip: text;
+        }
+
+        .kpi-value.pending {
+            background: linear-gradient(90deg, #ffc107, #ff9800);
+            -webkit-background-clip: text;
+        }
+
+        .kpi-value.sent {
+            background: linear-gradient(90deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+        }
+
+        .kpi-subtext {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .chart-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .chart-card.wide {
+            grid-column: span 2;
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            margin-bottom: 15px;
+            color: #ccc;
+        }
+
+        .chart-container {
+            height: 250px;
+            position: relative;
+        }
+
+        /* Queue Table */
+        .queue-section {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            color: #ccc;
+        }
+
+        .section-subtitle {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 15px;
+            background: transparent;
+            color: #888;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+
+        .queue-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .queue-table th {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: #888;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .queue-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.9rem;
+        }
+
+        .queue-table tr:hover {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .queue-table tr.current-batch {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 3px solid #00ff88;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge.sms {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+
+        .badge.voice {
+            background: rgba(123, 44, 191, 0.2);
+            color: #a855f7;
+        }
+
+        .badge.v1 {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+        }
+
+        .badge.v2 {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .badge.v3 {
+            background: rgba(255, 152, 0, 0.2);
+            color: #ff9800;
+        }
+
+        .badge.v4 {
+            background: rgba(255, 71, 87, 0.2);
+            color: #ff4757;
+        }
+
+        .badge.queued {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .badge.sent {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+
+        .badge.failed {
+            background: rgba(255, 71, 87, 0.2);
+            color: #ff4757;
+        }
+
+        .batch-number {
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .est-time {
+            color: #00ff88;
+            font-family: monospace;
+        }
+
+        .tier-desc {
+            color: #666;
+            font-size: 0.75rem;
+            margin-left: 5px;
+        }
+
+        /* Summary Stats */
+        .summary-stats {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+        }
+
+        .summary-title {
+            color: #fff;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .summary-items {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .summary-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .summary-bullet {
+            color: #00ff88;
+        }
+
+        .summary-label {
+            color: #888;
+        }
+
+        .summary-value {
+            color: #e4e4e4;
+        }
+
+        .summary-value .highlight {
+            color: #00d4ff;
+        }
+
+        .summary-value .pct {
+            color: #ffc107;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        /* Progress indicator */
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #00d4ff);
+            transition: width 0.5s ease;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .kpi-cards {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .charts-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .chart-card.wide {
+                grid-column: span 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .kpi-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .queue-table {
+                font-size: 0.8rem;
+            }
+            .dispatch-info {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Today's Queue</h1>
+        <div class="header-controls">
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">KPI Dashboard</a>
+                <a href="communications.html" class="nav-link">Communications</a>
+                <a href="todays_queue.html" class="nav-link active">Today's Queue</a>
+            </div>
+            <button class="refresh-btn" onclick="loadAllData()">Refresh</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- Status Banner -->
+        <div id="statusBanner" class="status-banner loading">
+            <div class="status-dot"></div>
+            <span id="statusText">Loading queue data...</span>
+        </div>
+
+        <!-- Dispatch Info -->
+        <div class="dispatch-info">
+            <div class="dispatch-info-left">
+                <div class="dispatch-icon">📤</div>
+                <div class="dispatch-text">
+                    <h3>SMS Dispatcher Active</h3>
+                    <p>Sending 3 messages per minute between 8am - 8pm Eastern</p>
+                </div>
+            </div>
+            <div class="dispatch-stats">
+                <div class="dispatch-stat">
+                    <div class="dispatch-stat-value" id="estCompletionTime">--</div>
+                    <div class="dispatch-stat-label">Est. Completion</div>
+                </div>
+                <div class="dispatch-stat">
+                    <div class="dispatch-stat-value" id="messagesPerHour">180</div>
+                    <div class="dispatch-stat-label">Per Hour</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Queue Summary Stats -->
+        <div class="summary-stats" id="summaryStats">
+            <div class="summary-title">Queue Summary (<span id="summaryTotal">--</span> contacts)</div>
+            <div class="summary-items">
+                <div class="summary-item">
+                    <span class="summary-bullet">•</span>
+                    <span class="summary-label">Audience distribution:</span>
+                    <span class="summary-value" id="audienceDistribution">Loading...</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-bullet">•</span>
+                    <span class="summary-label">Urgency tiers:</span>
+                    <span class="summary-value" id="tierDistribution">Loading...</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-bullet">•</span>
+                    <span class="summary-label">Counties:</span>
+                    <span class="summary-value" id="countyDistribution">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-cards">
+            <div class="kpi-card">
+                <div class="kpi-label">Total Queued</div>
+                <div class="kpi-value" id="totalQueued">--</div>
+                <div class="kpi-subtext">messages scheduled</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">SMS</div>
+                <div class="kpi-value sms" id="smsCount">--</div>
+                <div class="kpi-subtext">text messages</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Voice</div>
+                <div class="kpi-value voice" id="voiceCount">--</div>
+                <div class="kpi-subtext">phone calls</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Pending</div>
+                <div class="kpi-value pending" id="pendingCount">--</div>
+                <div class="kpi-subtext">in queue</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Sent Today</div>
+                <div class="kpi-value sent" id="sentCount">--</div>
+                <div class="kpi-subtext">delivered</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title">Urgency Tier Distribution</div>
+                <div class="chart-container">
+                    <canvas id="tierChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Audience Type</div>
+                <div class="chart-container">
+                    <canvas id="audienceChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Hourly Schedule</div>
+                <div class="chart-container">
+                    <canvas id="hourlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Queue Table - Order Sheet Style -->
+        <div class="queue-section">
+            <div class="section-header">
+                <div>
+                    <div class="section-title">Send Order</div>
+                    <div class="section-subtitle">Messages are sent in this order: Priority Rank → Scheduled Time → Created Time</div>
+                </div>
+                <div class="filter-controls">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="sms">SMS</button>
+                    <button class="filter-btn" data-filter="voice">Voice</button>
+                    <button class="filter-btn" data-filter="queued">Pending</button>
+                    <button class="filter-btn" data-filter="sent">Sent</button>
+                </div>
+            </div>
+            <table class="queue-table">
+                <thead>
+                    <tr>
+                        <th>Order</th>
+                        <th>Est. Send</th>
+                        <th>Channel</th>
+                        <th>Tier</th>
+                        <th>County</th>
+                        <th>Audience</th>
+                        <th>Status</th>
+                        <th>Count</th>
+                    </tr>
+                </thead>
+                <tbody id="queueTableBody">
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <div class="empty-state-icon">📋</div>
+                            <div>Loading queue data...</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'https://saksbjogtkagedmlsrsv.supabase.co';
+        // Using service role key for internal dashboard (bypasses RLS)
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTI1NTEwMywiZXhwIjoyMDg0NjE1MTAzfQ.X7fHo2v_7HZBYZzggydteFbMh_y_pgQN78yynby5sI4';
+
+        // Dispatch settings
+        const MESSAGES_PER_MINUTE = 3;
+        const START_HOUR = 8;
+        const END_HOUR = 20;
+
+        let tierChart, audienceChart, hourlyChart;
+        let allQueueData = [];
+        let rawQueueItems = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAllData();
+            setupFilterButtons();
+        });
+
+        function setupFilterButtons() {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    filterTable(btn.dataset.filter);
+                });
+            });
+        }
+
+        async function loadAllData() {
+            updateStatus('loading', 'Loading queue data...');
+
+            try {
+                await loadTodaysQueue();
+                await loadHourlyData();
+
+                const now = new Date();
+                updateStatus('success', `Last updated: ${now.toLocaleTimeString()}`);
+            } catch (error) {
+                console.error('Error loading data:', error);
+                updateStatus('error', `Error: ${error.message}`);
+            }
+        }
+
+        function updateStatus(type, message) {
+            const banner = document.getElementById('statusBanner');
+            const text = document.getElementById('statusText');
+
+            banner.className = 'status-banner';
+            if (type === 'loading') banner.classList.add('loading');
+            if (type === 'error') banner.classList.add('error');
+
+            text.textContent = message;
+        }
+
+        async function loadTodaysQueue() {
+            // Query public.outreach_queue for today's queued items
+            const today = new Date().toISOString().split('T')[0];
+            const url = `${SUPABASE_URL}/rest/v1/outreach_queue?next_action_at=gte.${today}&next_action_at=lt.${today}T23:59:59&select=queue_id,channel,status,next_action_at,meta,raw_row_id&order=next_action_at.asc`;
+
+            console.log('Fetching today\'s queue from:', url);
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Queue fetch error:', response.status, errorText);
+                throw new Error(`Failed to fetch queue: ${response.status}`);
+            }
+
+            const rawData = await response.json();
+            console.log('Raw queue data:', rawData.length, 'items');
+
+            // Fetch property data to get county
+            const rawRowIds = [...new Set(rawData.map(r => r.raw_row_id).filter(Boolean))];
+            let propertyMap = {};
+
+            if (rawRowIds.length > 0) {
+                for (let i = 0; i < rawRowIds.length; i += 100) {
+                    const batch = rawRowIds.slice(i, i + 100);
+                    const propUrl = `${SUPABASE_URL}/rest/v1/marketing_ready_rows?raw_row_id=in.(${batch.join(',')})&select=raw_row_id,county,property_address`;
+
+                    const propResponse = await fetch(propUrl, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (propResponse.ok) {
+                        const propData = await propResponse.json();
+                        propData.forEach(p => {
+                            propertyMap[p.raw_row_id] = { county: p.county, address: p.property_address };
+                        });
+                    }
+                }
+                console.log('Property data loaded:', Object.keys(propertyMap).length, 'properties');
+            }
+
+            // Enrich queue data with property info
+            rawData.forEach(item => {
+                if (item.raw_row_id && propertyMap[item.raw_row_id]) {
+                    item.county = propertyMap[item.raw_row_id].county;
+                    item.property_address = propertyMap[item.raw_row_id].address;
+                }
+            });
+
+            rawQueueItems = rawData;
+
+            // Aggregate and process for order sheet display
+            allQueueData = aggregateForOrderSheet(rawData);
+            processQueueData(allQueueData);
+        }
+
+        function aggregateForOrderSheet(rawData) {
+            // Sort by priority_rank (from meta), then next_action_at
+            const sortedData = [...rawData].sort((a, b) => {
+                const priorityA = a.meta?.priority_rank || 999999;
+                const priorityB = b.meta?.priority_rank || 999999;
+                if (priorityA !== priorityB) return priorityA - priorityB;
+                return new Date(a.next_action_at) - new Date(b.next_action_at);
+            });
+
+            // Group by channel, tier, county, audience, status - maintaining order
+            const groups = [];
+            const groupMap = {};
+
+            sortedData.forEach((item, index) => {
+                const channel = item.channel || 'unknown';
+                const tier = item.meta?.urgency_tier || 'Unknown';
+                const county = item.county || 'Unknown';
+                const audience = item.meta?.audience_type || 'Unknown';
+                const status = item.status || 'unknown';
+
+                const key = `${channel}|${tier}|${county}|${audience}|${status}`;
+
+                if (!groupMap[key]) {
+                    groupMap[key] = {
+                        channel,
+                        tier,
+                        county,
+                        audience,
+                        status,
+                        count: 0,
+                        firstIndex: index,
+                        items: []
+                    };
+                    groups.push(groupMap[key]);
+                }
+
+                groupMap[key].count++;
+                groupMap[key].items.push(item);
+            });
+
+            // Sort groups by their first item's position (maintains send order)
+            groups.sort((a, b) => a.firstIndex - b.firstIndex);
+
+            // Calculate estimated send times based on 3/minute rate
+            let runningTotal = 0;
+            groups.forEach(group => {
+                group.startPosition = runningTotal + 1;
+                group.endPosition = runningTotal + group.count;
+                runningTotal += group.count;
+            });
+
+            return groups;
+        }
+
+        function calculateEstSendTime(position) {
+            // 3 messages per minute = 1 message every 20 seconds
+            // Start from now or 8am, whichever is later
+            const now = new Date();
+            let startTime = new Date();
+
+            const currentHour = now.getHours();
+            if (currentHour < START_HOUR) {
+                startTime.setHours(START_HOUR, 0, 0, 0);
+            } else if (currentHour >= END_HOUR) {
+                // After hours - start tomorrow at 8am
+                startTime.setDate(startTime.getDate() + 1);
+                startTime.setHours(START_HOUR, 0, 0, 0);
+            }
+
+            // Each batch of 3 takes 1 minute
+            const minutesFromStart = Math.floor((position - 1) / MESSAGES_PER_MINUTE);
+            const estTime = new Date(startTime.getTime() + minutesFromStart * 60 * 1000);
+
+            return estTime;
+        }
+
+        function processQueueData(data) {
+            // Calculate totals
+            let totalQueued = 0;
+            let smsCount = 0;
+            let voiceCount = 0;
+            let pendingCount = 0;
+            let sentCount = 0;
+
+            const tierCounts = { V1: 0, V2: 0, V3: 0, V4: 0 };
+            const audienceCounts = {};
+
+            data.forEach(row => {
+                const count = parseInt(row.count) || 0;
+                totalQueued += count;
+
+                if (row.channel === 'sms') smsCount += count;
+                if (row.channel === 'voice') voiceCount += count;
+                if (row.status === 'queued') pendingCount += count;
+                if (row.status === 'sent') sentCount += count;
+
+                const tier = row.tier || 'Unknown';
+                if (tierCounts[tier] !== undefined) tierCounts[tier] += count;
+
+                const audience = row.audience || 'Unknown';
+                audienceCounts[audience] = (audienceCounts[audience] || 0) + count;
+            });
+
+            // Update KPI cards
+            document.getElementById('totalQueued').textContent = totalQueued.toLocaleString();
+            document.getElementById('smsCount').textContent = smsCount.toLocaleString();
+            document.getElementById('voiceCount').textContent = voiceCount.toLocaleString();
+            document.getElementById('pendingCount').textContent = pendingCount.toLocaleString();
+            document.getElementById('sentCount').textContent = sentCount.toLocaleString();
+
+            // Update summary stats
+            updateSummaryStats(totalQueued, audienceCounts, tierCounts, data);
+
+            // Calculate estimated completion time for pending items
+            if (pendingCount > 0) {
+                const estCompletion = calculateEstSendTime(pendingCount);
+                document.getElementById('estCompletionTime').textContent = estCompletion.toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+            } else {
+                document.getElementById('estCompletionTime').textContent = 'Done!';
+            }
+
+            // Update charts
+            updateTierChart(tierCounts);
+            updateAudienceChart(audienceCounts);
+
+            // Update table
+            updateQueueTable(data);
+        }
+
+        function updateTierChart(tierCounts) {
+            const ctx = document.getElementById('tierChart').getContext('2d');
+
+            if (tierChart) tierChart.destroy();
+
+            tierChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['V1 (45+ days)', 'V2 (30-44 days)', 'V3 (14-29 days)', 'V4 (1-13 days)'],
+                    datasets: [{
+                        data: [tierCounts.V1, tierCounts.V2, tierCounts.V3, tierCounts.V4],
+                        backgroundColor: [
+                            'rgba(0, 212, 255, 0.8)',
+                            'rgba(255, 193, 7, 0.8)',
+                            'rgba(255, 152, 0, 0.8)',
+                            'rgba(255, 71, 87, 0.8)'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#888' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateAudienceChart(audienceCounts) {
+            const ctx = document.getElementById('audienceChart').getContext('2d');
+
+            if (audienceChart) audienceChart.destroy();
+
+            const labels = Object.keys(audienceCounts);
+            const values = Object.values(audienceCounts);
+
+            const colors = [
+                'rgba(0, 212, 255, 0.8)',
+                'rgba(123, 44, 191, 0.8)',
+                'rgba(0, 255, 136, 0.8)',
+                'rgba(255, 152, 0, 0.8)',
+                'rgba(255, 71, 87, 0.8)'
+            ];
+
+            audienceChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels.map(l => formatAudienceLabel(l)),
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#888' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function formatAudienceLabel(audience) {
+            if (!audience) return 'Unknown';
+            return audience.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        async function loadHourlyData() {
+            if (rawQueueItems.length === 0) {
+                console.log('No queue items for hourly chart');
+                updateHourlyChart([]);
+                return;
+            }
+
+            const hourlyData = {};
+            rawQueueItems.forEach(item => {
+                if (item.next_action_at) {
+                    const hour = new Date(item.next_action_at).getHours();
+                    const channel = item.channel || 'unknown';
+                    const key = `${hour}|${channel}`;
+
+                    if (!hourlyData[key]) {
+                        hourlyData[key] = { hour, channel, count: 0 };
+                    }
+                    hourlyData[key].count++;
+                }
+            });
+
+            const data = Object.values(hourlyData);
+            console.log('Hourly data computed:', data);
+            updateHourlyChart(data);
+        }
+
+        function updateHourlyChart(data) {
+            const ctx = document.getElementById('hourlyChart').getContext('2d');
+
+            if (hourlyChart) hourlyChart.destroy();
+
+            const hourlyTotals = {};
+            for (let i = START_HOUR; i <= END_HOUR; i++) {
+                hourlyTotals[i] = { sms: 0, voice: 0 };
+            }
+
+            data.forEach(row => {
+                const hour = parseInt(row.hour);
+                if (hour >= START_HOUR && hour <= END_HOUR) {
+                    if (row.channel === 'sms') hourlyTotals[hour].sms += parseInt(row.count) || 0;
+                    if (row.channel === 'voice') hourlyTotals[hour].voice += parseInt(row.count) || 0;
+                }
+            });
+
+            const hours = Object.keys(hourlyTotals).map(h => `${h}:00`);
+            const smsData = Object.values(hourlyTotals).map(v => v.sms);
+            const voiceData = Object.values(hourlyTotals).map(v => v.voice);
+
+            hourlyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [
+                        {
+                            label: 'SMS',
+                            data: smsData,
+                            backgroundColor: 'rgba(0, 255, 136, 0.7)'
+                        },
+                        {
+                            label: 'Voice',
+                            data: voiceData,
+                            backgroundColor: 'rgba(123, 44, 191, 0.7)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#888' }
+                        },
+                        y: {
+                            stacked: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#888' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: '#888' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateQueueTable(data) {
+            const tbody = document.getElementById('queueTableBody');
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <div class="empty-state-icon">📭</div>
+                            <div>No messages scheduled for today</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Find which batch is currently being processed
+            const now = new Date();
+            const currentHour = now.getHours();
+            let currentBatchStart = 0;
+            if (currentHour >= START_HOUR && currentHour < END_HOUR) {
+                // Estimate current position based on time elapsed
+                const startTime = new Date();
+                startTime.setHours(START_HOUR, 0, 0, 0);
+                const minutesElapsed = Math.floor((now - startTime) / 60000);
+                currentBatchStart = minutesElapsed * MESSAGES_PER_MINUTE;
+            }
+
+            tbody.innerHTML = data.map((row, index) => {
+                const orderDisplay = row.count > 1
+                    ? `${row.startPosition} - ${row.endPosition}`
+                    : `${row.startPosition}`;
+
+                const estTime = calculateEstSendTime(row.startPosition);
+                const estTimeDisplay = estTime.toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+
+                // Highlight current batch
+                const isCurrentBatch = row.startPosition <= currentBatchStart + 3 &&
+                                       row.endPosition >= currentBatchStart &&
+                                       row.status === 'queued';
+
+                const tierLabel = getTierLabel(row.tier);
+
+                return `
+                <tr data-channel="${row.channel}" data-status="${row.status}" class="${isCurrentBatch ? 'current-batch' : ''}">
+                    <td><span class="batch-number">#${orderDisplay}</span></td>
+                    <td><span class="est-time">${row.status === 'sent' ? 'Sent' : estTimeDisplay}</span></td>
+                    <td><span class="badge ${row.channel}">${(row.channel || '').toUpperCase()}</span></td>
+                    <td><span class="badge ${(row.tier || '').toLowerCase()}">${row.tier || '-'}</span> <span class="tier-desc">${tierLabel}</span></td>
+                    <td>${row.county || '-'}</td>
+                    <td>${formatAudienceLabel(row.audience)}</td>
+                    <td><span class="badge ${row.status}">${row.status || '-'}</span></td>
+                    <td><strong>${parseInt(row.count).toLocaleString()}</strong></td>
+                </tr>
+            `}).join('');
+        }
+
+        function getTierLabel(tier) {
+            const labels = {
+                'V1': '45+ days (awareness)',
+                'V2': '30-44 days (warming)',
+                'V3': '14-29 days (hot)',
+                'V4': '1-13 days (urgent)'
+            };
+            return labels[tier] || '';
+        }
+
+        function updateSummaryStats(total, audienceCounts, tierCounts, data) {
+            // Update total
+            document.getElementById('summaryTotal').textContent = total.toLocaleString();
+
+            // Calculate audience distribution percentages
+            const audienceItems = Object.entries(audienceCounts)
+                .filter(([k, v]) => v > 0)
+                .sort((a, b) => b[1] - a[1])
+                .map(([name, count]) => {
+                    const pct = ((count / total) * 100).toFixed(1);
+                    const displayName = name.replace(/_/g, '_');
+                    return `<span class="pct">${pct}%</span> ${displayName}`;
+                });
+            document.getElementById('audienceDistribution').innerHTML = audienceItems.join(', ');
+
+            // Tier distribution with counts
+            const tierItems = ['V1', 'V2', 'V3', 'V4']
+                .filter(t => tierCounts[t] > 0)
+                .map(t => `<span class="highlight">${t}</span> (${tierCounts[t].toLocaleString()})`);
+            document.getElementById('tierDistribution').innerHTML = tierItems.join(', ');
+
+            // County distribution (top 5)
+            const countyCounts = {};
+            data.forEach(row => {
+                const county = row.county || 'Unknown';
+                countyCounts[county] = (countyCounts[county] || 0) + row.count;
+            });
+
+            const countyItems = Object.entries(countyCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([name, count]) => `${name} (${count.toLocaleString()})`);
+
+            const countyDisplay = countyItems.join(', ');
+            const totalCounties = Object.keys(countyCounts).length;
+            document.getElementById('countyDistribution').innerHTML =
+                countyDisplay + (totalCounties > 5 ? ` <span class="highlight">+${totalCounties - 5} more</span>` : '');
+        }
+
+        function filterTable(filter) {
+            const rows = document.querySelectorAll('#queueTableBody tr[data-channel]');
+
+            rows.forEach(row => {
+                const channel = row.dataset.channel;
+                const status = row.dataset.status;
+
+                let show = true;
+                if (filter === 'sms') show = channel === 'sms';
+                else if (filter === 'voice') show = channel === 'voice';
+                else if (filter === 'queued') show = status === 'queued';
+                else if (filter === 'sent') show = status === 'sent';
+
+                row.style.display = show ? '' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>
