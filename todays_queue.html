@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Today's Queue - Stop My Auction Now</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e4e4e4;
+        }
+
+        .header {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-link {
+            padding: 8px 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.05);
+            color: #aaa;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .refresh-btn {
+            padding: 8px 20px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .refresh-btn:hover {
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 20px 30px;
+        }
+
+        /* Status Banner */
+        .status-banner {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-banner.loading {
+            background: rgba(255, 193, 7, 0.1);
+            border-color: rgba(255, 193, 7, 0.3);
+        }
+
+        .status-banner.error {
+            background: rgba(255, 71, 87, 0.1);
+            border-color: rgba(255, 71, 87, 0.3);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00d4ff;
+            animation: pulse 2s infinite;
+        }
+
+        .status-banner.loading .status-dot {
+            background: #ffc107;
+        }
+
+        .status-banner.error .status-dot {
+            background: #ff4757;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* KPI Cards Row */
+        .kpi-cards {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .kpi-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .kpi-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .kpi-value.sms {
+            background: linear-gradient(90deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+        }
+
+        .kpi-value.voice {
+            background: linear-gradient(90deg, #7b2cbf, #ff6b9d);
+            -webkit-background-clip: text;
+        }
+
+        .kpi-value.pending {
+            background: linear-gradient(90deg, #ffc107, #ff9800);
+            -webkit-background-clip: text;
+        }
+
+        .kpi-value.sent {
+            background: linear-gradient(90deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+        }
+
+        .kpi-subtext {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .chart-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .chart-card.wide {
+            grid-column: span 2;
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            margin-bottom: 15px;
+            color: #ccc;
+        }
+
+        .chart-container {
+            height: 250px;
+            position: relative;
+        }
+
+        /* Queue Table */
+        .queue-section {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            color: #ccc;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 15px;
+            background: transparent;
+            color: #888;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+
+        .queue-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .queue-table th {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: #888;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .queue-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.9rem;
+        }
+
+        .queue-table tr:hover {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge.sms {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+
+        .badge.voice {
+            background: rgba(123, 44, 191, 0.2);
+            color: #a855f7;
+        }
+
+        .badge.v1 {
+            background: rgba(255, 71, 87, 0.2);
+            color: #ff4757;
+        }
+
+        .badge.v2 {
+            background: rgba(255, 152, 0, 0.2);
+            color: #ff9800;
+        }
+
+        .badge.v3 {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .badge.v4 {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+        }
+
+        .badge.queued {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+
+        .badge.sent {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+
+        .badge.failed {
+            background: rgba(255, 71, 87, 0.2);
+            color: #ff4757;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .kpi-cards {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .charts-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .chart-card.wide {
+                grid-column: span 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .kpi-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .queue-table {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Today's Queue</h1>
+        <div class="header-controls">
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">KPI Dashboard</a>
+                <a href="communications.html" class="nav-link">Communications</a>
+                <a href="todays_queue.html" class="nav-link active">Today's Queue</a>
+            </div>
+            <button class="refresh-btn" onclick="loadAllData()">Refresh</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- Status Banner -->
+        <div id="statusBanner" class="status-banner loading">
+            <div class="status-dot"></div>
+            <span id="statusText">Loading queue data...</span>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-cards">
+            <div class="kpi-card">
+                <div class="kpi-label">Total Queued</div>
+                <div class="kpi-value" id="totalQueued">--</div>
+                <div class="kpi-subtext">messages scheduled</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">SMS</div>
+                <div class="kpi-value sms" id="smsCount">--</div>
+                <div class="kpi-subtext">text messages</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Voice</div>
+                <div class="kpi-value voice" id="voiceCount">--</div>
+                <div class="kpi-subtext">phone calls</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Pending</div>
+                <div class="kpi-value pending" id="pendingCount">--</div>
+                <div class="kpi-subtext">not yet sent</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Sent Today</div>
+                <div class="kpi-value sent" id="sentCount">--</div>
+                <div class="kpi-subtext">delivered</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title">Urgency Tier Distribution</div>
+                <div class="chart-container">
+                    <canvas id="tierChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Audience Type</div>
+                <div class="chart-container">
+                    <canvas id="audienceChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Hourly Schedule</div>
+                <div class="chart-container">
+                    <canvas id="hourlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Queue Table -->
+        <div class="queue-section">
+            <div class="section-header">
+                <div class="section-title">Queue Details</div>
+                <div class="filter-controls">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="sms">SMS</button>
+                    <button class="filter-btn" data-filter="voice">Voice</button>
+                    <button class="filter-btn" data-filter="queued">Pending</button>
+                    <button class="filter-btn" data-filter="sent">Sent</button>
+                </div>
+            </div>
+            <table class="queue-table">
+                <thead>
+                    <tr>
+                        <th>Channel</th>
+                        <th>Tier</th>
+                        <th>Audience</th>
+                        <th>Status</th>
+                        <th>Scheduled</th>
+                        <th>Count</th>
+                    </tr>
+                </thead>
+                <tbody id="queueTableBody">
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <div class="empty-state-icon">📋</div>
+                            <div>Loading queue data...</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'https://saksbjogtkagedmlsrsv.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyMzMwODEsImV4cCI6MjA3OTgwOTA4MX0.5_8_5_vMGWO9LXDhiI5qXE9l-YGT_h6dFFk2wkLbmkI';
+
+        let tierChart, audienceChart, hourlyChart;
+        let allQueueData = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAllData();
+            setupFilterButtons();
+        });
+
+        function setupFilterButtons() {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    filterTable(btn.dataset.filter);
+                });
+            });
+        }
+
+        async function loadAllData() {
+            updateStatus('loading', 'Loading queue data...');
+
+            try {
+                await Promise.all([
+                    loadTodaysQueue(),
+                    loadHourlyData()
+                ]);
+
+                const now = new Date();
+                updateStatus('success', `Last updated: ${now.toLocaleTimeString()}`);
+            } catch (error) {
+                console.error('Error loading data:', error);
+                updateStatus('error', `Error: ${error.message}`);
+            }
+        }
+
+        function updateStatus(type, message) {
+            const banner = document.getElementById('statusBanner');
+            const text = document.getElementById('statusText');
+
+            banner.className = 'status-banner';
+            if (type === 'loading') banner.classList.add('loading');
+            if (type === 'error') banner.classList.add('error');
+
+            text.textContent = message;
+        }
+
+        async function loadTodaysQueue() {
+            // Query the dashboard.v_todays_queue view
+            const url = `${SUPABASE_URL}/rest/v1/v_todays_queue`;
+
+            console.log('Fetching today\'s queue from:', url);
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Accept-Profile': 'dashboard',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Queue fetch error:', response.status, errorText);
+                throw new Error(`Failed to fetch queue: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Queue data:', data);
+
+            allQueueData = data;
+            processQueueData(data);
+        }
+
+        function processQueueData(data) {
+            // Calculate totals
+            let totalQueued = 0;
+            let smsCount = 0;
+            let voiceCount = 0;
+            let pendingCount = 0;
+            let sentCount = 0;
+
+            const tierCounts = { V1: 0, V2: 0, V3: 0, V4: 0 };
+            const audienceCounts = {};
+
+            data.forEach(row => {
+                const count = parseInt(row.count) || 0;
+                totalQueued += count;
+
+                // Channel counts
+                if (row.channel === 'sms') smsCount += count;
+                if (row.channel === 'voice') voiceCount += count;
+
+                // Status counts
+                if (row.status === 'queued') pendingCount += count;
+                if (row.status === 'sent') sentCount += count;
+
+                // Tier counts
+                const tier = row.tier || 'Unknown';
+                if (tierCounts[tier] !== undefined) tierCounts[tier] += count;
+
+                // Audience counts
+                const audience = row.audience || 'Unknown';
+                audienceCounts[audience] = (audienceCounts[audience] || 0) + count;
+            });
+
+            // Update KPI cards
+            document.getElementById('totalQueued').textContent = totalQueued.toLocaleString();
+            document.getElementById('smsCount').textContent = smsCount.toLocaleString();
+            document.getElementById('voiceCount').textContent = voiceCount.toLocaleString();
+            document.getElementById('pendingCount').textContent = pendingCount.toLocaleString();
+            document.getElementById('sentCount').textContent = sentCount.toLocaleString();
+
+            // Update charts
+            updateTierChart(tierCounts);
+            updateAudienceChart(audienceCounts);
+
+            // Update table
+            updateQueueTable(data);
+        }
+
+        function updateTierChart(tierCounts) {
+            const ctx = document.getElementById('tierChart').getContext('2d');
+
+            if (tierChart) tierChart.destroy();
+
+            tierChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['V1 (Critical)', 'V2 (Urgent)', 'V3 (Soon)', 'V4 (Future)'],
+                    datasets: [{
+                        data: [tierCounts.V1, tierCounts.V2, tierCounts.V3, tierCounts.V4],
+                        backgroundColor: [
+                            'rgba(255, 71, 87, 0.8)',
+                            'rgba(255, 152, 0, 0.8)',
+                            'rgba(255, 193, 7, 0.8)',
+                            'rgba(0, 212, 255, 0.8)'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#888' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateAudienceChart(audienceCounts) {
+            const ctx = document.getElementById('audienceChart').getContext('2d');
+
+            if (audienceChart) audienceChart.destroy();
+
+            const labels = Object.keys(audienceCounts);
+            const values = Object.values(audienceCounts);
+
+            // Color palette
+            const colors = [
+                'rgba(0, 212, 255, 0.8)',
+                'rgba(123, 44, 191, 0.8)',
+                'rgba(0, 255, 136, 0.8)',
+                'rgba(255, 152, 0, 0.8)',
+                'rgba(255, 71, 87, 0.8)'
+            ];
+
+            audienceChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels.map(l => formatAudienceLabel(l)),
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#888' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function formatAudienceLabel(audience) {
+            if (!audience) return 'Unknown';
+            return audience.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        async function loadHourlyData() {
+            // Query the dashboard.v_hourly_queue view for today
+            const today = new Date().toISOString().split('T')[0];
+            const url = `${SUPABASE_URL}/rest/v1/v_hourly_queue?scheduled_date=eq.${today}`;
+
+            console.log('Fetching hourly data from:', url);
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Accept-Profile': 'dashboard',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                console.warn('Hourly data not available');
+                return;
+            }
+
+            const data = await response.json();
+            console.log('Hourly data:', data);
+
+            updateHourlyChart(data);
+        }
+
+        function updateHourlyChart(data) {
+            const ctx = document.getElementById('hourlyChart').getContext('2d');
+
+            if (hourlyChart) hourlyChart.destroy();
+
+            // Aggregate by hour
+            const hourlyTotals = {};
+            for (let i = 8; i <= 20; i++) {
+                hourlyTotals[i] = { sms: 0, voice: 0 };
+            }
+
+            data.forEach(row => {
+                const hour = parseInt(row.hour);
+                if (hour >= 8 && hour <= 20) {
+                    if (row.channel === 'sms') hourlyTotals[hour].sms += parseInt(row.count) || 0;
+                    if (row.channel === 'voice') hourlyTotals[hour].voice += parseInt(row.count) || 0;
+                }
+            });
+
+            const hours = Object.keys(hourlyTotals).map(h => `${h}:00`);
+            const smsData = Object.values(hourlyTotals).map(v => v.sms);
+            const voiceData = Object.values(hourlyTotals).map(v => v.voice);
+
+            hourlyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [
+                        {
+                            label: 'SMS',
+                            data: smsData,
+                            backgroundColor: 'rgba(0, 255, 136, 0.7)'
+                        },
+                        {
+                            label: 'Voice',
+                            data: voiceData,
+                            backgroundColor: 'rgba(123, 44, 191, 0.7)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#888' }
+                        },
+                        y: {
+                            stacked: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#888' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: '#888' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateQueueTable(data) {
+            const tbody = document.getElementById('queueTableBody');
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <div class="empty-state-icon">📭</div>
+                            <div>No messages scheduled for today</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Sort by tier priority
+            const tierOrder = { V1: 1, V2: 2, V3: 3, V4: 4 };
+            data.sort((a, b) => (tierOrder[a.tier] || 5) - (tierOrder[b.tier] || 5));
+
+            tbody.innerHTML = data.map(row => `
+                <tr data-channel="${row.channel}" data-status="${row.status}">
+                    <td><span class="badge ${row.channel}">${(row.channel || '').toUpperCase()}</span></td>
+                    <td><span class="badge ${(row.tier || '').toLowerCase()}">${row.tier || '-'}</span></td>
+                    <td>${formatAudienceLabel(row.audience)}</td>
+                    <td><span class="badge ${row.status}">${row.status || '-'}</span></td>
+                    <td>${formatTimeRange(row.earliest, row.latest)}</td>
+                    <td><strong>${parseInt(row.count).toLocaleString()}</strong></td>
+                </tr>
+            `).join('');
+        }
+
+        function formatTimeRange(earliest, latest) {
+            if (!earliest) return '-';
+
+            const earlyTime = new Date(earliest).toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+
+            if (!latest || earliest === latest) return earlyTime;
+
+            const lateTime = new Date(latest).toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+
+            return `${earlyTime} - ${lateTime}`;
+        }
+
+        function filterTable(filter) {
+            const rows = document.querySelectorAll('#queueTableBody tr[data-channel]');
+
+            rows.forEach(row => {
+                const channel = row.dataset.channel;
+                const status = row.dataset.status;
+
+                let show = true;
+                if (filter === 'sms') show = channel === 'sms';
+                else if (filter === 'voice') show = channel === 'voice';
+                else if (filter === 'queued') show = status === 'queued';
+                else if (filter === 'sent') show = status === 'sent';
+
+                row.style.display = show ? '' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>

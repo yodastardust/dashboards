@@ -20,6 +20,30 @@
             align-items: center;
             border-bottom: 1px solid rgba(255,255,255,0.1);
         }
+        .nav-links {
+            display: flex;
+            gap: 10px;
+            margin-left: 20px;
+        }
+        .nav-link {
+            padding: 8px 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.05);
+            color: #aaa;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .nav-link:hover, .nav-link.active {
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            color: #fff;
+            border-color: transparent;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
         .header h1 {
             font-size: 1.5rem;
             background: linear-gradient(90deg, #00d4ff, #7b2cbf);
@@ -181,7 +205,14 @@
 </head>
 <body>
     <div class="header">
-        <h1>Lead Communications Dashboard</h1>
+        <div class="header-left">
+            <h1>Lead Communications Dashboard</h1>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">KPI Dashboard</a>
+                <a href="communications.html" class="nav-link active">Communications</a>
+                <a href="todays_queue.html" class="nav-link">Today's Queue</a>
+            </div>
+        </div>
         <div class="header-stats">
             <div class="header-stat">
                 <div class="header-stat-value" id="total-contacts">-</div>
