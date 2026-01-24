@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPI Dashboard - Stop My Auction Now</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e4e4e4;
+        }
+
+        .header {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-link {
+            padding: 8px 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.05);
+            color: #aaa;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .date-selector {
+            padding: 8px 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .refresh-btn {
+            padding: 8px 20px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .refresh-btn:hover {
+            opacity: 0.9;
+        }
+
+        .channel-tabs {
+            display: flex;
+            gap: 5px;
+            padding: 10px 30px;
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .channel-tab {
+            padding: 8px 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            background: transparent;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .channel-tab.active {
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .channel-tab:hover:not(.active) {
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+
+        .main-content {
+            padding: 20px 30px;
+        }
+
+        /* KPI Cards Row */
+        .kpi-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .kpi-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .kpi-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .kpi-subtext {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .kpi-change {
+            font-size: 0.85rem;
+            margin-top: 8px;
+        }
+
+        .kpi-change.positive {
+            color: #00ff88;
+        }
+
+        .kpi-change.negative {
+            color: #ff4757;
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .chart-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            margin-bottom: 15px;
+            color: #ccc;
+        }
+
+        .chart-container {
+            height: 250px;
+            position: relative;
+        }
+
+        /* Appointments Section */
+        .appointments-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .appt-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .appt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .appt-title {
+            font-size: 1rem;
+            color: #ccc;
+        }
+
+        .appt-badge {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .appt-badge.first {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+        }
+
+        .appt-badge.second {
+            background: rgba(123, 44, 191, 0.2);
+            color: #b388ff;
+        }
+
+        .appt-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .appt-stat {
+            text-align: center;
+        }
+
+        .appt-stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .appt-stat-label {
+            font-size: 0.7rem;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        /* Conversion Funnel */
+        .funnel-section {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .funnel-title {
+            font-size: 1rem;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+
+        .funnel-steps {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .funnel-step {
+            text-align: center;
+            flex: 1;
+        }
+
+        .funnel-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .funnel-label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .funnel-arrow {
+            font-size: 1.5rem;
+            color: #444;
+            padding: 0 10px;
+        }
+
+        .funnel-rate {
+            font-size: 0.75rem;
+            color: #00ff88;
+            margin-top: 3px;
+        }
+
+        /* Costs Section */
+        .costs-section {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .cost-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .cost-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .cost-title {
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .cost-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .cost-breakdown {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .cost-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .cost-row-label {
+            color: #666;
+        }
+
+        .cost-row-value {
+            color: #ccc;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: #666;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Status indicators */
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-dot.live {
+            background: #00ff88;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Footer */
+        .footer {
+            padding: 15px 30px;
+            text-align: center;
+            color: #444;
+            font-size: 0.8rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .kpi-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .kpi-cards {
+                grid-template-columns: 1fr;
+            }
+            .appointments-section {
+                grid-template-columns: 1fr;
+            }
+            .costs-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><span class="status-dot live"></span>KPI Dashboard</h1>
+        <div class="header-controls">
+            <div class="nav-links">
+                <a href="index.html" class="nav-link active">KPI Dashboard</a>
+                <a href="communications.html" class="nav-link">Communications</a>
+                <a href="todays_queue.html" class="nav-link">Outreach Schedule</a>
+            </div>
+            <select class="date-selector" id="dateRange">
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="custom">Custom Range</option>
+            </select>
+            <button class="refresh-btn" onclick="refreshData()">Refresh</button>
+        </div>
+    </div>
+
+    <div class="channel-tabs">
+        <button class="channel-tab active" data-channel="all">All Channels</button>
+        <button class="channel-tab" data-channel="sms">SMS</button>
+        <button class="channel-tab" data-channel="voice">Voice</button>
+        <button class="channel-tab" data-channel="email">Email</button>
+        <button class="channel-tab" data-channel="mail">Direct Mail</button>
+    </div>
+
+    <div class="main-content">
+        <!-- KPI Cards -->
+        <div class="kpi-cards">
+            <div class="kpi-card">
+                <div class="kpi-label">Today's Queue</div>
+                <div class="kpi-value" id="todayQueue">--</div>
+                <div class="kpi-subtext">messages scheduled</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Appointments Booked</div>
+                <div class="kpi-value" id="apptsBooked">--</div>
+                <div class="kpi-subtext" id="apptsShowRate">-- show rate</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Response Rate</div>
+                <div class="kpi-value" id="responseRate">--%</div>
+                <div class="kpi-subtext" id="responseCount">-- replies</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Today's Cost</div>
+                <div class="kpi-value" id="todayCost">$--</div>
+                <div class="kpi-subtext" id="costPerAppt">$-- per appt</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title">Queue by Urgency Tier</div>
+                <div class="chart-container">
+                    <canvas id="tierChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Queue by Audience Type</div>
+                <div class="chart-container">
+                    <canvas id="audienceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Appointments -->
+        <div class="appointments-section">
+            <div class="appt-card">
+                <div class="appt-header">
+                    <div class="appt-title">1st Appointments</div>
+                    <span class="appt-badge first">Primary</span>
+                </div>
+                <div class="appt-stats">
+                    <div class="appt-stat">
+                        <div class="appt-stat-value" id="appt1Booked">--</div>
+                        <div class="appt-stat-label">Booked</div>
+                    </div>
+                    <div class="appt-stat">
+                        <div class="appt-stat-value" id="appt1Completed">--</div>
+                        <div class="appt-stat-label">Completed</div>
+                    </div>
+                    <div class="appt-stat">
+                        <div class="appt-stat-value" id="appt1NoShow">--</div>
+                        <div class="appt-stat-label">No-Show</div>
+                    </div>
+                    <div class="appt-stat">
+                        <div class="appt-stat-value" id="appt1ShowRate">--%</div>
+                        <div class="appt-stat-label">Show Rate</div>
+                    </div>
+                </div>
+            </div>
+            <div class="appt-card">
+                <div class="appt-header">
+                    <div class="appt-title">2nd Appointments</div>
+                    <span class="appt-badge second">Follow-up</span>
+                </div>
+                <div class="appt-stats">
+                    <div class="appt-stat">
+                        <div class="appt-stat-value" id="appt2Booked">--</div>
+                        <div class="appt-stat-label">Booked</div>
+                    </div>
+                    <div class="appt-stat">
+                        <div class="appt-stat-value" id="appt2Completed">--</div>
+                        <div class="appt-stat-label">Completed</div>
+                    </div>
+                    <div class="appt-stat">
+                        <div class="appt-stat-value" id="appt2NoShow">--</div>
+                        <div class="appt-stat-label">No-Show</div>
+                    </div>
+                    <div class="appt-stat">
+                        <div class="appt-stat-value" id="appt2ShowRate">--%</div>
+                        <div class="appt-stat-label">Show Rate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conversion Funnel -->
+        <div class="funnel-section">
+            <div class="funnel-title">Conversion Funnel (This Month)</div>
+            <div class="funnel-steps">
+                <div class="funnel-step">
+                    <div class="funnel-value" id="funnelSent">--</div>
+                    <div class="funnel-label">Sent</div>
+                </div>
+                <div class="funnel-arrow">→</div>
+                <div class="funnel-step">
+                    <div class="funnel-value" id="funnelReplied">--</div>
+                    <div class="funnel-label">Replied</div>
+                    <div class="funnel-rate" id="funnelReplyRate">--%</div>
+                </div>
+                <div class="funnel-arrow">→</div>
+                <div class="funnel-step">
+                    <div class="funnel-value" id="funnelAppts">--</div>
+                    <div class="funnel-label">Appointments</div>
+                    <div class="funnel-rate" id="funnelApptRate">--%</div>
+                </div>
+                <div class="funnel-arrow">→</div>
+                <div class="funnel-step">
+                    <div class="funnel-value" id="funnelClosed">--</div>
+                    <div class="funnel-label">Closed</div>
+                    <div class="funnel-rate" id="funnelCloseRate">--%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Costs -->
+        <div class="costs-section">
+            <div class="cost-card">
+                <div class="cost-header">
+                    <div class="cost-title">SMS Costs</div>
+                </div>
+                <div class="cost-value" id="smsCost">$--</div>
+                <div class="cost-breakdown">
+                    <div class="cost-row">
+                        <span class="cost-row-label">Messages Sent</span>
+                        <span class="cost-row-value" id="smsCount">--</span>
+                    </div>
+                    <div class="cost-row">
+                        <span class="cost-row-label">Cost/Message</span>
+                        <span class="cost-row-value" id="smsCostPer">$--</span>
+                    </div>
+                </div>
+            </div>
+            <div class="cost-card">
+                <div class="cost-header">
+                    <div class="cost-title">Voice Costs</div>
+                </div>
+                <div class="cost-value" id="voiceCost">$--</div>
+                <div class="cost-breakdown">
+                    <div class="cost-row">
+                        <span class="cost-row-label">Calls Made</span>
+                        <span class="cost-row-value" id="callCount">--</span>
+                    </div>
+                    <div class="cost-row">
+                        <span class="cost-row-label">Total Minutes</span>
+                        <span class="cost-row-value" id="callMinutes">--</span>
+                    </div>
+                    <div class="cost-row">
+                        <span class="cost-row-label">Cost/Minute</span>
+                        <span class="cost-row-value" id="voiceCostPer">$--</span>
+                    </div>
+                </div>
+            </div>
+            <div class="cost-card">
+                <div class="cost-header">
+                    <div class="cost-title">Total Marketing Cost</div>
+                </div>
+                <div class="cost-value" id="totalCost">$--</div>
+                <div class="cost-breakdown">
+                    <div class="cost-row">
+                        <span class="cost-row-label">Cost/Appointment</span>
+                        <span class="cost-row-value" id="costPerApptDetail">$--</span>
+                    </div>
+                    <div class="cost-row">
+                        <span class="cost-row-label">Cost/Conversion</span>
+                        <span class="cost-row-value" id="costPerConversion">$--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        KPI Dashboard v1.0 | Data from Supabase, Twilio, and GHL | Last updated: <span id="lastUpdated">--</span>
+    </div>
+
+    <script>
+        // Configuration - Data loaded from Supabase (Twilio data pre-aggregated in ops.twilio_daily_costs)
+        const SUPABASE_URL = 'https://saksbjogtkagedmlsrsv.supabase.co';
+        // Using service role key for internal dashboard (bypasses RLS)
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTI1NTEwMywiZXhwIjoyMDg0NjE1MTAzfQ.X7fHo2v_7HZBYZzggydteFbMh_y_pgQN78yynby5sI4';
+
+        // GHL Calendar IDs for appointment filtering
+        const GHL_CALENDAR_1ST = 'gBD1ts4ZdRzWaMzti2Ck';
+        const GHL_CALENDAR_2ND = 'WM8EhHF8mZjCPQAHXJxp';
+
+        let sbClient;
+        let tierChart, audienceChart;
+        let currentChannel = 'all';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('KPI Dashboard initializing...');
+            try {
+                sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('Supabase client created');
+
+                initCharts();
+                console.log('Charts initialized');
+                setupEventListeners();
+                console.log('Event listeners set up');
+                await refreshData();
+                console.log('Initial data refresh complete');
+            } catch (initError) {
+                console.error('Init error:', initError);
+                document.getElementById('lastUpdated').textContent = 'Init Error: ' + initError.message;
+            }
+
+            // Auto-refresh every 60 seconds
+            setInterval(refreshData, 60000);
+        });
+
+        function setupEventListeners() {
+            // Channel tabs
+            document.querySelectorAll('.channel-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.channel-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentChannel = tab.dataset.channel;
+                    refreshData();
+                });
+            });
+
+            // Date selector
+            document.getElementById('dateRange').addEventListener('change', refreshData);
+        }
+
+        function initCharts() {
+            const tierCtx = document.getElementById('tierChart').getContext('2d');
+            tierChart = new Chart(tierCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['V1 (45+ days)', 'V2 (30-44 days)', 'V3 (14-29 days)', 'V4 (1-13 days)'],
+                    datasets: [{
+                        data: [0, 0, 0, 0],
+                        backgroundColor: ['#2ecc71', '#3498db', '#f39c12', '#e74c3c'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { color: '#888', font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+
+            const audienceCtx = document.getElementById('audienceChart').getContext('2d');
+            audienceChart = new Chart(audienceCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Owner Alive', 'Owner Deceased', 'Rel Owner Alive', 'Rel Owner Dec'],
+                    datasets: [{
+                        label: 'Count',
+                        data: [0, 0, 0, 0],
+                        backgroundColor: ['#00d4ff', '#7b2cbf', '#00ff88', '#ff6b6b']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#666' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#888', font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function refreshData() {
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+
+            try {
+                await Promise.all([
+                    loadQueueData(),
+                    loadMessageStats(),
+                    loadTwilioData()
+                ]);
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+            }
+        }
+
+        async function loadQueueData() {
+            // Get today's queue from outreach_queue
+            const today = new Date().toISOString().split('T')[0];
+
+            try {
+                let query = sbClient
+                    .from('outreach_queue')
+                    .select('queue_id, channel, status, meta')
+                    .gte('next_action_at', today)
+                    .lt('next_action_at', today + 'T23:59:59');
+
+                if (currentChannel !== 'all') {
+                    query = query.eq('channel', currentChannel);
+                }
+
+                const { data: queueData, error } = await query;
+
+                if (error) {
+                    // Table doesn't exist or other error - show placeholder
+                    console.log('Queue table not available:', error.message);
+                    document.getElementById('todayQueue').textContent = 'N/A';
+                    tierChart.data.datasets[0].data = [0, 0, 0, 0];
+                    tierChart.update();
+                    audienceChart.data.datasets[0].data = [0, 0, 0, 0];
+                    audienceChart.update();
+                    return;
+                }
+
+                // Update KPI card
+                document.getElementById('todayQueue').textContent = queueData?.length || 0;
+
+                // Process tier data
+                const tierCounts = { V1: 0, V2: 0, V3: 0, V4: 0 };
+                const audienceCounts = {
+                    owner_alive: 0,
+                    owner_deceased: 0,
+                    relative_owner_alive: 0,
+                    relative_owner_deceased: 0
+                };
+
+                queueData?.forEach(item => {
+                    const tier = item.meta?.urgency_tier;
+                    const audience = item.meta?.audience_type;
+
+                    if (tier && tierCounts.hasOwnProperty(tier)) {
+                        tierCounts[tier]++;
+                    }
+                    if (audience && audienceCounts.hasOwnProperty(audience)) {
+                        audienceCounts[audience]++;
+                    }
+                });
+
+                // Update charts
+                tierChart.data.datasets[0].data = [
+                    tierCounts.V1,
+                    tierCounts.V2,
+                    tierCounts.V3,
+                    tierCounts.V4
+                ];
+                tierChart.update();
+
+                audienceChart.data.datasets[0].data = [
+                    audienceCounts.owner_alive,
+                    audienceCounts.owner_deceased,
+                    audienceCounts.relative_owner_alive,
+                    audienceCounts.relative_owner_deceased
+                ];
+                audienceChart.update();
+            } catch (e) {
+                console.error('Queue data error:', e);
+                document.getElementById('todayQueue').textContent = 'N/A';
+            }
+        }
+
+        async function loadMessageStats() {
+            // Get message stats for response rate
+            const today = new Date().toISOString().split('T')[0];
+
+            try {
+                const { data: messages, error } = await sbClient
+                    .from('messages')
+                    .select('direction')
+                    .gte('created_at', today);
+
+                if (error) {
+                    // Table doesn't exist - use Twilio data as fallback
+                    console.log('Messages table not available:', error.message);
+                    document.getElementById('responseRate').textContent = 'N/A';
+                    document.getElementById('responseCount').textContent = 'see Twilio data';
+                    document.getElementById('funnelSent').textContent = 'N/A';
+                    document.getElementById('funnelReplied').textContent = 'N/A';
+                    document.getElementById('funnelReplyRate').textContent = 'N/A';
+                    return;
+                }
+
+                const outbound = messages?.filter(m => m.direction === 'outbound').length || 0;
+                const inbound = messages?.filter(m => m.direction === 'inbound').length || 0;
+                const rate = outbound > 0 ? ((inbound / outbound) * 100).toFixed(1) : 0;
+
+                document.getElementById('responseRate').textContent = rate + '%';
+                document.getElementById('responseCount').textContent = inbound + ' replies';
+
+                // Funnel data (simplified)
+                document.getElementById('funnelSent').textContent = outbound.toLocaleString();
+                document.getElementById('funnelReplied').textContent = inbound.toLocaleString();
+                document.getElementById('funnelReplyRate').textContent = rate + '%';
+            } catch (e) {
+                console.error('Message stats error:', e);
+                document.getElementById('responseRate').textContent = 'N/A';
+            }
+        }
+
+        async function loadTwilioData() {
+            // Load from ops.twilio_daily_costs table (populated from Twilio API)
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+
+            // Get selected date range
+            const dateRange = document.getElementById('dateRange').value;
+            let startDate;
+            let periodLabel;
+
+            switch(dateRange) {
+                case 'today':
+                    startDate = today;
+                    periodLabel = 'Today';
+                    break;
+                case 'week':
+                    const weekAgo = new Date(now);
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    startDate = weekAgo.toISOString().split('T')[0];
+                    periodLabel = 'This Week';
+                    break;
+                case 'month':
+                default:
+                    startDate = now.toISOString().slice(0, 7) + '-01';
+                    periodLabel = 'This Month';
+                    break;
+            }
+
+            try {
+                // Use direct REST API for ops schema (Supabase JS .schema() has issues)
+                const url = `${SUPABASE_URL}/rest/v1/twilio_daily_costs?date=gte.${startDate}&date=lte.${today}&order=date.desc`;
+                console.log('Fetching Twilio data from:', url);
+                document.getElementById('lastUpdated').textContent = 'Loading...';
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Accept-Profile': 'ops',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    console.error('Twilio data error:', response.status, errText);
+                    document.getElementById('lastUpdated').textContent = 'Error: ' + response.status;
+                    document.getElementById('smsCost').textContent = 'Error';
+                    return;
+                }
+
+                const monthlyData = await response.json();
+                console.log('Loaded Twilio data:', monthlyData.length, 'days', monthlyData[0]);
+
+                if (monthlyData && monthlyData.length > 0) {
+                    // Calculate monthly totals
+                    const totals = monthlyData.reduce((acc, day) => {
+                        acc.sms_cost += parseFloat(day.sms_cost) || 0;
+                        acc.sms_outbound += day.sms_outbound_count || 0;
+                        acc.sms_inbound += day.sms_inbound_count || 0;
+                        acc.call_cost += parseFloat(day.call_cost) || 0;
+                        acc.call_outbound += day.call_outbound_count || 0;
+                        acc.call_inbound += day.call_inbound_count || 0;
+                        acc.call_minutes += day.call_minutes || 0;
+                        acc.total_cost += parseFloat(day.total_cost) || 0;
+                        return acc;
+                    }, { sms_cost: 0, sms_outbound: 0, sms_inbound: 0, call_cost: 0, call_outbound: 0, call_inbound: 0, call_minutes: 0, total_cost: 0 });
+
+                    const totalSms = totals.sms_outbound + totals.sms_inbound;
+                    const totalCalls = totals.call_outbound + totals.call_inbound;
+
+                    document.getElementById('smsCost').textContent = '$' + totals.sms_cost.toFixed(2);
+                    document.getElementById('smsCount').textContent = totalSms.toLocaleString();
+                    document.getElementById('smsCostPer').textContent = '$' + (totalSms > 0 ? (totals.sms_cost / totalSms).toFixed(4) : '0.0000');
+
+                    document.getElementById('voiceCost').textContent = '$' + totals.call_cost.toFixed(2);
+                    document.getElementById('callCount').textContent = totalCalls.toLocaleString();
+                    document.getElementById('callMinutes').textContent = totals.call_minutes.toLocaleString();
+                    document.getElementById('voiceCostPer').textContent = '$' + (totals.call_minutes > 0 ? (totals.call_cost / totals.call_minutes).toFixed(4) : '0.0000');
+
+                    document.getElementById('totalCost').textContent = '$' + totals.total_cost.toFixed(2);
+                    document.getElementById('todayCost').textContent = '$' + totals.total_cost.toFixed(2);
+
+                    // Update footer with data range
+                    document.getElementById('lastUpdated').textContent =
+                        `${periodLabel}: ${monthlyData.length} days | Total: $${totals.total_cost.toFixed(2)}`;
+                } else {
+                    document.getElementById('smsCost').textContent = '$0.00';
+                    document.getElementById('voiceCost').textContent = '$0.00';
+                    document.getElementById('totalCost').textContent = '$0.00';
+                    document.getElementById('todayCost').textContent = '$0.00';
+                    document.getElementById('lastUpdated').textContent = 'No data for this month';
+                }
+            } catch (e) {
+                console.error('Error loading Twilio data:', e);
+                document.getElementById('lastUpdated').textContent = 'JS Error: ' + e.message;
+                document.getElementById('smsCost').textContent = 'ERR';
+            }
+        }
+    </script>
+</body>
+</html>
