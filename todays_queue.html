@@ -512,7 +512,7 @@
             transition: width 0.5s ease;
         }
 
-        /* Responsive */
+        /* Responsive - Tablet */
         @media (max-width: 1200px) {
             .kpi-cards {
                 grid-template-columns: repeat(3, 1fr);
@@ -525,23 +525,265 @@
             }
         }
 
+        /* Responsive - Small Tablet / Large Phone */
         @media (max-width: 768px) {
-            .kpi-cards {
-                grid-template-columns: repeat(2, 1fr);
+            .main-content {
+                padding: 15px;
             }
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
+
             .header {
                 flex-direction: column;
                 gap: 10px;
+                padding: 12px 15px;
             }
-            .queue-table {
-                font-size: 0.8rem;
+
+            .header h1 {
+                font-size: 1.2rem;
             }
+
+            .header-controls {
+                width: 100%;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .nav-links {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .nav-link {
+                padding: 6px 10px;
+                font-size: 0.75rem;
+            }
+
+            .refresh-btn {
+                width: 100%;
+            }
+
+            .kpi-cards {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .kpi-card {
+                padding: 15px;
+            }
+
+            .kpi-value {
+                font-size: 1.5rem;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
             .dispatch-info {
                 flex-direction: column;
                 gap: 15px;
+                padding: 12px 15px;
+            }
+
+            .dispatch-info-left {
+                width: 100%;
+            }
+
+            .dispatch-stats {
+                width: 100%;
+                justify-content: space-around;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .filter-controls {
+                width: 100%;
+                flex-wrap: wrap;
+                justify-content: flex-start;
+            }
+
+            .filter-btn {
+                flex: 1;
+                min-width: 60px;
+                text-align: center;
+            }
+
+            .summary-stats {
+                padding: 12px 15px;
+            }
+
+            .summary-items {
+                gap: 8px;
+            }
+
+            .summary-item {
+                flex-wrap: wrap;
+            }
+
+            .summary-value {
+                width: 100%;
+                margin-left: 16px;
+                margin-top: 2px;
+            }
+
+            /* Horizontal scroll for table on mobile */
+            .queue-section {
+                padding: 15px;
+                overflow-x: auto;
+            }
+
+            .queue-table {
+                font-size: 0.75rem;
+                min-width: 600px;
+            }
+
+            .queue-table th,
+            .queue-table td {
+                padding: 8px 6px;
+            }
+
+            .tier-desc {
+                display: none;
+            }
+
+            .badge {
+                padding: 2px 6px;
+                font-size: 0.65rem;
+            }
+
+            .rate-limit-badge {
+                font-size: 0.65rem;
+                padding: 3px 8px;
+            }
+        }
+
+        /* Responsive - Phone */
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 1rem;
+            }
+
+            .nav-link {
+                padding: 5px 8px;
+                font-size: 0.7rem;
+            }
+
+            .kpi-cards {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+
+            .kpi-card {
+                padding: 12px;
+            }
+
+            .kpi-label {
+                font-size: 0.65rem;
+            }
+
+            .kpi-value {
+                font-size: 1.3rem;
+            }
+
+            .kpi-subtext {
+                font-size: 0.7rem;
+            }
+
+            .dispatch-info {
+                padding: 10px;
+            }
+
+            .dispatch-icon {
+                font-size: 1.2rem;
+            }
+
+            .dispatch-text h3 {
+                font-size: 0.9rem;
+            }
+
+            .dispatch-text p {
+                font-size: 0.75rem;
+            }
+
+            .dispatch-stat-value {
+                font-size: 1.2rem;
+            }
+
+            .dispatch-stat-label {
+                font-size: 0.65rem;
+            }
+
+            .chart-container {
+                height: 200px;
+            }
+
+            .section-title {
+                font-size: 0.95rem;
+            }
+
+            .section-subtitle {
+                font-size: 0.75rem;
+            }
+
+            .summary-stats {
+                font-size: 0.75rem;
+            }
+
+            .summary-title {
+                font-size: 0.85rem;
+            }
+
+            .status-banner {
+                padding: 10px 12px;
+                font-size: 0.8rem;
+            }
+
+            .queue-table {
+                min-width: 550px;
+            }
+
+            .batch-number {
+                font-size: 0.7rem;
+            }
+
+            .est-time {
+                font-size: 0.7rem;
+            }
+        }
+
+        /* Touch-friendly improvements */
+        @media (hover: none) and (pointer: coarse) {
+            .filter-btn {
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .nav-link {
+                min-height: 40px;
+                display: flex;
+                align-items: center;
+            }
+
+            .refresh-btn {
+                min-height: 44px;
+            }
+
+            .queue-table tr {
+                min-height: 44px;
             }
         }
     </style>
