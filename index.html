@@ -1987,8 +1987,9 @@
 
             let totalCalls = 0, totalSMS = 0, totalTranscripts = 0;
             contactsData.forEach(c => {
-                totalCalls += (c.call_details || []).length;
-                totalSMS += (c.sms_conversation || []).length;
+                // Use summary counts if available (from Supabase), otherwise fall back to array length (from JSON)
+                totalCalls += c.outbound_call_count || (c.call_details || []).length;
+                totalSMS += (c.inbound_sms_count || 0) + (c.outbound_sms_count || 0) || (c.sms_conversation || []).length;
                 totalTranscripts += (c.retell_transcriptions || []).length;
             });
 
