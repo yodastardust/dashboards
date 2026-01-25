@@ -2431,16 +2431,19 @@
             document.getElementById('sellerName').textContent = property.seller;
             document.getElementById('buyerName').textContent = property.buyer;
 
-            // Update title company card
-            const titleCard = document.getElementById('titleCompanyCard');
-            if (property.optionType === 'option_1') {
-                titleCard.querySelector('.info-card-title').textContent = 'Title Company (Option 1)';
-                titleCard.querySelector('.contact-name').textContent = 'Cathy L Morrison';
-                titleCard.querySelector('.contact-role').textContent = 'IPC';
-            } else {
-                titleCard.querySelector('.info-card-title').textContent = 'Title Company (Option 2)';
-                titleCard.querySelector('.contact-name').textContent = 'Meaghan Dubbs';
-                titleCard.querySelector('.contact-role').textContent = 'University Title';
+            // Update title company section
+            const titleSection = document.getElementById('titleCompanySection');
+            if (titleSection) {
+                const titleContact = titleSection.querySelector('.contact-card');
+                if (property.optionType === 'option_1') {
+                    document.getElementById('titleOptionLabel').textContent = 'Option 1';
+                    titleContact.querySelector('.contact-name').textContent = 'Cathy L Morrison';
+                    titleContact.querySelector('.contact-role').textContent = 'IPC';
+                } else {
+                    document.getElementById('titleOptionLabel').textContent = 'Option 2';
+                    titleContact.querySelector('.contact-name').textContent = 'Meaghan Dubbs';
+                    titleContact.querySelector('.contact-role').textContent = 'University Title';
+                }
             }
 
             // Re-render checklist for new property
