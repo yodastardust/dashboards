@@ -1240,7 +1240,7 @@
 
         async function loadFromJSON() {
             try {
-                const response = await fetch('full_analysis_with_transcripts.json');
+                const response = await fetch('full_marketing_analysis.json');
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 contactsData = await response.json();
                 updateConnectionStatus('offline', 'Static');
@@ -1248,7 +1248,7 @@
             } catch (e) {
                 console.log('First JSON fetch failed:', e);
                 try {
-                    const response = await fetch('./full_analysis_with_transcripts.json');
+                    const response = await fetch('./full_marketing_analysis.json');
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     contactsData = await response.json();
                     updateConnectionStatus('offline', 'Static');
