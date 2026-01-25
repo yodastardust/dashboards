@@ -1113,36 +1113,36 @@
             if (SUPABASE_URL && SUPABASE_ANON_KEY) {
                 try {
                     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                    updateConnectionStatus('syncing', 'Loading...');
+                    updateConnectionStatus('syncing', 'Loading contacts...');
 
-                    // Query 1: All conversations (no limit!)
+                    // Query 1: ALL contacts from v_agent_contact_context (7K+ records)
+                    const { data: allContacts, error: contactError } = await withTimeout(
+                        supabaseClient
+                            .from('v_agent_contact_context')
+                            .select('phone_digits, full_name, owners_name, property_address, city, county, auction_date, auction_type')
+                            .order('auction_date', { ascending: true, nullsFirst: false }),
+                        30000  // 30 second timeout for large dataset
+                    );
+
+                    if (contactError) throw contactError;
+                    console.log(`Loaded ${allContacts?.length || 0} contacts from v_agent_contact_context`);
+
+                    updateConnectionStatus('syncing', 'Loading conversations...');
+
+                    // Query 2: All conversations (to get message counts)
                     const { data: conversations, error: convError } = await withTimeout(
                         supabaseClient
                             .from('conversations')
-                            .select('*')
-                            .order('last_message_at', { ascending: false, nullsFirst: false }),
-                        15000  // Increased timeout for larger dataset
+                            .select('*'),
+                        15000
                     );
 
                     if (convError) throw convError;
+                    console.log(`Loaded ${conversations?.length || 0} conversations from Supabase`);
 
-                    if (conversations && conversations.length > 0) {
-                        console.log(`Loaded ${conversations.length} conversations from Supabase`);
-
-                        // Query 2: Enrich with contact details (parallel)
-                        const phoneDigits = [...new Set(conversations.map(c => c.phone_digits).filter(Boolean))];
-                        const { data: contacts } = await withTimeout(
-                            supabaseClient
-                                .from('v_agent_contact_context')
-                                .select('phone_digits, full_name, owners_name, property_address, city, county, auction_date, auction_type')
-                                .in('phone_digits', phoneDigits),
-                            10000
-                        );
-
-                        console.log(`Enriched with ${contacts?.length || 0} contact details`);
-
-                        // Merge and transform
-                        const enriched = mergeConversationsWithContacts(conversations, contacts || []);
+                    if (allContacts && allContacts.length > 0) {
+                        // Merge: Start with all contacts, enrich with conversation data
+                        const enriched = mergeContactsWithConversations(allContacts, conversations || []);
                         contactsData = transformSupabaseData(enriched);
 
                         isSupabaseConnected = true;
@@ -1150,7 +1150,7 @@
                         subscribeToMessages();
                     } else {
                         // No data in Supabase, fallback to JSON
-                        console.log('No conversations in Supabase, loading from JSON');
+                        console.log('No contacts in Supabase, loading from JSON');
                         await loadFromJSON();
                     }
                 } catch (e) {
@@ -1166,29 +1166,48 @@
             updateHeaderStats();
         }
 
-        // Merge conversations with contact details from v_agent_contact_context
-        function mergeConversationsWithContacts(conversations, contacts) {
-            const contactMap = new Map(contacts.map(c => [c.phone_digits, c]));
+        // Merge ALL contacts with conversation data (contacts as base)
+        function mergeContactsWithConversations(contacts, conversations) {
+            // Create lookup map: phone_digits -> conversation data
+            const convMap = new Map(conversations.map(c => [c.phone_digits, c]));
 
-            return conversations.map(conv => {
-                const contact = contactMap.get(conv.phone_digits) || {};
+            // Deduplicate contacts by phone_digits (keep first occurrence)
+            const seen = new Set();
+            const uniqueContacts = contacts.filter(c => {
+                if (seen.has(c.phone_digits)) return false;
+                seen.add(c.phone_digits);
+                return true;
+            });
+
+            return uniqueContacts.map(contact => {
+                const conv = convMap.get(contact.phone_digits) || {};
                 return {
-                    ...conv,
+                    // Contact data (from v_agent_contact_context)
+                    phone_digits: contact.phone_digits,
                     full_name: contact.full_name || '',
                     owners_name: contact.owners_name || '',
                     property_address: contact.property_address || '',
                     city: contact.city || '',
                     county: contact.county || '',
                     auction_date: contact.auction_date || '',
-                    auction_type: contact.auction_type || ''
+                    auction_type: contact.auction_type || '',
+                    // Conversation data (from conversations table, may be empty)
+                    conversation_id: conv.conversation_id || null,
+                    first_seen_at: conv.first_seen_at || null,
+                    last_message_at: conv.last_message_at || null,
+                    inbound_sms_count: conv.inbound_sms_count || 0,
+                    outbound_sms_count: conv.outbound_sms_count || 0,
+                    outbound_call_count: conv.outbound_call_count || 0,
+                    status: conv.status || 'not_contacted',
+                    preferred_from_e164: conv.preferred_from_e164 || null
                 };
             });
         }
 
         // Transform enriched Supabase data to dashboard format
-        function transformSupabaseData(enrichedConversations) {
-            return enrichedConversations.map(c => ({
-                contact_id: c.conversation_id,
+        function transformSupabaseData(enrichedContacts) {
+            return enrichedContacts.map(c => ({
+                contact_id: c.conversation_id || `contact_${c.phone_digits}`,  // Use phone as fallback ID
                 name: c.full_name || c.owners_name || c.phone_digits,
                 phone: formatPhoneNumber(c.phone_digits),
                 phone_digits: c.phone_digits,
@@ -1203,7 +1222,7 @@
                 inbound_sms_count: c.inbound_sms_count || 0,
                 outbound_sms_count: c.outbound_sms_count || 0,
                 outbound_call_count: c.outbound_call_count || 0,
-                conversation_status: c.status || 'unknown',
+                conversation_status: c.status || 'not_contacted',
                 call_details: [],           // Loaded on-demand
                 sms_conversation: [],       // Loaded on-demand
                 retell_transcriptions: [],  // Not in Supabase yet
