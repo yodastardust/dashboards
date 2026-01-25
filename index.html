@@ -1116,13 +1116,34 @@
                     updateConnectionStatus('syncing', 'Loading contacts...');
 
                     // Query 1: ALL conversations (116K+ contacts who were ever touched)
-                    const { data: conversations, error: convError } = await withTimeout(
-                        supabaseClient
-                            .from('conversations')
-                            .select('*')
-                            .order('last_message_at', { ascending: false, nullsFirst: true }),
-                        60000  // 60 second timeout for large dataset
-                    );
+                    // Supabase default limit is 1000, so we need to paginate
+                    updateConnectionStatus('syncing', 'Loading conversations...');
+                    let conversations = [];
+                    let page = 0;
+                    const pageSize = 10000;  // Max per request
+
+                    while (true) {
+                        const { data: batch, error: batchError } = await withTimeout(
+                            supabaseClient
+                                .from('conversations')
+                                .select('*')
+                                .order('last_message_at', { ascending: false, nullsFirst: true })
+                                .range(page * pageSize, (page + 1) * pageSize - 1),
+                            30000
+                        );
+
+                        if (batchError) throw batchError;
+                        if (!batch || batch.length === 0) break;
+
+                        conversations = conversations.concat(batch);
+                        updateConnectionStatus('syncing', `Loading... ${conversations.length.toLocaleString()}`);
+                        console.log(`Loaded batch ${page + 1}: ${batch.length} records (total: ${conversations.length})`);
+
+                        if (batch.length < pageSize) break;  // Last page
+                        page++;
+                    }
+
+                    const convError = null;  // Already handled above
 
                     if (convError) throw convError;
                     console.log(`Loaded ${conversations?.length || 0} conversations from Supabase`);
