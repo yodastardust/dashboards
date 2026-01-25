@@ -1363,6 +1363,70 @@
             }
         }
 
+        // Lazy load calls for a specific contact
+        async function loadLeadCalls(phone_digits) {
+            if (!supabaseClient) return [];
+
+            try {
+                const { data: calls, error } = await supabaseClient
+                    .from('calls')
+                    .select('direction, status, duration_seconds, started_at, ended_at, answered_by, provider_call_sid')
+                    .eq('phone_digits', phone_digits)
+                    .order('started_at', { ascending: true });
+
+                if (error) throw error;
+
+                // Transform to expected format
+                return (calls || []).map(c => ({
+                    date: c.started_at || c.ended_at,
+                    direction: c.direction,
+                    status: c.status,
+                    duration: c.duration_seconds,
+                    answered_by: c.answered_by,
+                    call_sid: c.provider_call_sid
+                }));
+            } catch (e) {
+                console.error('Error loading calls:', e);
+                return [];
+            }
+        }
+
+        // Lazy load Retell AI transcripts for a specific contact
+        async function loadLeadTranscripts(phone_digits) {
+            if (!supabaseClient) return [];
+
+            try {
+                const { data: transcripts, error } = await supabaseClient
+                    .from('retell_transcripts')
+                    .select('retell_call_id, agent_name, direction, call_status, transcript, transcript_object, call_summary, user_sentiment, call_successful, in_voicemail, duration_ms, started_at, ended_at, recording_url, disconnection_reason')
+                    .eq('phone_digits', phone_digits)
+                    .order('started_at', { ascending: true });
+
+                if (error) throw error;
+
+                // Transform to expected format
+                return (transcripts || []).map(t => ({
+                    date: t.started_at || t.ended_at,
+                    call_id: t.retell_call_id,
+                    agent_name: t.agent_name,
+                    direction: t.direction,
+                    status: t.call_status,
+                    transcript: t.transcript,
+                    transcript_object: t.transcript_object,
+                    summary: t.call_summary,
+                    sentiment: t.user_sentiment,
+                    successful: t.call_successful,
+                    voicemail: t.in_voicemail,
+                    duration_ms: t.duration_ms,
+                    recording_url: t.recording_url,
+                    disconnection_reason: t.disconnection_reason
+                }));
+            } catch (e) {
+                console.error('Error loading Retell transcripts:', e);
+                return [];
+            }
+        }
+
         async function loadFromJSON() {
             try {
                 const response = await fetch('full_marketing_analysis.json');
@@ -1893,17 +1957,25 @@
 
             setupMergeFields();
 
-            // Lazy load messages if using Supabase and not yet loaded
+            // Lazy load data if using Supabase and not yet loaded
             if (isSupabaseConnected && !contact._messagesLoaded) {
                 // Show loading state
                 const content = document.getElementById('tab-content');
-                content.innerHTML = '<div class="loading-messages">Loading messages...</div>';
+                content.innerHTML = '<div class="loading-messages">Loading communications...</div>';
 
-                // Load messages
-                contact.sms_conversation = await loadLeadMessages(contact.phone_digits);
+                // Load messages, calls, and Retell transcripts in parallel
+                const [messages, calls, transcripts] = await Promise.all([
+                    loadLeadMessages(contact.phone_digits),
+                    loadLeadCalls(contact.phone_digits),
+                    loadLeadTranscripts(contact.phone_digits)
+                ]);
+
+                contact.sms_conversation = messages;
+                contact.call_details = calls;
+                contact.retell_transcriptions = transcripts;
                 contact._messagesLoaded = true;
 
-                console.log(`Loaded ${contact.sms_conversation.length} messages for ${contact.phone_digits}`);
+                console.log(`Loaded for ${contact.phone_digits}: ${messages.length} messages, ${calls.length} calls, ${transcripts.length} transcripts`);
             }
 
             renderTabContent();
@@ -2069,25 +2141,33 @@
             }
 
             container.innerHTML = transcripts.map(t => {
-                const sentiment = t.user_sentiment || 'Neutral';
+                // Support both old format (user_sentiment) and new format (sentiment)
+                const sentiment = t.sentiment || t.user_sentiment || 'Neutral';
                 const sentimentClass = sentiment.toLowerCase() === 'positive' ? 'sentiment-positive' :
                                       sentiment.toLowerCase() === 'negative' ? 'sentiment-negative' : 'sentiment-neutral';
+                // Support both old format (duration_sec) and new format (duration_ms)
+                const durationSec = t.duration_sec || (t.duration_ms ? Math.round(t.duration_ms / 1000) : 0);
+                const successful = t.successful !== undefined ? t.successful : t.call_successful;
+                const summary = t.summary || t.call_summary;
                 return `
                     <div class="timeline-item outbound" style="flex-direction: column; align-items: stretch;">
                         <div class="timeline-bubble ai-call" style="max-width: 100%;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <span class="timeline-type-badge badge-ai">AI CALL</span>
+                                <span class="timeline-type-badge badge-ai">AI CALL${t.agent_name ? ` - ${t.agent_name}` : ''}</span>
                                 <span style="font-size: 0.75rem; color: var(--text-muted);">${formatDateTime(new Date(t.date))}</span>
                             </div>
-                            <div style="display: flex; gap: 16px; margin-bottom: 12px;">
-                                <span>Duration: ${Math.round(t.duration_sec || 0)}s</span>
-                                <span>${t.call_successful ? '✓ Successful' : '✗ Failed'}</span>
+                            <div style="display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap;">
+                                <span>Duration: ${durationSec}s</span>
+                                <span>${successful ? '✓ Successful' : '✗ Failed'}</span>
                                 <span class="sentiment-badge ${sentimentClass}">${sentiment}</span>
+                                ${t.voicemail ? '<span>📫 Voicemail</span>' : ''}
+                                ${t.disconnection_reason ? `<span style="color: var(--text-muted);">Ended: ${t.disconnection_reason}</span>` : ''}
                             </div>
-                            ${t.call_summary ? `<div class="call-summary"><div class="call-summary-label">AI Summary</div><div class="call-summary-text">${t.call_summary}</div></div>` : ''}
+                            ${summary ? `<div class="call-summary"><div class="call-summary-label">AI Summary</div><div class="call-summary-text">${summary}</div></div>` : ''}
                             <div style="margin-top: 12px; background: var(--bg-primary); padding: 12px; border-radius: 8px; max-height: 400px; overflow-y: auto;">
-                                ${formatTranscript(t.transcript)}
+                                ${formatTranscript(t.transcript, t.transcript_object)}
                             </div>
+                            ${t.recording_url ? `<div style="margin-top: 8px;"><audio controls style="width: 100%; height: 32px;"><source src="${t.recording_url}" type="audio/mpeg">Audio not supported</audio></div>` : ''}
                         </div>
                     </div>
                 `;
@@ -2137,21 +2217,24 @@
                             <th>Direction</th>
                             <th>Duration</th>
                             <th>Status</th>
-                            <th>From → To</th>
+                            <th>Answered By</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${calls.map(call => {
-                            const dir = call.direction?.includes('originating') ? 'Inbound' : 'Outbound';
+                            // Support both old format (originating/terminating) and new format (inbound/outbound)
+                            const dir = call.direction === 'inbound' ? 'Inbound' :
+                                       call.direction === 'outbound' ? 'Outbound' :
+                                       call.direction?.includes('originating') ? 'Inbound' : 'Outbound';
                             const statusClass = call.status === 'completed' ? 'status-completed' :
                                                call.status === 'no-answer' ? 'status-missed' : 'status-failed';
                             return `
                                 <tr>
                                     <td>${formatDateTime(new Date(call.date))}</td>
-                                    <td><span class="status-badge ${statusClass}">${dir}</span></td>
+                                    <td><span class="status-badge ${dir === 'Inbound' ? 'status-inbound' : 'status-outbound'}">${dir}</span></td>
                                     <td>${call.duration || 0}s</td>
-                                    <td>${call.status}</td>
-                                    <td style="font-size: 0.8rem; color: var(--text-muted);">${call.from} → ${call.to}</td>
+                                    <td><span class="status-badge ${statusClass}">${call.status || 'unknown'}</span></td>
+                                    <td style="color: var(--text-muted);">${call.answered_by || '-'}</td>
                                 </tr>
                             `;
                         }).join('')}
@@ -2160,7 +2243,21 @@
             `;
         }
 
-        function formatTranscript(transcript) {
+        function formatTranscript(transcript, transcriptObject) {
+            // Prefer structured transcript_object if available (from Retell)
+            if (transcriptObject && Array.isArray(transcriptObject) && transcriptObject.length > 0) {
+                return transcriptObject.map(turn => {
+                    const role = turn.role || turn.speaker || 'unknown';
+                    const content = turn.content || turn.text || turn.message || '';
+                    const isAgent = role.toLowerCase().includes('agent') || role.toLowerCase() === 'assistant';
+                    const isUser = role.toLowerCase().includes('user') || role.toLowerCase() === 'human';
+                    const speakerClass = isAgent ? 'agent' : isUser ? 'user' : '';
+                    const speakerLabel = isAgent ? 'Agent' : isUser ? 'User' : role;
+                    return `<div class="transcript-line ${speakerClass}"><span class="transcript-speaker">${speakerLabel}:</span> ${content}</div>`;
+                }).join('');
+            }
+
+            // Fall back to plain text transcript
             if (!transcript) return '<em style="color: var(--text-muted);">No transcript available</em>';
 
             const lines = transcript.split('\n').filter(l => l.trim());
