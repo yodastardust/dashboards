@@ -833,14 +833,32 @@
         /* ========================================
            Contacts Section
            ======================================== */
+        .contact-section {
+            margin-bottom: 16px;
+        }
+
+        .contact-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .contact-section-header {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            padding: 8px 0 6px;
+            border-bottom: 1px dashed var(--border-color);
+            margin-bottom: 8px;
+        }
+
         .contact-card {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px;
+            padding: 10px;
             background: var(--bg-panel);
             border-radius: 6px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .contact-card:last-child {
@@ -848,40 +866,42 @@
         }
 
         .contact-avatar {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             background: var(--accent-blue);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 500;
-            font-size: 14px;
+            font-size: 13px;
+            flex-shrink: 0;
         }
 
         .contact-info {
             flex: 1;
+            min-width: 0;
         }
 
         .contact-name {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             margin-bottom: 2px;
         }
 
         .contact-role {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-secondary);
         }
 
         .contact-actions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
         }
 
         .contact-btn {
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             border: 1px solid var(--border-color);
             border-radius: 4px;
             background: var(--bg-secondary);
@@ -891,6 +911,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease;
+            position: relative;
         }
 
         .contact-btn:hover {
@@ -899,8 +920,313 @@
         }
 
         .contact-btn svg {
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Contact Popover */
+        .contact-popover {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 12px;
+            z-index: 100;
+            box-shadow: var(--shadow);
+            white-space: nowrap;
+            margin-bottom: 8px;
+        }
+
+        .contact-popover::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--border-color);
+        }
+
+        .contact-popover a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+        }
+
+        .contact-popover a:hover {
+            text-decoration: underline;
+        }
+
+        /* Property Address Link */
+        .property-address-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+        }
+
+        .property-address-link:hover .property-address {
+            color: var(--accent-cyan);
+        }
+
+        .property-address-link .map-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+
+        .property-address-link:hover .map-icon {
+            color: var(--accent-cyan);
+        }
+
+        /* Header Stats */
+        .header-stats {
+            display: flex;
+            gap: 24px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 20px;
+            font-weight: 600;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--text-primary);
+        }
+
+        .stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .stat-item.urgent .stat-value {
+            color: var(--alert-red);
+        }
+
+        .stat-item.safe .stat-value {
+            color: var(--success-green);
+        }
+
+        /* Credentials Popup */
+        .credentials-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 600;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .credentials-overlay.open {
+            display: flex;
+        }
+
+        .credentials-popup {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            min-width: 340px;
+            box-shadow: var(--shadow);
+        }
+
+        .credentials-popup-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .credential-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .credential-row:last-of-type {
+            border-bottom: none;
+        }
+
+        .credential-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .credential-value {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .credential-text {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 13px;
+        }
+
+        .copy-btn {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--accent-cyan);
+        }
+
+        .copy-btn.copied {
+            background: var(--success-green);
+        }
+
+        .credentials-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .credentials-actions button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-cyan);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-secondary);
+            color: var(--text-primary);
+        }
+
+        /* Settings Modal */
+        .settings-modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            min-width: 380px;
+        }
+
+        .settings-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .settings-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .settings-field {
+            margin-bottom: 16px;
+        }
+
+        .settings-field label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .settings-field input {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .settings-field input:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+        }
+
+        /* Settings gear button */
+        .settings-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-panel);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .settings-btn:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        /* Task with external link */
+        .task-link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 3px;
+            background: rgba(0, 82, 136, 0.2);
+            color: var(--accent-blue);
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .task-link-btn:hover {
+            background: rgba(0, 82, 136, 0.3);
+        }
+
+        .task-link-btn svg {
+            width: 12px;
+            height: 12px;
         }
 
         /* ========================================
@@ -976,6 +1302,28 @@
             </div>
         </div>
 
+        <!-- Header Stats -->
+        <div class="header-stats">
+            <div class="stat-item" id="statDueToday">
+                <span class="stat-value">0</span>
+                <span class="stat-label">Due Today</span>
+            </div>
+            <div class="stat-item urgent" id="statOverdue">
+                <span class="stat-value">0</span>
+                <span class="stat-label">Overdue</span>
+            </div>
+            <div class="stat-item safe" id="statComplete">
+                <span class="stat-value">0%</span>
+                <span class="stat-label">Complete</span>
+            </div>
+            <button class="settings-btn" onclick="openSettingsModal()" title="Settings">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+        </div>
+
         <div class="countdown-container">
             <div class="countdown-box urgent" id="countdownBox">
                 <div class="countdown-days" id="countdownDays">19</div>
@@ -1006,17 +1354,44 @@
         <!-- Details Panel -->
         <div class="details-panel">
             <div class="property-header">
-                <h1 class="property-address" id="propertyAddress">4891 NE 147th Court</h1>
+                <a href="#" class="property-address-link" id="propertyAddressLink" target="_blank">
+                    <h1 class="property-address" id="propertyAddress">4891 NE 147th Court</h1>
+                    <svg class="map-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                </a>
                 <p class="property-location">
                     <span id="propertyLocation">Williston, FL 32696</span> &bull;
                     <span class="county-link" onclick="openCountyPanel()" id="countyName">Levy County</span>
                 </p>
             </div>
 
-            <div class="info-grid">
-                <!-- General Info -->
+            <div class="info-grid" style="grid-template-columns: 1fr 1fr;">
+                <!-- Property Info (Address + Seller/Buyer) -->
                 <div class="info-card">
-                    <div class="info-card-title">General</div>
+                    <div class="info-card-title">Property Info</div>
+                    <div class="info-row">
+                        <span class="info-label">Seller</span>
+                        <span class="info-value" id="sellerName">Marcos Luis Garcia</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Buyer</span>
+                        <span class="info-value" id="buyerName">4891 NE 147th Court Land Trust</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Accepted On</span>
+                        <span class="info-value" id="acceptedDate">Jan 22, 2026</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Closes On</span>
+                        <span class="info-value" id="closesDate">Feb 13, 2026</span>
+                    </div>
+                </div>
+
+                <!-- Deal Details -->
+                <div class="info-card">
+                    <div class="info-card-title">Deal Details</div>
                     <div class="info-row">
                         <span class="info-label">Status</span>
                         <span class="info-value">Accepted Contract</span>
@@ -1026,22 +1401,13 @@
                         <span class="info-value highlight" id="optionType">Save & Stay</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Auction Date</span>
-                        <span class="info-value" id="auctionDate">Feb 9, 2026</span>
+                        <span class="info-label">Auction</span>
+                        <span class="info-value"><span id="auctionDate">Feb 9, 2026</span> (<span id="auctionType">Tax Deed</span>)</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Auction Type</span>
-                        <span class="info-value" id="auctionType">Tax Deed</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Amount</span>
+                        <span class="info-label">Lien Amount</span>
                         <span class="info-value amount" id="lienAmount">$10,946.16</span>
                     </div>
-                </div>
-
-                <!-- Property Status -->
-                <div class="info-card">
-                    <div class="info-card-title">Property Status</div>
                     <div class="info-row">
                         <span class="info-label">Mortgage</span>
                         <span class="status-badge no" id="hasMortgage">No</span>
@@ -1054,131 +1420,111 @@
                         <span class="info-label">Probate</span>
                         <span class="status-badge no" id="isProbate">No</span>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">Accepted On</span>
-                        <span class="info-value">Jan 22, 2026</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Closes On</span>
-                        <span class="info-value">Feb 13, 2026</span>
-                    </div>
                 </div>
 
-                <!-- Seller & Buyer -->
-                <div class="info-card">
-                    <div class="info-card-title">Seller & Buyer</div>
-                    <div class="info-row">
-                        <span class="info-label">Seller</span>
-                        <span class="info-value" id="sellerName">Marcos Luis Garcia</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Buyer</span>
-                        <span class="info-value" id="buyerName">4891 NE 147th Court Land Trust</span>
-                    </div>
-                </div>
+                <!-- All Contacts Combined -->
+                <div class="info-card" style="grid-column: span 2;" id="contactsCard">
+                    <div class="info-card-title">Contacts</div>
 
-                <!-- Title Company -->
-                <div class="info-card" id="titleCompanyCard">
-                    <div class="info-card-title">Title Company (Option 1)</div>
-                    <div class="contact-card">
-                        <div class="contact-avatar">CL</div>
-                        <div class="contact-info">
-                            <div class="contact-name">Cathy L Morrison</div>
-                            <div class="contact-role">IPC</div>
-                        </div>
-                        <div class="contact-actions">
-                            <a href="tel:863-732-8485" class="contact-btn" title="Call">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                            </a>
-                            <a href="mailto:Cathy@ipcpolk.com" class="contact-btn" title="Email">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                            </a>
+                    <!-- Title Company Section -->
+                    <div class="contact-section" id="titleCompanySection">
+                        <div class="contact-section-header">Title Company (<span id="titleOptionLabel">Option 1</span>)</div>
+                        <div class="contact-card" id="titleCompanyContact">
+                            <div class="contact-avatar">CL</div>
+                            <div class="contact-info">
+                                <div class="contact-name" id="titleContactName">Cathy L Morrison</div>
+                                <div class="contact-role" id="titleCompanyName">IPC</div>
+                            </div>
+                            <div class="contact-actions">
+                                <button class="contact-btn" onclick="showContactPopover(this, 'phone', '863-732-8485')" title="Show phone">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                </button>
+                                <button class="contact-btn" onclick="showContactPopover(this, 'email', 'Cathy@ipcpolk.com')" title="Show email">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="info-row" style="margin-top: 12px;">
-                        <span class="info-label">Phone</span>
-                        <span class="info-value">863-732-TITL</span>
-                    </div>
-                </div>
 
-                <!-- Team Contacts -->
-                <div class="info-card">
-                    <div class="info-card-title">Team Contacts</div>
-                    <div class="contact-card">
-                        <div class="contact-avatar" style="background: var(--accent-cyan);">BJ</div>
-                        <div class="contact-info">
-                            <div class="contact-name">Bernadine Jones</div>
-                            <div class="contact-role">Transaction Coordinator (C2C)</div>
+                    <!-- MUCE Team Section -->
+                    <div class="contact-section">
+                        <div class="contact-section-header">MUCE Team</div>
+                        <div class="contact-card">
+                            <div class="contact-avatar" style="background: #7b2cbf;">GC</div>
+                            <div class="contact-info">
+                                <div class="contact-name">Gabe Clements</div>
+                                <div class="contact-role">Oversight</div>
+                            </div>
+                            <div class="contact-actions">
+                                <button class="contact-btn" onclick="showContactPopover(this, 'phone', '561-704-6598')" title="Show phone">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                </button>
+                                <button class="contact-btn" onclick="showContactPopover(this, 'email', 'gabeclements@gmail.com')" title="Show email">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                </button>
+                            </div>
                         </div>
-                        <div class="contact-actions">
-                            <a href="tel:954-309-0270" class="contact-btn" title="Call">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                            </a>
-                            <a href="mailto:bernadine@contracttoclosesolutions.com" class="contact-btn" title="Email">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="contact-card">
-                        <div class="contact-avatar" style="background: #7b2cbf;">GC</div>
-                        <div class="contact-info">
-                            <div class="contact-name">Gabe Clements</div>
-                            <div class="contact-role">Oversight (MUCE)</div>
-                        </div>
-                        <div class="contact-actions">
-                            <a href="tel:561-704-6598" class="contact-btn" title="Call">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                            </a>
-                            <a href="mailto:gabeclements@gmail.com" class="contact-btn" title="Email">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                            </a>
+                        <div class="contact-card">
+                            <div class="contact-avatar" style="background: #e91e63;">MB</div>
+                            <div class="contact-info">
+                                <div class="contact-name">Marcy Buras</div>
+                                <div class="contact-role">Coordinator</div>
+                            </div>
+                            <div class="contact-actions">
+                                <button class="contact-btn" onclick="showContactPopover(this, 'email', 'marcyburas@gmail.com')" title="Show email">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="contact-card">
-                        <div class="contact-avatar" style="background: #e91e63;">MB</div>
-                        <div class="contact-info">
-                            <div class="contact-name">Marcy Buras</div>
-                            <div class="contact-role">Coordinator (MUCE)</div>
-                        </div>
-                        <div class="contact-actions">
-                            <a href="mailto:marcyburas@gmail.com" class="contact-btn" title="Email">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                            </a>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Insurance & Probate Contacts -->
-                <div class="info-card">
-                    <div class="info-card-title">Specialists</div>
-                    <div class="contact-card">
-                        <div class="contact-avatar" style="background: #ff9800;">CP</div>
-                        <div class="contact-info">
-                            <div class="contact-name">Colleen Pacheco</div>
-                            <div class="contact-role">Insurance - Secured Insurance Group</div>
+                    <!-- Specialists Section -->
+                    <div class="contact-section">
+                        <div class="contact-section-header">Specialists</div>
+                        <div class="contact-card">
+                            <div class="contact-avatar" style="background: var(--accent-cyan);">BJ</div>
+                            <div class="contact-info">
+                                <div class="contact-name">Bernadine Jones</div>
+                                <div class="contact-role">Transaction Coordinator (C2C)</div>
+                            </div>
+                            <div class="contact-actions">
+                                <button class="contact-btn" onclick="showContactPopover(this, 'phone', '954-309-0270')" title="Show phone">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                </button>
+                                <button class="contact-btn" onclick="showContactPopover(this, 'email', 'bernadine@contracttoclosesolutions.com')" title="Show email">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                </button>
+                            </div>
                         </div>
-                        <div class="contact-actions">
-                            <a href="tel:407-559-2200" class="contact-btn" title="Call">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                            </a>
-                            <a href="mailto:colleen@securedinsurancegrp.com" class="contact-btn" title="Email">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                            </a>
+                        <div class="contact-card">
+                            <div class="contact-avatar" style="background: #ff9800;">CP</div>
+                            <div class="contact-info">
+                                <div class="contact-name">Colleen Pacheco</div>
+                                <div class="contact-role">Insurance</div>
+                            </div>
+                            <div class="contact-actions">
+                                <button class="contact-btn" onclick="showContactPopover(this, 'phone', '407-559-2200')" title="Show phone">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                </button>
+                                <button class="contact-btn" onclick="showContactPopover(this, 'email', 'colleen@securedinsurancegrp.com')" title="Show email">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="contact-card">
-                        <div class="contact-avatar" style="background: #673ab7;">RK</div>
-                        <div class="contact-info">
-                            <div class="contact-name">Riley Kendall</div>
-                            <div class="contact-role">Probate Attorney - Melton Law Firm</div>
-                        </div>
-                        <div class="contact-actions">
-                            <a href="tel:407-674-0104" class="contact-btn" title="Call">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                            </a>
-                            <a href="mailto:rkendall@meltonfirm.com" class="contact-btn" title="Email">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                            </a>
+                        <div class="contact-card" id="probateAttorneyCard">
+                            <div class="contact-avatar" style="background: #673ab7;">RK</div>
+                            <div class="contact-info">
+                                <div class="contact-name">Riley Kendall</div>
+                                <div class="contact-role">Probate Attorney</div>
+                            </div>
+                            <div class="contact-actions">
+                                <button class="contact-btn" onclick="showContactPopover(this, 'phone', '407-674-0104')" title="Show phone">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                </button>
+                                <button class="contact-btn" onclick="showContactPopover(this, 'email', 'rkendall@meltonfirm.com')" title="Show email">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1207,6 +1553,64 @@
             </div>
             <div class="county-panel-content" id="countyPanelContent">
                 <!-- County links populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Simplifile Credentials Popup -->
+    <div class="credentials-overlay" id="credentialsOverlay" onclick="closeCredentialsPopup(event)">
+        <div class="credentials-popup" onclick="event.stopPropagation()">
+            <div class="credentials-popup-title">
+                <span>Simplifile Login</span>
+                <button class="county-panel-close" onclick="closeCredentialsPopup()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="credential-row">
+                <span class="credential-label">Username</span>
+                <div class="credential-value">
+                    <span class="credential-text" id="simplifileUsername">Not set</span>
+                    <button class="copy-btn" onclick="copyCredential('simplifileUsername')">Copy</button>
+                </div>
+            </div>
+            <div class="credential-row">
+                <span class="credential-label">Password</span>
+                <div class="credential-value">
+                    <span class="credential-text" id="simplifilePassword">••••••••</span>
+                    <button class="copy-btn" onclick="copyCredential('simplifilePassword')">Copy</button>
+                </div>
+            </div>
+            <div class="credentials-actions">
+                <button class="btn-secondary" onclick="openSettingsModal()">Settings</button>
+                <a href="https://simplifile.com/sf/ui/login" target="_blank" class="btn-primary" style="text-decoration: none; text-align: center;">Open Simplifile</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="credentials-overlay" id="settingsOverlay" onclick="closeSettingsModal(event)">
+        <div class="settings-modal" onclick="event.stopPropagation()">
+            <div class="settings-title">Service Credentials</div>
+            <div class="settings-subtitle">Stored locally in your browser only. Never synced or uploaded.</div>
+
+            <div style="border-bottom: 1px solid var(--border-color); margin-bottom: 16px; padding-bottom: 16px;">
+                <div style="font-size: 12px; font-weight: 500; margin-bottom: 12px; color: var(--text-secondary);">SIMPLIFILE</div>
+                <div class="settings-field">
+                    <label>Username</label>
+                    <input type="text" id="settingsSimplifileUsername" placeholder="Enter Simplifile username">
+                </div>
+                <div class="settings-field">
+                    <label>Password</label>
+                    <input type="password" id="settingsSimplifilePassword" placeholder="Enter Simplifile password">
+                </div>
+            </div>
+
+            <div class="credentials-actions">
+                <button class="btn-secondary" onclick="closeSettingsModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveSettings()">Save</button>
             </div>
         </div>
     </div>
@@ -1286,7 +1690,7 @@
                 description: '14-day rule applies',
                 isTimingSection: true,
                 tasks: [
-                    { id: 't1', name: 'Recording Deed', timingDependent: true, dueOffset: -7 },
+                    { id: 't1', name: 'Recording Deed', timingDependent: true, dueOffset: -7, hasServiceLink: true, serviceType: 'simplifile' },
                     { id: 't2', name: 'Preliminary Lien Search', timingDependent: true, dueOffset: -14 },
                     { id: 't3', name: 'Call County Tax Collector', timingDependent: true, dueOffset: -21, subtasks: [
                         'Determine if Tax Deed exists',
@@ -1617,6 +2021,21 @@
                 `;
             }
 
+            // Service link (e.g., Simplifile)
+            let serviceLinkHtml = '';
+            if (task.hasServiceLink && task.serviceType === 'simplifile') {
+                serviceLinkHtml = `
+                    <button class="task-link-btn" onclick="openSimplifileWithCredentials(event)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                        Simplifile
+                    </button>
+                `;
+            }
+
             // N/A toggle for documents
             let naToggleHtml = '';
             if (task.allowNA) {
@@ -1638,6 +2057,7 @@
                             <span class="task-due ${dueClass}">${formattedDue}</span>
                             ${task.timingDependent ? `<span class="task-owner ${owner.toLowerCase()}">${owner}</span>` : ''}
                             ${emailLinkHtml}
+                            ${serviceLinkHtml}
                             ${naToggleHtml}
                         </div>
                     </div>
@@ -1946,6 +2366,265 @@
                 console.log('Switching to demo mode');
             }
         }
+
+        // ========================================
+        // Contact Popover
+        // ========================================
+        let activePopover = null;
+
+        function showContactPopover(button, type, value) {
+            // Remove any existing popover
+            if (activePopover) {
+                activePopover.remove();
+                activePopover = null;
+            }
+
+            // Create popover
+            const popover = document.createElement('div');
+            popover.className = 'contact-popover';
+
+            if (type === 'phone') {
+                popover.innerHTML = `<a href="tel:${value}">${value}</a>`;
+            } else if (type === 'email') {
+                popover.innerHTML = `<a href="mailto:${value}">${value}</a>`;
+            }
+
+            button.style.position = 'relative';
+            button.appendChild(popover);
+            activePopover = popover;
+
+            // Close on outside click
+            setTimeout(() => {
+                document.addEventListener('click', closePopoverOnOutsideClick);
+            }, 10);
+        }
+
+        function closePopoverOnOutsideClick(e) {
+            if (activePopover && !activePopover.contains(e.target) && !e.target.closest('.contact-btn')) {
+                activePopover.remove();
+                activePopover = null;
+                document.removeEventListener('click', closePopoverOnOutsideClick);
+            }
+        }
+
+        // ========================================
+        // Credentials Popup
+        // ========================================
+        function openCredentialsPopup() {
+            loadCredentialsDisplay();
+            document.getElementById('credentialsOverlay').classList.add('open');
+        }
+
+        function closeCredentialsPopup(event) {
+            if (!event || event.target === document.getElementById('credentialsOverlay')) {
+                document.getElementById('credentialsOverlay').classList.remove('open');
+            }
+        }
+
+        function loadCredentialsDisplay() {
+            const creds = getStoredCredentials();
+            document.getElementById('simplifileUsername').textContent = creds.simplifile?.username || 'Not set';
+            // Show masked password or "Not set"
+            const pwd = creds.simplifile?.password;
+            document.getElementById('simplifilePassword').textContent = pwd ? '••••••••' : 'Not set';
+            document.getElementById('simplifilePassword').dataset.value = pwd || '';
+        }
+
+        function copyCredential(elementId) {
+            const element = document.getElementById(elementId);
+            let textToCopy;
+
+            if (elementId === 'simplifilePassword') {
+                textToCopy = element.dataset.value;
+            } else {
+                textToCopy = element.textContent;
+            }
+
+            if (!textToCopy || textToCopy === 'Not set') {
+                alert('No credential set. Please configure in Settings.');
+                return;
+            }
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const btn = element.nextElementSibling;
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.classList.remove('copied');
+                }, 1500);
+            });
+        }
+
+        // ========================================
+        // Settings Modal
+        // ========================================
+        function openSettingsModal() {
+            closeCredentialsPopup();
+            const creds = getStoredCredentials();
+            document.getElementById('settingsSimplifileUsername').value = creds.simplifile?.username || '';
+            document.getElementById('settingsSimplifilePassword').value = creds.simplifile?.password || '';
+            document.getElementById('settingsOverlay').classList.add('open');
+        }
+
+        function closeSettingsModal(event) {
+            if (!event || event.target === document.getElementById('settingsOverlay')) {
+                document.getElementById('settingsOverlay').classList.remove('open');
+            }
+        }
+
+        function saveSettings() {
+            const creds = {
+                simplifile: {
+                    username: document.getElementById('settingsSimplifileUsername').value,
+                    password: document.getElementById('settingsSimplifilePassword').value
+                }
+            };
+            localStorage.setItem('dealOversightCredentials', JSON.stringify(creds));
+            closeSettingsModal();
+            alert('Settings saved locally.');
+        }
+
+        function getStoredCredentials() {
+            const saved = localStorage.getItem('dealOversightCredentials');
+            return saved ? JSON.parse(saved) : {};
+        }
+
+        // ========================================
+        // Header Stats
+        // ========================================
+        function updateHeaderStats() {
+            const property = DEMO_PROPERTIES[currentProperty];
+            const propNAState = naState[currentProperty] || {};
+            const auctionDate = new Date(property.auctionDate);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let dueToday = 0;
+            let overdue = 0;
+            let totalTasks = 0;
+            let completedTasks = 0;
+
+            CHECKLIST_SECTIONS.forEach(section => {
+                if (section.optionFilter && section.optionFilter !== property.optionType) {
+                    return;
+                }
+
+                const sectionState = checklistState[currentProperty]?.[section.id] || {};
+
+                section.tasks.forEach(task => {
+                    if (propNAState[task.id]) return; // Skip N/A
+
+                    totalTasks++;
+                    const isCompleted = sectionState[task.id];
+                    if (isCompleted) {
+                        completedTasks++;
+                        return;
+                    }
+
+                    // Calculate due date
+                    const dueDate = new Date(auctionDate);
+                    dueDate.setDate(dueDate.getDate() + (task.dueOffset || 0));
+                    dueDate.setHours(0, 0, 0, 0);
+
+                    const daysUntil = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+
+                    if (daysUntil < 0) {
+                        overdue++;
+                    } else if (daysUntil === 0) {
+                        dueToday++;
+                    }
+                });
+            });
+
+            const percent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+            document.querySelector('#statDueToday .stat-value').textContent = dueToday;
+            document.querySelector('#statOverdue .stat-value').textContent = overdue;
+            document.querySelector('#statComplete .stat-value').textContent = percent + '%';
+
+            // Update stat item styling
+            const overdueItem = document.getElementById('statOverdue');
+            if (overdue > 0) {
+                overdueItem.classList.add('urgent');
+            } else {
+                overdueItem.classList.remove('urgent');
+            }
+        }
+
+        // ========================================
+        // Google Maps Link
+        // ========================================
+        function updateGoogleMapsLink() {
+            const property = DEMO_PROPERTIES[currentProperty];
+            const fullAddress = `${property.address}, ${property.city}, ${property.state} ${property.zip}`;
+            const encodedAddress = encodeURIComponent(fullAddress);
+            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+            document.getElementById('propertyAddressLink').href = mapsUrl;
+        }
+
+        // ========================================
+        // Recording Deed Simplifile Link
+        // ========================================
+        function openSimplifileWithCredentials(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            openCredentialsPopup();
+        }
+
+        // ========================================
+        // Update Load Property to include new features
+        // ========================================
+        const originalLoadProperty = loadProperty;
+        loadProperty = function(propertyId) {
+            originalLoadProperty(propertyId);
+            updateHeaderStats();
+            updateGoogleMapsLink();
+
+            // Update title company based on option
+            const property = DEMO_PROPERTIES[propertyId];
+            const titleSection = document.getElementById('titleCompanySection');
+            const titleOptionLabel = document.getElementById('titleOptionLabel');
+            const titleContactName = document.getElementById('titleContactName');
+            const titleCompanyName = document.getElementById('titleCompanyName');
+            const titleCompanyContact = document.getElementById('titleCompanyContact');
+
+            if (property.optionType === 'option_1') {
+                titleOptionLabel.textContent = 'Option 1';
+                titleContactName.textContent = 'Cathy L Morrison';
+                titleCompanyName.textContent = 'IPC';
+                // Update phone/email buttons
+                const buttons = titleCompanyContact.querySelectorAll('.contact-btn');
+                buttons[0].setAttribute('onclick', "showContactPopover(this, 'phone', '863-732-8485')");
+                buttons[1].setAttribute('onclick', "showContactPopover(this, 'email', 'Cathy@ipcpolk.com')");
+            } else {
+                titleOptionLabel.textContent = 'Option 2';
+                titleContactName.textContent = 'Meaghan Dubbs';
+                titleCompanyName.textContent = 'University Title';
+                const buttons = titleCompanyContact.querySelectorAll('.contact-btn');
+                buttons[0].setAttribute('onclick', "showContactPopover(this, 'phone', '602-903-4914')");
+                buttons[1].setAttribute('onclick', "showContactPopover(this, 'email', 'mdubbs@u-titleagency.com')");
+            }
+
+            // Show/hide probate attorney based on isProbate
+            const probateCard = document.getElementById('probateAttorneyCard');
+            if (probateCard) {
+                probateCard.style.display = property.isProbate ? 'flex' : 'none';
+            }
+
+            // Update accepted/closes dates
+            document.getElementById('acceptedDate').textContent =
+                new Date(property.acceptedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('closesDate').textContent =
+                new Date(property.closesDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+
+        // Update overall progress to also update header stats
+        const originalUpdateOverallProgress = updateOverallProgress;
+        updateOverallProgress = function() {
+            originalUpdateOverallProgress();
+            updateHeaderStats();
+        };
 
         // Initialize on load
         document.addEventListener('DOMContentLoaded', init);
