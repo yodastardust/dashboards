@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deal Oversight Dashboard - SpaceX Mission Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* ========================================
+           SpaceX Mission Control Theme
+           ======================================== */
+        :root {
+            --bg-primary: #0b0b0f;
+            --bg-secondary: #1a1a1e;
+            --bg-panel: #141418;
+            --bg-hover: #252529;
+            --accent-blue: #005288;
+            --accent-cyan: #00bcd4;
+            --alert-red: #c41e3a;
+            --success-green: #00c853;
+            --warning-yellow: #ffc107;
+            --warning-orange: #ff8800;
+            --text-primary: #ffffff;
+            --text-secondary: #9e9e9e;
+            --text-muted: #666666;
+            --border-color: #2a2a2e;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* ========================================
+           Header
+           ======================================== */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-weight: 500;
+            font-size: 18px;
+        }
+
+        .logo-text span {
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        .property-selector {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .property-selector select {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 300px;
+            cursor: pointer;
+        }
+
+        .property-selector select:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+        }
+
+        /* ========================================
+           Countdown Box
+           ======================================== */
+        .countdown-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .countdown-box {
+            background: var(--bg-panel);
+            border: 2px solid var(--alert-red);
+            border-radius: 8px;
+            padding: 12px 20px;
+            text-align: center;
+            min-width: 200px;
+            transition: all 0.3s ease;
+        }
+
+        .countdown-box.urgent {
+            animation: urgentFlash 1s ease-in-out infinite;
+        }
+
+        .countdown-box.resolved {
+            border-color: var(--success-green);
+            animation: none;
+        }
+
+        @keyframes urgentFlash {
+            0%, 100% {
+                background: var(--bg-panel);
+                box-shadow: 0 0 20px rgba(196, 30, 58, 0.3);
+            }
+            50% {
+                background: rgba(196, 30, 58, 0.2);
+                box-shadow: 0 0 40px rgba(196, 30, 58, 0.5);
+            }
+        }
+
+        .countdown-days {
+            font-size: 32px;
+            font-weight: 700;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--alert-red);
+        }
+
+        .countdown-box.resolved .countdown-days {
+            color: var(--success-green);
+        }
+
+        .countdown-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .countdown-status {
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 8px;
+            padding: 4px 12px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .countdown-status.unpaid {
+            background: rgba(196, 30, 58, 0.2);
+            color: var(--alert-red);
+        }
+
+        .countdown-status.paid {
+            background: rgba(0, 200, 83, 0.2);
+            color: var(--success-green);
+        }
+
+        /* ========================================
+           Main Layout
+           ======================================== */
+        .main-container {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 0;
+            min-height: calc(100vh - 65px);
+        }
+
+        @media (max-width: 1200px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ========================================
+           Checklist Panel (Left)
+           ======================================== */
+        .checklist-panel {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            max-height: calc(100vh - 65px);
+        }
+
+        .checklist-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            background: var(--bg-secondary);
+            z-index: 10;
+        }
+
+        .checklist-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .checklist-title h2 {
+            font-size: 16px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .completion-badge {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--success-green);
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--bg-panel);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success-green), var(--accent-cyan));
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        /* ========================================
+           Accordion Sections
+           ======================================== */
+        .section {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            user-select: none;
+        }
+
+        .section-header:hover {
+            background: var(--bg-hover);
+        }
+
+        .section-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-chevron {
+            width: 20px;
+            height: 20px;
+            transition: transform 0.3s ease;
+            color: var(--text-secondary);
+        }
+
+        .section.expanded .section-chevron {
+            transform: rotate(90deg);
+        }
+
+        .section-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .section-count {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .section-progress-ring {
+            width: 32px;
+            height: 32px;
+        }
+
+        .section-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background: var(--bg-panel);
+        }
+
+        .section.expanded .section-content {
+            max-height: 2000px;
+        }
+
+        /* ========================================
+           Task Items
+           ======================================== */
+        .task-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 20px 12px 48px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.2s ease;
+        }
+
+        .task-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+        .task-checkbox {
+            width: 24px;
+            height: 24px;
+            min-width: 24px;
+            border: 2px solid var(--text-muted);
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            margin-top: 2px;
+        }
+
+        .task-checkbox:hover {
+            border-color: var(--accent-cyan);
+        }
+
+        .task-checkbox.checked {
+            background: var(--success-green);
+            border-color: var(--success-green);
+        }
+
+        .task-checkbox.checked svg {
+            opacity: 1;
+        }
+
+        .task-checkbox svg {
+            width: 14px;
+            height: 14px;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .task-content {
+            flex: 1;
+        }
+
+        .task-name {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .task-item.completed .task-name {
+            text-decoration: line-through;
+            color: var(--text-secondary);
+        }
+
+        .task-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .task-due {
+            font-size: 11px;
+            font-family: 'Roboto Mono', monospace;
+            padding: 2px 8px;
+            border-radius: 3px;
+            background: var(--bg-secondary);
+        }
+
+        .task-due.overdue {
+            background: rgba(196, 30, 58, 0.2);
+            color: var(--alert-red);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .task-due.warning {
+            background: rgba(255, 136, 0, 0.2);
+            color: var(--warning-orange);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .task-owner {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+
+        .task-owner.muce {
+            background: rgba(0, 82, 136, 0.3);
+            color: #4da6ff;
+        }
+
+        .task-owner.c2c {
+            background: rgba(0, 188, 212, 0.2);
+            color: var(--accent-cyan);
+        }
+
+        /* ========================================
+           Details Panel (Right)
+           ======================================== */
+        .details-panel {
+            padding: 24px;
+            overflow-y: auto;
+            max-height: calc(100vh - 65px);
+        }
+
+        .property-header {
+            margin-bottom: 24px;
+        }
+
+        .property-address {
+            font-size: 28px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .property-location {
+            font-size: 16px;
+            color: var(--text-secondary);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .info-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .info-card-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .info-value.highlight {
+            color: var(--accent-cyan);
+        }
+
+        .info-value.amount {
+            font-family: 'Roboto Mono', monospace;
+            color: var(--success-green);
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-badge.yes {
+            background: rgba(0, 200, 83, 0.2);
+            color: var(--success-green);
+        }
+
+        .status-badge.no {
+            background: rgba(102, 102, 102, 0.2);
+            color: var(--text-secondary);
+        }
+
+        /* ========================================
+           Contacts Section
+           ======================================== */
+        .contact-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-panel);
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .contact-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .contact-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .contact-info {
+            flex: 1;
+        }
+
+        .contact-name {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .contact-role {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .contact-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .contact-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .contact-btn:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        .contact-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* ========================================
+           Data Mode Toggle
+           ======================================== */
+        .data-mode-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .toggle-switch {
+            width: 40px;
+            height: 20px;
+            background: var(--bg-panel);
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent-cyan);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: left 0.2s ease;
+        }
+
+        .toggle-switch.active::after {
+            left: 22px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">M</div>
+            <div class="logo-text">MUCE <span>Deal Oversight</span></div>
+        </div>
+
+        <div class="property-selector">
+            <select id="propertySelect" onchange="loadProperty(this.value)">
+                <option value="demo1">4891 NE 147th Court, Williston, FL 32696</option>
+                <option value="demo2">1290 Oxford Dr, Clearwater, FL 33756</option>
+            </select>
+        </div>
+
+        <div class="countdown-container">
+            <div class="countdown-box urgent" id="countdownBox">
+                <div class="countdown-days" id="countdownDays">19</div>
+                <div class="countdown-label">Days to Auction</div>
+                <div class="countdown-status unpaid" id="countdownStatus">TAX DEED UNPAID</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <!-- Checklist Panel -->
+        <div class="checklist-panel">
+            <div class="checklist-header">
+                <div class="checklist-title">
+                    <h2>Checklist</h2>
+                    <span class="completion-badge" id="completionBadge">37%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 37%"></div>
+                </div>
+            </div>
+
+            <!-- Sections will be populated by JavaScript -->
+            <div id="checklistSections"></div>
+        </div>
+
+        <!-- Details Panel -->
+        <div class="details-panel">
+            <div class="property-header">
+                <h1 class="property-address" id="propertyAddress">4891 NE 147th Court</h1>
+                <p class="property-location" id="propertyLocation">Williston, FL 32696 &bull; Levy County</p>
+            </div>
+
+            <div class="info-grid">
+                <!-- General Info -->
+                <div class="info-card">
+                    <div class="info-card-title">General</div>
+                    <div class="info-row">
+                        <span class="info-label">Status</span>
+                        <span class="info-value">Accepted Contract</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Option</span>
+                        <span class="info-value highlight" id="optionType">Save & Stay</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Auction Date</span>
+                        <span class="info-value" id="auctionDate">Feb 9, 2026</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Auction Type</span>
+                        <span class="info-value" id="auctionType">Tax Deed</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Amount</span>
+                        <span class="info-value amount" id="lienAmount">$10,946.16</span>
+                    </div>
+                </div>
+
+                <!-- Property Status -->
+                <div class="info-card">
+                    <div class="info-card-title">Property Status</div>
+                    <div class="info-row">
+                        <span class="info-label">Mortgage</span>
+                        <span class="status-badge no" id="hasMortgage">No</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">HOA</span>
+                        <span class="status-badge no" id="hasHOA">No</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Probate</span>
+                        <span class="status-badge no" id="isProbate">No</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Accepted On</span>
+                        <span class="info-value">Jan 22, 2026</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Closes On</span>
+                        <span class="info-value">Feb 13, 2026</span>
+                    </div>
+                </div>
+
+                <!-- Seller & Buyer -->
+                <div class="info-card">
+                    <div class="info-card-title">Seller & Buyer</div>
+                    <div class="info-row">
+                        <span class="info-label">Seller</span>
+                        <span class="info-value" id="sellerName">Marcos Luis Garcia</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Buyer</span>
+                        <span class="info-value" id="buyerName">4891 NE 147th Court Land Trust</span>
+                    </div>
+                </div>
+
+                <!-- Title Company -->
+                <div class="info-card" id="titleCompanyCard">
+                    <div class="info-card-title">Title Company (Option 1)</div>
+                    <div class="contact-card">
+                        <div class="contact-avatar">CL</div>
+                        <div class="contact-info">
+                            <div class="contact-name">Cathy L Morrison</div>
+                            <div class="contact-role">IPC</div>
+                        </div>
+                        <div class="contact-actions">
+                            <a href="tel:863-732-8485" class="contact-btn" title="Call">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                            </a>
+                            <a href="mailto:Cathy@ipcpolk.com" class="contact-btn" title="Email">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="info-row" style="margin-top: 12px;">
+                        <span class="info-label">Phone</span>
+                        <span class="info-value">863-732-TITL</span>
+                    </div>
+                </div>
+
+                <!-- Team Contacts -->
+                <div class="info-card">
+                    <div class="info-card-title">Team Contacts</div>
+                    <div class="contact-card">
+                        <div class="contact-avatar" style="background: var(--accent-cyan);">BJ</div>
+                        <div class="contact-info">
+                            <div class="contact-name">Bernadine Jones</div>
+                            <div class="contact-role">Transaction Coordinator (C2C)</div>
+                        </div>
+                        <div class="contact-actions">
+                            <a href="tel:954-309-0270" class="contact-btn" title="Call">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                            </a>
+                            <a href="mailto:bernadine@contracttoclosesolutions.com" class="contact-btn" title="Email">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="contact-card">
+                        <div class="contact-avatar" style="background: #7b2cbf;">GC</div>
+                        <div class="contact-info">
+                            <div class="contact-name">Gabe Clements</div>
+                            <div class="contact-role">Oversight (MUCE)</div>
+                        </div>
+                        <div class="contact-actions">
+                            <a href="tel:561-704-6598" class="contact-btn" title="Call">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                            </a>
+                            <a href="mailto:gabeclements@gmail.com" class="contact-btn" title="Email">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="contact-card">
+                        <div class="contact-avatar" style="background: #e91e63;">MB</div>
+                        <div class="contact-info">
+                            <div class="contact-name">Marcy Buras</div>
+                            <div class="contact-role">Coordinator (MUCE)</div>
+                        </div>
+                        <div class="contact-actions">
+                            <a href="mailto:marcyburas@gmail.com" class="contact-btn" title="Email">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insurance & Probate Contacts -->
+                <div class="info-card">
+                    <div class="info-card-title">Specialists</div>
+                    <div class="contact-card">
+                        <div class="contact-avatar" style="background: #ff9800;">CP</div>
+                        <div class="contact-info">
+                            <div class="contact-name">Colleen Pacheco</div>
+                            <div class="contact-role">Insurance - Secured Insurance Group</div>
+                        </div>
+                        <div class="contact-actions">
+                            <a href="tel:407-559-2200" class="contact-btn" title="Call">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                            </a>
+                            <a href="mailto:colleen@securedinsurancegrp.com" class="contact-btn" title="Email">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="contact-card">
+                        <div class="contact-avatar" style="background: #673ab7;">RK</div>
+                        <div class="contact-info">
+                            <div class="contact-name">Riley Kendall</div>
+                            <div class="contact-role">Probate Attorney - Melton Law Firm</div>
+                        </div>
+                        <div class="contact-actions">
+                            <a href="tel:407-674-0104" class="contact-btn" title="Call">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                            </a>
+                            <a href="mailto:rkendall@meltonfirm.com" class="contact-btn" title="Email">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Mode Toggle -->
+    <div class="data-mode-toggle">
+        <span>Demo Mode</span>
+        <div class="toggle-switch" id="dataToggle" onclick="toggleDataMode()"></div>
+        <span>Live</span>
+    </div>
+
+    <script>
+        // ========================================
+        // Demo Property Data
+        // ========================================
+        const DEMO_PROPERTIES = {
+            demo1: {
+                address: '4891 NE 147th Court',
+                city: 'Williston',
+                state: 'FL',
+                zip: '32696',
+                county: 'Levy',
+                auctionDate: '2026-02-09',
+                auctionType: 'tax_deed',
+                optionType: 'option_1',
+                lienAmount: 10946.16,
+                seller: 'Marcos Luis Garcia',
+                buyer: '4891 NE 147th Court Land Trust',
+                hasMortgage: false,
+                hasHOA: false,
+                isProbate: false,
+                acceptedDate: '2026-01-22',
+                closesDate: '2026-02-13',
+                lienPaid: false
+            },
+            demo2: {
+                address: '1290 Oxford Dr',
+                city: 'Clearwater',
+                state: 'FL',
+                zip: '33756',
+                county: 'Pinellas',
+                auctionDate: '2026-03-15',
+                auctionType: 'foreclosure',
+                optionType: 'option_2',
+                lienAmount: 45000.00,
+                seller: 'John Smith',
+                buyer: '1290 Oxford Land Trust',
+                hasMortgage: true,
+                hasHOA: true,
+                isProbate: false,
+                acceptedDate: '2026-01-15',
+                closesDate: '2026-03-01',
+                lienPaid: false
+            }
+        };
+
+        // ========================================
+        // Checklist Template Data
+        // ========================================
+        const CHECKLIST_SECTIONS = [
+            {
+                id: 'timing_dependent',
+                name: 'Timing-Dependent Tasks',
+                description: '14-day rule applies',
+                tasks: [
+                    { id: 't1', name: 'Recording Deed', timingDependent: true, dueOffset: -7 },
+                    { id: 't2', name: 'Preliminary Lien Search', timingDependent: true, dueOffset: -14 },
+                    { id: 't3', name: 'Call County Tax Collector', timingDependent: true, dueOffset: -21, subtasks: [
+                        'Determine if Tax Deed exists',
+                        'Get amount and "good through" date',
+                        'Get total tax owed',
+                        'Get wire/payment instructions'
+                    ]},
+                    { id: 't4', name: 'Call Courthouse (if lien exists)', timingDependent: true, dueOffset: -14 },
+                    { id: 't5', name: 'Mortgage Reinstatement (if applicable)', timingDependent: true, dueOffset: -14 },
+                    { id: 't6', name: 'Confirm Auction Cancellation', timingDependent: true, dueOffset: -3 }
+                ]
+            },
+            {
+                id: 'c2c_standard',
+                name: 'C2C Standard Tasks',
+                description: 'Every transaction',
+                tasks: [
+                    { id: 'c1', name: 'Open file with title company', dueOffset: -30 },
+                    { id: 'c2', name: 'Order title and lien search', dueOffset: -28 },
+                    { id: 'c3', name: 'Send Insurance Quote request to Colleen', dueOffset: -25 },
+                    { id: 'c4', name: 'Receive MUCE funding approval notification', dueOffset: -14 },
+                    { id: 'c5', name: 'Notify Colleen to bind insurance', dueOffset: -7 },
+                    { id: 'c6', name: 'Receive recorded Note and Mortgage', dueOffset: -5 },
+                    { id: 'c7', name: 'Receive finalized Land Trust from MUCE', dueOffset: -3 },
+                    { id: 'c8', name: 'Follow up on Title Search', dueOffset: -21 },
+                    { id: 'c9', name: 'Follow up on Lien Search', dueOffset: -21 },
+                    { id: 'c10', name: 'Confirm good to order inspection', dueOffset: -20 },
+                    { id: 'c11', name: 'Order inspection once lien search back', dueOffset: -18 },
+                    { id: 'c12', name: 'Follow up on insurance policy', dueOffset: -14 },
+                    { id: 'c13', name: 'Schedule closing', dueOffset: -10 }
+                ]
+            },
+            {
+                id: 'lender_hoa',
+                name: 'Lender & HOA Management',
+                description: 'Contact coordination',
+                tasks: [
+                    { id: 'l1', name: 'Get Lender contact info from Marcy', dueOffset: -25 },
+                    { id: 'l2', name: 'Get HOA contact info from Marcy', dueOffset: -25 },
+                    { id: 'l3', name: 'Contact Lender for payment instructions', dueOffset: -21 },
+                    { id: 'l4', name: 'Contact HOA for payment instructions', dueOffset: -21 },
+                    { id: 'l5', name: 'Set up ACH payments if possible', dueOffset: -14 },
+                    { id: 'l6', name: 'Confirm payment method with lender/HOA', dueOffset: -7 }
+                ]
+            },
+            {
+                id: 'tax_county',
+                name: 'Tax/County Coordination',
+                description: 'Tax deed process',
+                tasks: [
+                    { id: 'x1', name: 'Call County Tax Collector for payoff', dueOffset: -21 },
+                    { id: 'x2', name: 'Request county email with amount & wire instructions', dueOffset: -18 },
+                    { id: 'x3', name: 'Forward county email to Marcy', dueOffset: -17 },
+                    { id: 'x4', name: 'Collect receipt/proof of payment', dueOffset: -7 },
+                    { id: 'x5', name: 'File receipt/proof of payment', dueOffset: -5 }
+                ]
+            },
+            {
+                id: 'option2_utilities',
+                name: 'Option 2 - Utilities',
+                description: 'Save & Sell only',
+                optionFilter: 'option_2',
+                tasks: [
+                    { id: 'u1', name: 'Change Electric into MUCE name', dueOffset: -10 },
+                    { id: 'u2', name: 'Change Water into MUCE name', dueOffset: -10 },
+                    { id: 'u3', name: 'Set up trash removal', dueOffset: -10 },
+                    { id: 'u4', name: 'Set autopay on utilities', dueOffset: -7 },
+                    { id: 'u5', name: 'Confirm trash pickup days & bulk process', dueOffset: -5 }
+                ]
+            },
+            {
+                id: 'documents',
+                name: 'Documents Required',
+                description: 'Document collection',
+                tasks: [
+                    { id: 'd1', name: 'PSA (Purchase and Sale Agreement)', dueOffset: -30 },
+                    { id: 'd2', name: 'Quitclaim Deed(s)', dueOffset: -25 },
+                    { id: 'd3', name: 'Lease Agreement', dueOffset: -20 },
+                    { id: 'd4', name: 'Land Trust', dueOffset: -20 },
+                    { id: 'd5', name: '3rd Party Authorization', dueOffset: -25 },
+                    { id: 'd6', name: 'Most recent mortgage statement', dueOffset: -25 },
+                    { id: 'd7', name: 'Note & Mortgage', dueOffset: -10 },
+                    { id: 'd8', name: 'Insurance Binder', dueOffset: -7 },
+                    { id: 'd9', name: 'HUD Statement', dueOffset: -3 },
+                    { id: 'd10', name: 'Closing Package', dueOffset: -1 }
+                ]
+            }
+        ];
+
+        // ========================================
+        // State Management
+        // ========================================
+        let currentProperty = 'demo1';
+        let checklistState = {};
+        let isLiveMode = false;
+
+        // ========================================
+        // Initialization
+        // ========================================
+        function init() {
+            loadChecklistState();
+            renderChecklist();
+            loadProperty(currentProperty);
+            updateCountdown();
+            setInterval(updateCountdown, 60000); // Update every minute
+        }
+
+        function loadChecklistState() {
+            const saved = localStorage.getItem('dealOversightChecklist');
+            if (saved) {
+                checklistState = JSON.parse(saved);
+            }
+        }
+
+        function saveChecklistState() {
+            localStorage.setItem('dealOversightChecklist', JSON.stringify(checklistState));
+        }
+
+        // ========================================
+        // Checklist Rendering
+        // ========================================
+        function renderChecklist() {
+            const container = document.getElementById('checklistSections');
+            const property = DEMO_PROPERTIES[currentProperty];
+
+            let html = '';
+
+            CHECKLIST_SECTIONS.forEach(section => {
+                // Filter sections by option type
+                if (section.optionFilter && section.optionFilter !== property.optionType) {
+                    return;
+                }
+
+                const sectionState = checklistState[currentProperty]?.[section.id] || {};
+                const completedCount = section.tasks.filter(t => sectionState[t.id]).length;
+                const totalCount = section.tasks.length;
+                const progressPercent = Math.round((completedCount / totalCount) * 100);
+
+                html += `
+                    <div class="section ${completedCount > 0 ? 'expanded' : ''}" data-section="${section.id}">
+                        <div class="section-header" onclick="toggleSection('${section.id}')">
+                            <div class="section-header-left">
+                                <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                                <div>
+                                    <div class="section-name">${section.name}</div>
+                                    <div class="section-count">${completedCount} of ${totalCount}</div>
+                                </div>
+                            </div>
+                            ${renderProgressRing(progressPercent)}
+                        </div>
+                        <div class="section-content">
+                            ${section.tasks.map(task => renderTask(section.id, task, property, sectionState[task.id])).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            updateOverallProgress();
+        }
+
+        function renderProgressRing(percent) {
+            const radius = 12;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (percent / 100) * circumference;
+
+            return `
+                <svg class="section-progress-ring" viewBox="0 0 32 32">
+                    <circle cx="16" cy="16" r="${radius}" fill="none" stroke="var(--bg-panel)" stroke-width="3"/>
+                    <circle cx="16" cy="16" r="${radius}" fill="none" stroke="var(--success-green)" stroke-width="3"
+                            stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
+                            transform="rotate(-90 16 16)" style="transition: stroke-dashoffset 0.5s ease"/>
+                </svg>
+            `;
+        }
+
+        function renderTask(sectionId, task, property, isCompleted) {
+            const auctionDate = new Date(property.auctionDate);
+            const dueDate = new Date(auctionDate);
+            dueDate.setDate(dueDate.getDate() + (task.dueOffset || 0));
+
+            const today = new Date();
+            const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+            const daysUntilAuction = Math.ceil((auctionDate - today) / (1000 * 60 * 60 * 24));
+
+            // Determine owner based on 14-day rule
+            let owner = 'C2C';
+            if (task.timingDependent) {
+                owner = daysUntilAuction > 14 ? 'MUCE' : 'C2C';
+            }
+
+            // Due date styling
+            let dueClass = '';
+            if (!isCompleted) {
+                if (daysUntilDue < 0) dueClass = 'overdue';
+                else if (daysUntilDue <= 7) dueClass = 'warning';
+            }
+
+            const formattedDue = dueDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+
+            return `
+                <div class="task-item ${isCompleted ? 'completed' : ''}" data-task="${task.id}">
+                    <div class="task-checkbox ${isCompleted ? 'checked' : ''}" onclick="toggleTask('${sectionId}', '${task.id}')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="task-content">
+                        <div class="task-name">${task.name}</div>
+                        <div class="task-meta">
+                            <span class="task-due ${dueClass}">${formattedDue}</span>
+                            ${task.timingDependent ? `<span class="task-owner ${owner.toLowerCase()}">${owner}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ========================================
+        // Interactions
+        // ========================================
+        function toggleSection(sectionId) {
+            const section = document.querySelector(`[data-section="${sectionId}"]`);
+            section.classList.toggle('expanded');
+        }
+
+        function toggleTask(sectionId, taskId) {
+            if (!checklistState[currentProperty]) {
+                checklistState[currentProperty] = {};
+            }
+            if (!checklistState[currentProperty][sectionId]) {
+                checklistState[currentProperty][sectionId] = {};
+            }
+
+            checklistState[currentProperty][sectionId][taskId] = !checklistState[currentProperty][sectionId][taskId];
+            saveChecklistState();
+
+            // Update UI
+            const taskElement = document.querySelector(`[data-task="${taskId}"]`);
+            const checkbox = taskElement.querySelector('.task-checkbox');
+
+            if (checklistState[currentProperty][sectionId][taskId]) {
+                taskElement.classList.add('completed');
+                checkbox.classList.add('checked');
+            } else {
+                taskElement.classList.remove('completed');
+                checkbox.classList.remove('checked');
+            }
+
+            // Update section progress
+            updateSectionProgress(sectionId);
+            updateOverallProgress();
+
+            // Check if lien task completed (affects countdown)
+            if (taskId === 'x4' || taskId === 't3') {
+                updateCountdown();
+            }
+        }
+
+        function updateSectionProgress(sectionId) {
+            const section = CHECKLIST_SECTIONS.find(s => s.id === sectionId);
+            const sectionState = checklistState[currentProperty]?.[sectionId] || {};
+            const completedCount = section.tasks.filter(t => sectionState[t.id]).length;
+            const totalCount = section.tasks.length;
+
+            const sectionEl = document.querySelector(`[data-section="${sectionId}"]`);
+            sectionEl.querySelector('.section-count').textContent = `${completedCount} of ${totalCount}`;
+
+            // Update progress ring
+            const progressPercent = Math.round((completedCount / totalCount) * 100);
+            const radius = 12;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (progressPercent / 100) * circumference;
+            const circle = sectionEl.querySelectorAll('circle')[1];
+            if (circle) {
+                circle.setAttribute('stroke-dashoffset', offset);
+            }
+        }
+
+        function updateOverallProgress() {
+            const property = DEMO_PROPERTIES[currentProperty];
+            let totalTasks = 0;
+            let completedTasks = 0;
+
+            CHECKLIST_SECTIONS.forEach(section => {
+                if (section.optionFilter && section.optionFilter !== property.optionType) {
+                    return;
+                }
+
+                totalTasks += section.tasks.length;
+                const sectionState = checklistState[currentProperty]?.[section.id] || {};
+                completedTasks += section.tasks.filter(t => sectionState[t.id]).length;
+            });
+
+            const percent = Math.round((completedTasks / totalTasks) * 100);
+            document.getElementById('completionBadge').textContent = `${percent}%`;
+            document.getElementById('progressFill').style.width = `${percent}%`;
+        }
+
+        // ========================================
+        // Property Loading
+        // ========================================
+        function loadProperty(propertyId) {
+            currentProperty = propertyId;
+            const property = DEMO_PROPERTIES[propertyId];
+
+            // Update header
+            document.getElementById('propertyAddress').textContent = property.address;
+            document.getElementById('propertyLocation').textContent =
+                `${property.city}, ${property.state} ${property.zip} \u2022 ${property.county} County`;
+
+            // Update info cards
+            document.getElementById('optionType').textContent =
+                property.optionType === 'option_1' ? 'Save & Stay' : 'Save & Sell';
+            document.getElementById('auctionDate').textContent =
+                new Date(property.auctionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('auctionType').textContent =
+                property.auctionType === 'tax_deed' ? 'Tax Deed' : 'Foreclosure';
+            document.getElementById('lienAmount').textContent =
+                '$' + property.lienAmount.toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+            document.getElementById('hasMortgage').textContent = property.hasMortgage ? 'Yes' : 'No';
+            document.getElementById('hasMortgage').className = 'status-badge ' + (property.hasMortgage ? 'yes' : 'no');
+            document.getElementById('hasHOA').textContent = property.hasHOA ? 'Yes' : 'No';
+            document.getElementById('hasHOA').className = 'status-badge ' + (property.hasHOA ? 'yes' : 'no');
+            document.getElementById('isProbate').textContent = property.isProbate ? 'Yes' : 'No';
+            document.getElementById('isProbate').className = 'status-badge ' + (property.isProbate ? 'yes' : 'no');
+
+            document.getElementById('sellerName').textContent = property.seller;
+            document.getElementById('buyerName').textContent = property.buyer;
+
+            // Update title company card
+            const titleCard = document.getElementById('titleCompanyCard');
+            if (property.optionType === 'option_1') {
+                titleCard.querySelector('.info-card-title').textContent = 'Title Company (Option 1)';
+                titleCard.querySelector('.contact-name').textContent = 'Cathy L Morrison';
+                titleCard.querySelector('.contact-role').textContent = 'IPC';
+            } else {
+                titleCard.querySelector('.info-card-title').textContent = 'Title Company (Option 2)';
+                titleCard.querySelector('.contact-name').textContent = 'Meaghan Dubbs';
+                titleCard.querySelector('.contact-role').textContent = 'University Title';
+            }
+
+            // Re-render checklist for new property
+            renderChecklist();
+            updateCountdown();
+        }
+
+        // ========================================
+        // Countdown
+        // ========================================
+        function updateCountdown() {
+            const property = DEMO_PROPERTIES[currentProperty];
+            const auctionDate = new Date(property.auctionDate);
+            const today = new Date();
+            const daysUntil = Math.ceil((auctionDate - today) / (1000 * 60 * 60 * 24));
+
+            document.getElementById('countdownDays').textContent = daysUntil;
+
+            // Check if lien is paid
+            const taxPaid = checklistState[currentProperty]?.tax_county?.x4 ||
+                           checklistState[currentProperty]?.timing_dependent?.t3;
+
+            const countdownBox = document.getElementById('countdownBox');
+            const countdownStatus = document.getElementById('countdownStatus');
+
+            if (taxPaid || property.lienPaid) {
+                countdownBox.classList.remove('urgent');
+                countdownBox.classList.add('resolved');
+                countdownStatus.className = 'countdown-status paid';
+                countdownStatus.textContent = '\u2713 LIEN RESOLVED';
+            } else {
+                countdownBox.classList.add('urgent');
+                countdownBox.classList.remove('resolved');
+                countdownStatus.className = 'countdown-status unpaid';
+                countdownStatus.textContent = property.auctionType === 'tax_deed' ? 'TAX DEED UNPAID' : 'LIEN UNPAID';
+            }
+        }
+
+        // ========================================
+        // Data Mode Toggle
+        // ========================================
+        function toggleDataMode() {
+            isLiveMode = !isLiveMode;
+            const toggle = document.getElementById('dataToggle');
+            toggle.classList.toggle('active', isLiveMode);
+
+            if (isLiveMode) {
+                console.log('Switching to live Supabase mode...');
+                // TODO: Implement Supabase connection
+            } else {
+                console.log('Switching to demo mode');
+            }
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
