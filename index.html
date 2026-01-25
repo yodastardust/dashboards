@@ -1061,7 +1061,7 @@
         let selectedContact = null;
         let currentFilter = 'all';
         let currentTab = 'timeline';
-        let supabase = null;
+        let supabaseClient = null;
         let isSupabaseConnected = false;
         let messagesChannel = null;
         let aiDraftTimer = null;
@@ -1086,11 +1086,11 @@
             // Initialize Supabase
             if (SUPABASE_URL && SUPABASE_ANON_KEY) {
                 try {
-                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
                     // Try to load from Supabase with 5 second timeout
                     const { data, error } = await withTimeout(
-                        supabase
+                        supabaseClient
                             .from('conversations')
                             .select('*')
                             .order('last_message_at', { ascending: false })
@@ -1171,9 +1171,9 @@
         // Real-time Subscriptions
         // ========================================
         function subscribeToMessages() {
-            if (!supabase) return;
+            if (!supabaseClient) return;
 
-            messagesChannel = supabase
+            messagesChannel = supabaseClient
                 .channel('messages-realtime')
                 .on('postgres_changes', {
                     event: 'INSERT',
