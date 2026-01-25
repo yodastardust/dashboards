@@ -1959,10 +1959,47 @@
             });
         }
 
+        // Default checklist state from Paperless Pipeline data (as of 2026-01-25)
+        const DEFAULT_CHECKLIST_STATE = {
+            // 4891 NE 147th Court - 14 items completed
+            'demo1': {
+                executed_docs: { d2: true, d3: true, d5: true, d6: true },
+                timing_dependent: { t2: true },
+                c2c_standard: { c1: true },
+                lender_hoa: { l2: true }
+            },
+            // 3502 SW Sawgrass Villas Drive - 18 items completed
+            'sawgrass': {
+                executed_docs: { d2: true, d3: true, d5: true, d6: true },
+                timing_dependent: { t1: true, t2: true, t6: true },
+                c2c_standard: { c1: true },
+                lender_hoa: {}
+            },
+            // 3136 Norfolk Street - 28 items completed (closed deal)
+            'norfolk': {
+                executed_docs: { d2: true, d3: true, d5: true, d6: true, d7: true, d8: true, d9: true },
+                timing_dependent: { t2: true, t6: true },
+                c2c_standard: { c1: true, c3: true, c4: true, c8: true, c10: true, c11: true, c12: true },
+                lender_hoa: { l1: true, l2: true }
+            },
+            // 2735 SE 16th Ave Unit 102 - 26 items completed (closed deal)
+            'homestead': {
+                executed_docs: { d2: true, d3: true, d5: true, d6: true },
+                timing_dependent: { t2: true, t6: true },
+                c2c_standard: { c1: true, c4: true, c8: true, c10: true, c11: true, c12: true },
+                lender_hoa: { l1: true, l2: true }
+            },
+            // 375 Walsh Circle - new, no data yet
+            'walsh': {}
+        };
+
         function loadChecklistState() {
             const saved = localStorage.getItem('dealOversightChecklist');
             if (saved) {
                 checklistState = JSON.parse(saved);
+            } else {
+                // Initialize with Paperless data if no saved state
+                checklistState = JSON.parse(JSON.stringify(DEFAULT_CHECKLIST_STATE));
             }
             const savedNA = localStorage.getItem('dealOversightNA');
             if (savedNA) {
@@ -1973,6 +2010,18 @@
         function saveChecklistState() {
             localStorage.setItem('dealOversightChecklist', JSON.stringify(checklistState));
             localStorage.setItem('dealOversightNA', JSON.stringify(naState));
+        }
+
+        // Reset checklist to Paperless defaults (clears localStorage)
+        function resetToDefaults() {
+            if (confirm('Reset all checklists to Paperless Pipeline defaults? This will clear any manual changes.')) {
+                localStorage.removeItem('dealOversightChecklist');
+                localStorage.removeItem('dealOversightNA');
+                checklistState = JSON.parse(JSON.stringify(DEFAULT_CHECKLIST_STATE));
+                naState = {};
+                renderChecklist();
+                updateOverallProgress();
+            }
         }
 
         // ========================================
