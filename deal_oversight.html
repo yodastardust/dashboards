@@ -59,7 +59,43 @@
         .logo-section {
             display: flex;
             flex-direction: column;
+            gap: 6px;
+        }
+
+        .property-selector-row {
+            display: flex;
+            align-items: center;
             gap: 8px;
+        }
+
+        .header-icon-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-panel);
+            color: var(--accent-cyan);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .header-icon-btn:hover {
+            border-color: var(--accent-cyan);
+            background: var(--bg-hover);
+        }
+
+        .header-icon-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .property-location-row {
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding-left: 2px;
         }
 
         .logo {
@@ -1306,19 +1342,30 @@
                 <div class="logo-text">MUCE <span>Deal Oversight</span></div>
             </div>
 
-            <div class="property-dropdown" id="propertyDropdown">
-                <div class="property-dropdown-btn" onclick="togglePropertyDropdown()">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span class="urgency-dot" id="currentUrgencyDot"></span>
-                        <span id="currentPropertyName">4891 NE 147th Court, Williston, FL 32696</span>
+            <div class="property-selector-row">
+                <div class="property-dropdown" id="propertyDropdown">
+                    <div class="property-dropdown-btn" onclick="togglePropertyDropdown()">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="urgency-dot" id="currentUrgencyDot"></span>
+                            <span id="currentPropertyName">4891 NE 147th Court, Williston, FL 32696</span>
+                        </div>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
                     </div>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="6 9 12 15 18 9"></polyline>
+                    <div class="property-dropdown-content" id="propertyDropdownContent">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+                <button class="header-icon-btn" onclick="openGoogleMaps(event)" title="Open in Google Maps">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
                     </svg>
-                </div>
-                <div class="property-dropdown-content" id="propertyDropdownContent">
-                    <!-- Populated by JavaScript -->
-                </div>
+                </button>
+            </div>
+            <div class="property-location-row">
+                <span class="county-link" onclick="openCountyPanel()" id="countyName">Levy County</span>
             </div>
         </div>
 
@@ -1357,20 +1404,6 @@
     <div class="main-container">
         <!-- Details Panel -->
         <div class="details-panel">
-            <div class="property-header">
-                <a href="javascript:void(0)" class="property-address-link" id="propertyAddressLink" onclick="openGoogleMaps(event)">
-                    <h1 class="property-address" id="propertyAddress">4891 NE 147th Court</h1>
-                    <svg class="map-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                        <circle cx="12" cy="10" r="3"></circle>
-                    </svg>
-                </a>
-                <p class="property-location">
-                    <span id="propertyLocation">Williston, FL 32696</span> &bull;
-                    <span class="county-link" onclick="openCountyPanel()" id="countyName">Levy County</span>
-                </p>
-            </div>
-
             <div class="info-grid">
                 <!-- Property Info (Address + Seller/Buyer) -->
                 <div class="info-card">
