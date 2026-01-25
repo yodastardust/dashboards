@@ -56,6 +56,12 @@
             z-index: 100;
         }
 
+        .logo-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
         .logo {
             display: flex;
             align-items: center;
@@ -1294,12 +1300,12 @@
 <body>
     <!-- Header -->
     <header class="header">
-        <div class="logo">
-            <div class="logo-icon">M</div>
-            <div class="logo-text">MUCE <span>Deal Oversight</span></div>
-        </div>
+        <div class="logo-section">
+            <div class="logo">
+                <div class="logo-icon">M</div>
+                <div class="logo-text">MUCE <span>Deal Oversight</span></div>
+            </div>
 
-        <div class="property-selector">
             <div class="property-dropdown" id="propertyDropdown">
                 <div class="property-dropdown-btn" onclick="togglePropertyDropdown()">
                     <div style="display: flex; align-items: center; gap: 10px;">
