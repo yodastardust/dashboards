@@ -1766,6 +1766,38 @@
             }
 
             renderTabContent();
+
+            // Auto-preload AI draft if last message was inbound (they're waiting for a reply)
+            autoPreloadAIDraft(contact);
+        }
+
+        // Auto-preload AI draft when selecting a contact with pending inbound message
+        function autoPreloadAIDraft(contact) {
+            const messages = contact.sms_conversation || [];
+            if (messages.length === 0) return;
+
+            // Sort by date descending to find most recent
+            const sortedMessages = [...messages].sort((a, b) => {
+                const dateA = new Date(a.created_at || a.date || 0);
+                const dateB = new Date(b.created_at || b.date || 0);
+                return dateB - dateA;
+            });
+
+            const lastMessage = sortedMessages[0];
+            if (!lastMessage) return;
+
+            // Check if last message was inbound (they sent it, waiting for reply)
+            const isInbound = lastMessage.direction === 'inbound' ||
+                              lastMessage.direction === 'received' ||
+                              (lastMessage.from && !lastMessage.from.includes('561')); // Not from our numbers
+
+            if (isInbound) {
+                const messageBody = lastMessage.body || lastMessage.text || '';
+                if (messageBody.trim()) {
+                    console.log('Auto-preloading AI draft for inbound message:', messageBody.substring(0, 50));
+                    fetchAIDraft(messageBody);
+                }
+            }
         }
 
         function renderTabContent() {
