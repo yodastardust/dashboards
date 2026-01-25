@@ -3,10 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lead Communications Dashboard - Stop My Auction Now</title>
+    <title>Conversations Dashboard - Mission Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* ========================================
+           SpaceX Mission Control Theme
+           ======================================== */
+        :root {
+            --bg-primary: #0b0b0f;
+            --bg-secondary: #1a1a1e;
+            --bg-panel: #141418;
+            --bg-hover: #252529;
+            --accent-blue: #005288;
+            --accent-cyan: #00bcd4;
+            --alert-red: #c41e3a;
+            --success-green: #00c853;
+            --warning-yellow: #ffc107;
+            --warning-orange: #ff8800;
+            --text-primary: #ffffff;
+            --text-secondary: #9e9e9e;
+            --text-muted: #666666;
+            --border-color: #2a2a2e;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -14,35 +36,61 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
-            color: #e4e4e4;
+            line-height: 1.5;
         }
 
+        /* ========================================
+           Header
+           ======================================== */
         .header {
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(10px);
-            padding: 20px 40px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            justify-content: space-between;
             position: sticky;
             top: 0;
             z-index: 100;
         }
 
-        .header h1 {
-            font-size: 1.5rem;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .logo-text {
+            font-weight: 500;
+            font-size: 18px;
+        }
+
+        .logo-text span {
+            color: var(--text-secondary);
+            font-weight: 300;
         }
 
         .header-stats {
             display: flex;
-            gap: 30px;
+            gap: 24px;
+            align-items: center;
         }
 
         .header-stat {
@@ -50,75 +98,117 @@
         }
 
         .header-stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #00d4ff;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            font-family: 'Roboto Mono', monospace;
         }
 
         .header-stat-label {
-            font-size: 0.75rem;
-            color: #888;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: var(--bg-panel);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success-green);
+        }
+
+        .status-dot.offline { background: var(--alert-red); }
+        .status-dot.syncing { background: var(--warning-orange); animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ========================================
+           Container Layout
+           ======================================== */
         .container {
             display: flex;
-            height: calc(100vh - 80px);
+            height: calc(100vh - 65px);
         }
 
+        /* ========================================
+           Sidebar
+           ======================================== */
         .sidebar {
-            width: 350px;
-            background: rgba(255,255,255,0.03);
-            border-right: 1px solid rgba(255,255,255,0.1);
+            width: 320px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
         }
 
         .search-box {
-            padding: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .search-box input {
             width: 100%;
-            padding: 12px 15px;
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 8px;
-            background: rgba(255,255,255,0.05);
-            color: #fff;
-            font-size: 0.9rem;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-panel);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
         }
 
         .search-box input::placeholder {
-            color: #666;
+            color: var(--text-muted);
         }
 
         .filters {
-            padding: 10px 15px;
+            padding: 10px 12px;
             display: flex;
-            gap: 10px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            gap: 8px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .filter-btn {
-            padding: 6px 12px;
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 20px;
+            padding: 5px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
             background: transparent;
-            color: #888;
+            color: var(--text-secondary);
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             transition: all 0.2s;
+            font-family: 'Roboto Mono', monospace;
         }
 
         .filter-btn.active {
-            background: #00d4ff;
-            color: #000;
-            border-color: #00d4ff;
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            border-color: var(--accent-cyan);
         }
 
-        .filter-btn:hover {
-            border-color: #00d4ff;
+        .filter-btn:hover:not(.active) {
+            border-color: var(--accent-cyan);
+            color: var(--text-primary);
         }
 
         .contact-list {
@@ -127,71 +217,97 @@
         }
 
         .contact-item {
-            padding: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-color);
             cursor: pointer;
             transition: all 0.2s;
+            position: relative;
         }
 
         .contact-item:hover {
-            background: rgba(255,255,255,0.05);
+            background: var(--bg-hover);
         }
 
         .contact-item.active {
-            background: rgba(0,212,255,0.1);
-            border-left: 3px solid #00d4ff;
+            background: rgba(0, 188, 212, 0.1);
+            border-left: 3px solid var(--accent-cyan);
+        }
+
+        .contact-item.has-new-message::after {
+            content: '';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 10px;
+            background: var(--success-green);
+            border-radius: 50%;
+            animation: pulse 1s infinite;
         }
 
         .contact-name {
-            font-weight: 600;
-            margin-bottom: 4px;
+            font-weight: 500;
+            margin-bottom: 2px;
+            font-size: 0.9rem;
         }
 
         .contact-phone {
-            font-size: 0.85rem;
-            color: #888;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-family: 'Roboto Mono', monospace;
         }
 
         .contact-meta {
             display: flex;
-            gap: 15px;
-            margin-top: 8px;
-            font-size: 0.75rem;
+            gap: 12px;
+            margin-top: 6px;
+            font-size: 0.7rem;
         }
 
         .contact-meta span {
             display: flex;
             align-items: center;
             gap: 4px;
+            color: var(--text-muted);
         }
 
-        .meta-calls { color: #00d4ff; }
-        .meta-sms { color: #7b2cbf; }
-        .meta-transcripts { color: #00ff88; }
+        .meta-icon {
+            font-size: 0.8rem;
+        }
 
+        .meta-calls { color: var(--accent-cyan); }
+        .meta-sms { color: var(--warning-orange); }
+        .meta-transcripts { color: var(--success-green); }
+
+        /* ========================================
+           Main Content
+           ======================================== */
         .main-content {
             flex: 1;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            background: var(--bg-primary);
         }
 
         .contact-header {
-            padding: 20px 30px;
-            background: rgba(255,255,255,0.03);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 16px 24px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
         }
 
         .contact-header h2 {
-            font-size: 1.3rem;
-            margin-bottom: 5px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 6px;
         }
 
         .contact-details {
             display: flex;
-            gap: 30px;
-            font-size: 0.85rem;
-            color: #888;
+            gap: 20px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
             flex-wrap: wrap;
         }
 
@@ -201,226 +317,439 @@
             gap: 5px;
         }
 
+        /* ========================================
+           Tabs
+           ======================================== */
         .tabs {
             display: flex;
-            padding: 0 30px;
-            background: rgba(255,255,255,0.02);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 0 24px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
         }
 
         .tab {
-            padding: 15px 20px;
+            padding: 12px 16px;
             cursor: pointer;
             border-bottom: 2px solid transparent;
-            color: #888;
+            color: var(--text-secondary);
             transition: all 0.2s;
+            font-size: 0.85rem;
         }
 
         .tab:hover {
-            color: #fff;
+            color: var(--text-primary);
         }
 
         .tab.active {
-            color: #00d4ff;
-            border-bottom-color: #00d4ff;
+            color: var(--accent-cyan);
+            border-bottom-color: var(--accent-cyan);
+        }
+
+        /* ========================================
+           Content Area with Merge Fields
+           ======================================== */
+        .content-wrapper {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
         }
 
         .tab-content {
             flex: 1;
             overflow-y: auto;
-            padding: 20px 30px;
+            padding: 16px 24px;
+            display: flex;
+            flex-direction: column;
         }
 
+        .merge-fields-panel {
+            width: 200px;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            padding: 12px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .merge-fields-panel.visible {
+            display: block;
+        }
+
+        .merge-fields-title {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .merge-field {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 6px 10px;
+            margin-bottom: 8px;
+            font-size: 0.75rem;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--accent-cyan);
+            cursor: grab;
+            transition: all 0.2s;
+        }
+
+        .merge-field:hover {
+            border-color: var(--accent-cyan);
+            background: var(--bg-hover);
+        }
+
+        .merge-field:active {
+            cursor: grabbing;
+        }
+
+        .merge-field-hint {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* ========================================
+           Timeline
+           ======================================== */
         .timeline {
-            position: relative;
-            padding-left: 30px;
-        }
-
-        .timeline::before {
-            content: '';
-            position: absolute;
-            left: 10px;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: rgba(255,255,255,0.1);
+            flex: 1;
         }
 
         .timeline-item {
-            position: relative;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            margin-bottom: 16px;
+            align-items: flex-start;
+            gap: 12px;
         }
 
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -24px;
-            top: 20px;
-            width: 10px;
-            height: 10px;
+        .timeline-item.inbound {
+            flex-direction: row;
+        }
+
+        .timeline-item.outbound {
+            flex-direction: row-reverse;
+        }
+
+        .timeline-icon {
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background: #00d4ff;
-        }
-
-        .timeline-item.sms::before { background: #7b2cbf; }
-        .timeline-item.retell::before { background: #00ff88; }
-
-        .timeline-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .timeline-type {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-weight: 600;
-        }
-
-        .timeline-type .badge {
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-        }
-
-        .badge-call { background: rgba(0,212,255,0.2); color: #00d4ff; }
-        .badge-sms { background: rgba(123,44,191,0.2); color: #7b2cbf; }
-        .badge-retell { background: rgba(0,255,136,0.2); color: #00ff88; }
-        .badge-inbound { background: rgba(0,255,136,0.2); color: #00ff88; }
-        .badge-outbound { background: rgba(255,165,0,0.2); color: #ffa500; }
-
-        .timeline-date {
+            justify-content: center;
             font-size: 0.8rem;
-            color: #666;
+            flex-shrink: 0;
+        }
+
+        .timeline-icon.sms {
+            background: rgba(255, 136, 0, 0.2);
+            color: var(--warning-orange);
+        }
+
+        .timeline-icon.call {
+            background: rgba(0, 188, 212, 0.2);
+            color: var(--accent-cyan);
+        }
+
+        .timeline-icon.ai {
+            background: rgba(0, 200, 83, 0.2);
+            color: var(--success-green);
+        }
+
+        .timeline-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            position: relative;
+        }
+
+        .timeline-item.inbound .timeline-bubble {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 4px;
+        }
+
+        .timeline-item.outbound .timeline-bubble {
+            background: var(--accent-blue);
+            border-bottom-right-radius: 4px;
+        }
+
+        .timeline-item.outbound .timeline-bubble.ai-call {
+            background: rgba(0, 200, 83, 0.15);
+            border: 1px solid rgba(0, 200, 83, 0.3);
+        }
+
+        .timeline-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .badge-sms { background: rgba(255, 136, 0, 0.2); color: var(--warning-orange); }
+        .badge-call { background: rgba(0, 188, 212, 0.2); color: var(--accent-cyan); }
+        .badge-ai { background: rgba(0, 200, 83, 0.2); color: var(--success-green); }
+
+        .timeline-body {
+            font-size: 0.9rem;
+            line-height: 1.5;
         }
 
         .timeline-meta {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 6px;
             display: flex;
-            gap: 15px;
-            font-size: 0.8rem;
-            color: #888;
-            margin-bottom: 10px;
+            gap: 12px;
         }
 
-        .timeline-content {
-            background: rgba(0,0,0,0.2);
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            line-height: 1.6;
+        .timeline-item.outbound .timeline-meta {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .call-expand-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .call-expand-btn:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        .call-transcript {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
             max-height: 300px;
             overflow-y: auto;
+            display: none;
+        }
+
+        .call-transcript.expanded {
+            display: block;
         }
 
         .transcript-line {
-            margin-bottom: 10px;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
         }
 
         .transcript-line.agent {
-            color: #00d4ff;
+            color: var(--accent-cyan);
         }
 
         .transcript-line.user {
-            color: #00ff88;
+            color: var(--success-green);
         }
 
         .transcript-speaker {
-            font-weight: bold;
-            margin-right: 5px;
+            font-weight: 500;
+            margin-right: 4px;
         }
 
-        .sms-bubble {
-            max-width: 80%;
-            padding: 10px 15px;
-            border-radius: 15px;
-            margin-bottom: 10px;
+        /* ========================================
+           Reply Input
+           ======================================== */
+        .reply-container {
+            padding: 16px 24px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
         }
 
-        .sms-bubble.outbound {
-            background: #00d4ff;
-            color: #000;
-            margin-left: auto;
-            border-bottom-right-radius: 5px;
-        }
-
-        .sms-bubble.inbound {
-            background: rgba(255,255,255,0.1);
-            border-bottom-left-radius: 5px;
-        }
-
-        .call-summary {
-            background: rgba(0,212,255,0.1);
-            padding: 12px;
+        .ai-draft-container {
+            background: rgba(0, 200, 83, 0.1);
+            border: 1px solid rgba(0, 200, 83, 0.3);
             border-radius: 8px;
-            margin-top: 10px;
-            border-left: 3px solid #00d4ff;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: none;
         }
 
-        .call-summary-label {
+        .ai-draft-container.visible {
+            display: block;
+        }
+
+        .ai-draft-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .ai-draft-label {
             font-size: 0.75rem;
-            color: #00d4ff;
-            text-transform: uppercase;
-            margin-bottom: 5px;
+            color: var(--success-green);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .sentiment-badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 12px;
+        .ai-countdown {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--warning-orange);
+        }
+
+        .ai-draft-text {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .ai-draft-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .ai-btn {
+            padding: 6px 12px;
+            border-radius: 4px;
             font-size: 0.75rem;
-            margin-left: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .sentiment-positive { background: rgba(0,255,136,0.2); color: #00ff88; }
-        .sentiment-neutral { background: rgba(255,255,255,0.1); color: #888; }
-        .sentiment-negative { background: rgba(255,100,100,0.2); color: #ff6464; }
+        .ai-btn-use {
+            background: var(--success-green);
+            color: var(--bg-primary);
+            border: none;
+        }
 
+        .ai-btn-use:hover {
+            background: #00e05f;
+        }
+
+        .ai-btn-dismiss {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .ai-btn-dismiss:hover {
+            border-color: var(--alert-red);
+            color: var(--alert-red);
+        }
+
+        .reply-input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .reply-input-container {
+            flex: 1;
+            position: relative;
+        }
+
+        .reply-input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-panel);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .reply-input:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+        }
+
+        .reply-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .reply-input.drop-target {
+            border-color: var(--accent-cyan);
+            background: rgba(0, 188, 212, 0.1);
+        }
+
+        .char-counter {
+            position: absolute;
+            right: 10px;
+            bottom: 8px;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .char-counter.warning {
+            color: var(--warning-orange);
+        }
+
+        .char-counter.danger {
+            color: var(--alert-red);
+        }
+
+        .send-btn {
+            padding: 12px 20px;
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background: #00d9f5;
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .send-btn.loading {
+            background: var(--text-muted);
+        }
+
+        /* ========================================
+           Empty/Loading States
+           ======================================== */
         .no-selection {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100%;
-            color: #666;
+            color: var(--text-muted);
         }
 
         .no-selection svg {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 20px;
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
             opacity: 0.3;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: rgba(255,255,255,0.03);
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .stat-card-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #00d4ff;
-        }
-
-        .stat-card-label {
-            font-size: 0.85rem;
-            color: #888;
         }
 
         .loading {
@@ -431,12 +760,12 @@
         }
 
         .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255,255,255,0.1);
-            border-top-color: #00d4ff;
+            width: 32px;
+            height: 32px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent-cyan);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin {
@@ -446,56 +775,183 @@
         .empty-state {
             text-align: center;
             padding: 40px;
-            color: #666;
+            color: var(--text-muted);
         }
 
-        .connection-status {
+        /* ========================================
+           Toast Notifications
+           ======================================== */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 24px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 0.8rem;
+            gap: 10px;
+            box-shadow: var(--shadow);
+            animation: slideIn 0.3s ease;
+            max-width: 320px;
         }
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #00ff88;
+        .toast.success {
+            border-color: var(--success-green);
         }
 
-        .status-dot.offline { background: #ff6464; }
-        .status-dot.syncing { background: #ffa500; animation: pulse 1s infinite; }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .toast.error {
+            border-color: var(--alert-red);
         }
 
-        .last-updated {
-            font-size: 0.75rem;
-            color: #666;
+        .toast-icon {
+            font-size: 1.2rem;
+        }
+
+        .toast-message {
+            font-size: 0.85rem;
+            flex: 1;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* ========================================
+           Call Log Table
+           ======================================== */
+        .call-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .call-table th {
+            text-align: left;
+            padding: 10px 12px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 500;
+        }
+
+        .call-table td {
+            padding: 10px 12px;
+            font-size: 0.85rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .call-table tr:hover {
+            background: var(--bg-hover);
+        }
+
+        /* ========================================
+           Sentiment & Status Badges
+           ======================================== */
+        .sentiment-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .sentiment-positive { background: rgba(0, 200, 83, 0.2); color: var(--success-green); }
+        .sentiment-neutral { background: rgba(158, 158, 158, 0.2); color: var(--text-secondary); }
+        .sentiment-negative { background: rgba(196, 30, 58, 0.2); color: var(--alert-red); }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .status-completed { background: rgba(0, 200, 83, 0.2); color: var(--success-green); }
+        .status-missed { background: rgba(196, 30, 58, 0.2); color: var(--alert-red); }
+        .status-failed { background: rgba(196, 30, 58, 0.2); color: var(--alert-red); }
+
+        /* ========================================
+           Call Summary Box
+           ======================================== */
+        .call-summary {
+            background: rgba(0, 188, 212, 0.1);
+            border-left: 3px solid var(--accent-cyan);
+            padding: 10px 12px;
+            margin-top: 10px;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .call-summary-label {
+            font-size: 0.65rem;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .call-summary-text {
+            font-size: 0.85rem;
+            color: var(--text-primary);
         }
     </style>
 </head>
 <body>
+    <!-- Audio for notifications -->
+    <audio id="notification-sound" preload="auto">
+        <source src="data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA/+M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAwAAAbAAqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV////////////////////////////////////////////AAAAAExhdmM1OC4xMwAAAAAAAAAAAAAAACQDgAAAAAAAAAGwhFZ+7wAAAAAAAAAAAAAAAAAAAAD/4xjEAAH0AKoAAAAASW5mbwAAAA8AAAADAAACsACqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dX///////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAACJAOAAAAAAAACsMFgdWkAAAAAAAAAAAAAAAAAAAAA/+MYxAAB9ACqAAAAAP/jGMQAAfQAqgAAAAD/4xjEAAH0AKoAAAAA" type="audio/mp3">
+    </audio>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
     <div class="header">
-        <h1>Lead Communications Dashboard</h1>
+        <div class="logo">
+            <div class="logo-icon">MC</div>
+            <div class="logo-text">Conversations <span>Dashboard</span></div>
+        </div>
         <div class="header-stats">
             <div class="header-stat">
                 <div class="header-stat-value" id="total-contacts">-</div>
-                <div class="header-stat-label">Total Leads</div>
+                <div class="header-stat-label">Leads</div>
             </div>
             <div class="header-stat">
                 <div class="header-stat-value" id="total-calls">-</div>
-                <div class="header-stat-label">Total Calls</div>
+                <div class="header-stat-label">Calls</div>
             </div>
             <div class="header-stat">
                 <div class="header-stat-value" id="total-sms">-</div>
-                <div class="header-stat-label">Total SMS</div>
+                <div class="header-stat-label">SMS</div>
             </div>
             <div class="header-stat">
                 <div class="header-stat-value" id="total-transcripts">-</div>
-                <div class="header-stat-label">Transcripts</div>
+                <div class="header-stat-label">AI Calls</div>
             </div>
             <div class="connection-status">
                 <div class="status-dot" id="status-dot"></div>
@@ -507,13 +963,13 @@
     <div class="container">
         <div class="sidebar">
             <div class="search-box">
-                <input type="text" id="search-input" placeholder="Search by name, phone, or address...">
+                <input type="text" id="search-input" placeholder="Search name, phone, address...">
             </div>
             <div class="filters">
                 <button class="filter-btn active" data-filter="all">All</button>
-                <button class="filter-btn" data-filter="with-transcripts">With Transcripts</button>
-                <button class="filter-btn" data-filter="with-sms">With SMS</button>
-                <button class="filter-btn" data-filter="high-touch">10+ Touches</button>
+                <button class="filter-btn" data-filter="with-transcripts">AI Calls</button>
+                <button class="filter-btn" data-filter="with-sms">SMS</button>
+                <button class="filter-btn" data-filter="high-touch">10+</button>
             </div>
             <div class="contact-list" id="contact-list">
                 <div class="loading">
@@ -527,10 +983,10 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                 </svg>
-                <p>Select a lead to view their communication history</p>
+                <p>Select a conversation to view</p>
             </div>
 
-            <div id="contact-view" style="display: none; height: 100%; display: flex; flex-direction: column;">
+            <div id="contact-view" style="display: none; height: 100%; flex-direction: column;">
                 <div class="contact-header">
                     <h2 id="selected-name">-</h2>
                     <div class="contact-details">
@@ -542,47 +998,109 @@
                 </div>
 
                 <div class="tabs">
-                    <div class="tab active" data-tab="timeline">Timeline</div>
-                    <div class="tab" data-tab="transcripts">Retell Transcripts</div>
-                    <div class="tab" data-tab="sms">SMS Conversation</div>
+                    <div class="tab active" data-tab="timeline">Communications</div>
+                    <div class="tab" data-tab="transcripts">AI Transcripts</div>
+                    <div class="tab" data-tab="sms">SMS Only</div>
                     <div class="tab" data-tab="calls">Call Log</div>
                 </div>
 
-                <div class="tab-content" id="tab-content">
-                    <!-- Content loaded dynamically -->
+                <div class="content-wrapper">
+                    <div class="tab-content" id="tab-content">
+                        <!-- Content loaded dynamically -->
+                    </div>
+                    <div class="merge-fields-panel" id="merge-fields-panel">
+                        <div class="merge-fields-title">Property Fields</div>
+                        <div id="merge-fields-list">
+                            <!-- Fields populated dynamically -->
+                        </div>
+                        <div class="merge-field-hint">Drag into message or click to copy</div>
+                    </div>
+                </div>
+
+                <div class="reply-container" id="reply-container" style="display: none;">
+                    <div class="ai-draft-container" id="ai-draft-container">
+                        <div class="ai-draft-header">
+                            <span class="ai-draft-label">
+                                <span>AI Response</span>
+                            </span>
+                            <span class="ai-countdown" id="ai-countdown">Auto-send in 3:00</span>
+                        </div>
+                        <div class="ai-draft-text" id="ai-draft-text">Loading AI response...</div>
+                        <div class="ai-draft-actions">
+                            <button class="ai-btn ai-btn-use" id="ai-use-btn">Send Now</button>
+                            <button class="ai-btn ai-btn-dismiss" id="ai-dismiss-btn">Dismiss</button>
+                        </div>
+                    </div>
+                    <div class="reply-input-wrapper">
+                        <div class="reply-input-container">
+                            <textarea class="reply-input" id="reply-input" placeholder="Type a message..." rows="1"></textarea>
+                            <span class="char-counter" id="char-counter">0/160</span>
+                        </div>
+                        <button class="send-btn" id="send-btn" disabled>
+                            <span>Send</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Data will be loaded from JSON file or Supabase
+        // ========================================
+        // Configuration
+        // ========================================
+        const SUPABASE_URL = 'https://pfyhqqsdkdakgadewmph.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmeWhxcXNka2Rha2dhZGV3bXBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU4NTkzNDgsImV4cCI6MjA1MTQzNTM0OH0.dKsOz7GnTkAjdT9WfJPYPr3lmUWh9x7GfmrvrkH5j3M';
+        const N8N_SEND_SMS_URL = 'https://n8n.stopmyauctionnow.com/webhook/dashboard-send-sms';
+        const N8N_AI_DRAFT_URL = 'https://n8n.stopmyauctionnow.com/webhook/dashboard-ai-draft';
+
+        // ========================================
+        // State
+        // ========================================
         let contactsData = [];
         let selectedContact = null;
         let currentFilter = 'all';
         let currentTab = 'timeline';
-
-        // Supabase configuration (will be enabled when connected)
-        const SUPABASE_URL = ''; // Add your Supabase URL
-        const SUPABASE_ANON_KEY = ''; // Add your Supabase anon key
         let supabase = null;
         let isSupabaseConnected = false;
+        let messagesChannel = null;
+        let aiDraftTimer = null;
+        let aiDraftSecondsLeft = 0;
+        let contactPropertyData = {}; // Cache for merge fields
+        let contactsWithNewMessages = new Set();
 
+        // ========================================
         // Initialize
+        // ========================================
         async function init() {
-            updateConnectionStatus('syncing', 'Loading data...');
+            updateConnectionStatus('syncing', 'Connecting...');
 
-            // Try to load from Supabase first, fallback to JSON
+            // Initialize Supabase
             if (SUPABASE_URL && SUPABASE_ANON_KEY) {
                 try {
                     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                    await loadFromSupabase();
-                    isSupabaseConnected = true;
-                    updateConnectionStatus('online', 'Live - Supabase');
-                    // Set up real-time subscription
-                    subscribeToChanges();
+
+                    // Try to load from Supabase
+                    const { data, error } = await supabase
+                        .from('conversations')
+                        .select('*')
+                        .order('last_message_at', { ascending: false })
+                        .limit(100);
+
+                    if (error) throw error;
+
+                    if (data && data.length > 0) {
+                        // Transform Supabase data to match expected format
+                        contactsData = await transformSupabaseData(data);
+                        isSupabaseConnected = true;
+                        updateConnectionStatus('online', 'Live');
+                        subscribeToMessages();
+                    } else {
+                        // Fallback to JSON
+                        await loadFromJSON();
+                    }
                 } catch (e) {
-                    console.log('Supabase not available, loading from JSON');
+                    console.log('Supabase error, loading from JSON:', e);
                     await loadFromJSON();
                 }
             } else {
@@ -594,59 +1112,296 @@
             updateHeaderStats();
         }
 
+        async function transformSupabaseData(conversations) {
+            // For now, return a simplified transform
+            // In production, you'd fetch related messages and transcripts
+            return conversations.map(c => ({
+                contact_id: c.conversation_id,
+                name: c.phone_digits, // Will be enriched from v_agent_contact_context
+                phone: formatPhoneNumber(c.phone_digits),
+                phone_digits: c.phone_digits,
+                conversation_id: c.conversation_id,
+                property_address: '',
+                auction_date: '',
+                date_added: c.first_seen_at,
+                total_touches: (c.inbound_sms_count || 0) + (c.outbound_sms_count || 0) + (c.outbound_call_count || 0),
+                call_details: [],
+                sms_conversation: [],
+                retell_transcriptions: [],
+                preferred_from_e164: c.preferred_from_e164
+            }));
+        }
+
         async function loadFromJSON() {
             try {
                 const response = await fetch('full_analysis_with_transcripts.json');
                 contactsData = await response.json();
-                updateConnectionStatus('offline', 'Static Data');
+                updateConnectionStatus('offline', 'Static');
             } catch (e) {
-                // Try alternative path
                 try {
                     const response = await fetch('./full_analysis_with_transcripts.json');
                     contactsData = await response.json();
-                    updateConnectionStatus('offline', 'Static Data');
+                    updateConnectionStatus('offline', 'Static');
                 } catch (e2) {
                     console.error('Failed to load data:', e2);
-                    updateConnectionStatus('offline', 'Error loading data');
+                    updateConnectionStatus('offline', 'Error');
                 }
             }
         }
 
-        async function loadFromSupabase() {
-            const { data, error } = await supabase
-                .from('appointment_touches')
-                .select('*')
-                .order('date_added', { ascending: false });
-
-            if (error) throw error;
-            contactsData = data;
-        }
-
-        function subscribeToChanges() {
+        // ========================================
+        // Real-time Subscriptions
+        // ========================================
+        function subscribeToMessages() {
             if (!supabase) return;
 
-            supabase
-                .channel('appointment_touches_changes')
+            messagesChannel = supabase
+                .channel('messages-realtime')
                 .on('postgres_changes', {
-                    event: '*',
+                    event: 'INSERT',
                     schema: 'public',
-                    table: 'appointment_touches'
-                }, payload => {
-                    console.log('Real-time update:', payload);
-                    loadFromSupabase().then(() => {
-                        renderContactList();
-                        updateHeaderStats();
-                        if (selectedContact) {
-                            const updated = contactsData.find(c => c.contact_id === selectedContact.contact_id);
-                            if (updated) {
-                                selectContact(updated);
-                            }
-                        }
-                    });
-                })
+                    table: 'messages'
+                }, handleNewMessage)
                 .subscribe();
         }
 
+        function handleNewMessage(payload) {
+            const message = payload.new;
+            console.log('New message:', message);
+
+            // Play notification sound for inbound messages
+            if (message.direction === 'inbound') {
+                playNotificationSound();
+                showToast('New message received', 'success');
+
+                // Mark contact as having new message
+                const phoneDigits = message.phone_digits;
+                contactsWithNewMessages.add(phoneDigits);
+                renderContactList();
+
+                // If this contact is selected, add message to view
+                if (selectedContact && selectedContact.phone_digits === phoneDigits) {
+                    // Add message to conversation
+                    if (!selectedContact.sms_conversation) {
+                        selectedContact.sms_conversation = [];
+                    }
+                    selectedContact.sms_conversation.push({
+                        date: message.created_at,
+                        direction: message.direction,
+                        body: message.body
+                    });
+                    renderTabContent();
+
+                    // Trigger AI draft (only for NEW inbound while dashboard is open)
+                    fetchAIDraft(message.body);
+                }
+            }
+        }
+
+        // ========================================
+        // AI Auto-Response
+        // ========================================
+        async function fetchAIDraft(lastInboundMessage) {
+            if (!selectedContact) return;
+
+            const draftContainer = document.getElementById('ai-draft-container');
+            const draftText = document.getElementById('ai-draft-text');
+
+            draftContainer.classList.add('visible');
+            draftText.textContent = 'Generating AI response...';
+
+            try {
+                const response = await fetch(N8N_AI_DRAFT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone_digits: selectedContact.phone_digits,
+                        conversation_id: selectedContact.conversation_id,
+                        last_inbound_message: lastInboundMessage
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.draft) {
+                    draftText.textContent = resolveMessageMergeFields(data.draft);
+                    startAICountdown();
+                } else {
+                    draftContainer.classList.remove('visible');
+                }
+            } catch (e) {
+                console.error('AI draft error:', e);
+                draftContainer.classList.remove('visible');
+            }
+        }
+
+        function startAICountdown() {
+            // Random time between 150-210 seconds (2.5-3.5 minutes)
+            aiDraftSecondsLeft = Math.floor(150 + Math.random() * 60);
+
+            if (aiDraftTimer) clearInterval(aiDraftTimer);
+
+            updateAICountdown();
+            aiDraftTimer = setInterval(() => {
+                aiDraftSecondsLeft--;
+                updateAICountdown();
+
+                if (aiDraftSecondsLeft <= 0) {
+                    clearInterval(aiDraftTimer);
+                    sendAIDraft();
+                }
+            }, 1000);
+        }
+
+        function updateAICountdown() {
+            const countdownEl = document.getElementById('ai-countdown');
+            const minutes = Math.floor(aiDraftSecondsLeft / 60);
+            const seconds = aiDraftSecondsLeft % 60;
+            countdownEl.textContent = `Auto-send in ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function cancelAIDraft() {
+            if (aiDraftTimer) {
+                clearInterval(aiDraftTimer);
+                aiDraftTimer = null;
+            }
+            document.getElementById('ai-draft-container').classList.remove('visible');
+        }
+
+        async function sendAIDraft() {
+            const draftText = document.getElementById('ai-draft-text').textContent;
+            await sendMessage(draftText);
+            cancelAIDraft();
+        }
+
+        // ========================================
+        // Send Message
+        // ========================================
+        async function sendMessage(message) {
+            if (!selectedContact || !message.trim()) return;
+
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.disabled = true;
+            sendBtn.classList.add('loading');
+            sendBtn.innerHTML = '<span>Sending...</span>';
+
+            try {
+                // Resolve any merge fields
+                const resolvedMessage = resolveMessageMergeFields(message);
+
+                const response = await fetch(N8N_SEND_SMS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone_digits: selectedContact.phone_digits,
+                        message: resolvedMessage,
+                        from_number: selectedContact.preferred_from_e164 || '+15617867541'
+                    })
+                });
+
+                if (response.ok) {
+                    // Optimistic update - add message to view immediately
+                    if (!selectedContact.sms_conversation) {
+                        selectedContact.sms_conversation = [];
+                    }
+                    selectedContact.sms_conversation.push({
+                        date: new Date().toISOString(),
+                        direction: 'outbound',
+                        body: resolvedMessage
+                    });
+                    renderTabContent();
+                    document.getElementById('reply-input').value = '';
+                    updateCharCounter();
+                    showToast('Message sent', 'success');
+
+                    // Cancel AI draft since user sent manually
+                    cancelAIDraft();
+                } else {
+                    showToast('Failed to send message', 'error');
+                }
+            } catch (e) {
+                console.error('Send error:', e);
+                showToast('Failed to send message', 'error');
+            }
+
+            sendBtn.disabled = false;
+            sendBtn.classList.remove('loading');
+            sendBtn.innerHTML = '<span>Send</span>';
+        }
+
+        // ========================================
+        // Merge Fields
+        // ========================================
+        function setupMergeFields() {
+            if (!selectedContact) return;
+
+            const panel = document.getElementById('merge-fields-panel');
+            const list = document.getElementById('merge-fields-list');
+
+            // Define available merge fields
+            const fields = [
+                { key: 'owners_name', label: '{{owners_name}}', value: selectedContact.name || '' },
+                { key: 'property_address', label: '{{property_address}}', value: selectedContact.property_address || '' },
+                { key: 'city', label: '{{city}}', value: contactPropertyData.city || '' },
+                { key: 'county', label: '{{county}}', value: contactPropertyData.county || '' },
+                { key: 'auction_date', label: '{{auction_date}}', value: selectedContact.auction_date || '' },
+                { key: 'auction_type', label: '{{auction_type}}', value: contactPropertyData.auction_type || '' },
+                { key: 'final_judgment', label: '{{final_judgment}}', value: contactPropertyData.final_judgment || '' },
+                { key: 'zestimate', label: '{{zestimate}}', value: contactPropertyData.zestimate || '' }
+            ];
+
+            list.innerHTML = fields.map(f => `
+                <div class="merge-field" draggable="true" data-key="${f.key}" data-value="${f.value || f.label}">
+                    ${f.label}
+                </div>
+            `).join('');
+
+            // Setup drag events
+            list.querySelectorAll('.merge-field').forEach(field => {
+                field.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', field.dataset.value || field.dataset.key);
+                });
+
+                field.addEventListener('click', () => {
+                    // Click to insert at cursor
+                    const input = document.getElementById('reply-input');
+                    const value = field.dataset.value || `{{${field.dataset.key}}}`;
+                    const start = input.selectionStart;
+                    const end = input.selectionEnd;
+                    input.value = input.value.substring(0, start) + value + input.value.substring(end);
+                    input.focus();
+                    input.setSelectionRange(start + value.length, start + value.length);
+                    updateCharCounter();
+                });
+            });
+
+            panel.classList.add('visible');
+        }
+
+        function resolveMessageMergeFields(message) {
+            if (!selectedContact) return message;
+
+            const replacements = {
+                '{{owners_name}}': selectedContact.name || '',
+                '{{property_address}}': selectedContact.property_address || '',
+                '{{city}}': contactPropertyData.city || '',
+                '{{county}}': contactPropertyData.county || '',
+                '{{auction_date}}': selectedContact.auction_date || '',
+                '{{auction_type}}': contactPropertyData.auction_type || '',
+                '{{final_judgment}}': contactPropertyData.final_judgment || '',
+                '{{zestimate}}': contactPropertyData.zestimate || ''
+            };
+
+            let resolved = message;
+            for (const [key, value] of Object.entries(replacements)) {
+                resolved = resolved.replace(new RegExp(key.replace(/[{}]/g, '\\$&'), 'g'), value);
+            }
+            return resolved;
+        }
+
+        // ========================================
+        // UI Helpers
+        // ========================================
         function updateConnectionStatus(status, text) {
             const dot = document.getElementById('status-dot');
             const textEl = document.getElementById('connection-text');
@@ -658,6 +1413,52 @@
             textEl.textContent = text;
         }
 
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <span class="toast-icon">${type === 'success' ? '✓' : '✗'}</span>
+                <span class="toast-message">${message}</span>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        function playNotificationSound() {
+            const audio = document.getElementById('notification-sound');
+            audio.currentTime = 0;
+            audio.play().catch(() => {}); // Ignore if blocked
+        }
+
+        function formatPhoneNumber(digits) {
+            if (!digits || digits.length !== 10) return digits;
+            return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+        }
+
+        function updateCharCounter() {
+            const input = document.getElementById('reply-input');
+            const counter = document.getElementById('char-counter');
+            const len = input.value.length;
+
+            counter.textContent = `${len}/160`;
+            counter.className = 'char-counter';
+
+            if (len > 160) {
+                counter.classList.add('danger');
+            } else if (len > 140) {
+                counter.classList.add('warning');
+            }
+
+            // Enable/disable send button
+            document.getElementById('send-btn').disabled = len === 0;
+        }
+
+        // ========================================
+        // Event Listeners
+        // ========================================
         function setupEventListeners() {
             // Search
             document.getElementById('search-input').addEventListener('input', (e) => {
@@ -683,12 +1484,52 @@
                     renderTabContent();
                 });
             });
+
+            // Reply input
+            const replyInput = document.getElementById('reply-input');
+            replyInput.addEventListener('input', updateCharCounter);
+            replyInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (!document.getElementById('send-btn').disabled) {
+                        sendMessage(replyInput.value);
+                    }
+                }
+            });
+
+            // Drag and drop for merge fields
+            replyInput.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                replyInput.classList.add('drop-target');
+            });
+            replyInput.addEventListener('dragleave', () => {
+                replyInput.classList.remove('drop-target');
+            });
+            replyInput.addEventListener('drop', (e) => {
+                e.preventDefault();
+                replyInput.classList.remove('drop-target');
+                const value = e.dataTransfer.getData('text/plain');
+                const start = replyInput.selectionStart;
+                replyInput.value = replyInput.value.substring(0, start) + value + replyInput.value.substring(start);
+                updateCharCounter();
+            });
+
+            // Send button
+            document.getElementById('send-btn').addEventListener('click', () => {
+                sendMessage(document.getElementById('reply-input').value);
+            });
+
+            // AI draft buttons
+            document.getElementById('ai-use-btn').addEventListener('click', sendAIDraft);
+            document.getElementById('ai-dismiss-btn').addEventListener('click', cancelAIDraft);
         }
 
+        // ========================================
+        // Render Functions
+        // ========================================
         function filterContacts(contacts, searchTerm = '') {
             let filtered = contacts;
 
-            // Apply filter
             switch (currentFilter) {
                 case 'with-transcripts':
                     filtered = filtered.filter(c => c.retell_transcriptions && c.retell_transcriptions.length > 0);
@@ -701,7 +1542,6 @@
                     break;
             }
 
-            // Apply search
             if (searchTerm) {
                 const term = searchTerm.toLowerCase();
                 filtered = filtered.filter(c =>
@@ -723,20 +1563,22 @@
                 return;
             }
 
-            list.innerHTML = filtered.map(contact => `
-                <div class="contact-item ${selectedContact && selectedContact.contact_id === contact.contact_id ? 'active' : ''}"
-                     data-id="${contact.contact_id}">
-                    <div class="contact-name">${contact.name || 'Unknown'}</div>
-                    <div class="contact-phone">${contact.phone || '-'}</div>
-                    <div class="contact-meta">
-                        <span class="meta-calls">📞 ${contact.call_details ? contact.call_details.length : 0}</span>
-                        <span class="meta-sms">💬 ${contact.sms_conversation ? contact.sms_conversation.length : 0}</span>
-                        <span class="meta-transcripts">🎙️ ${contact.retell_transcriptions ? contact.retell_transcriptions.length : 0}</span>
+            list.innerHTML = filtered.map(contact => {
+                const hasNewMessage = contactsWithNewMessages.has(contact.phone_digits);
+                return `
+                    <div class="contact-item ${selectedContact && selectedContact.contact_id === contact.contact_id ? 'active' : ''} ${hasNewMessage ? 'has-new-message' : ''}"
+                         data-id="${contact.contact_id}">
+                        <div class="contact-name">${contact.name || 'Unknown'}</div>
+                        <div class="contact-phone">${contact.phone || '-'}</div>
+                        <div class="contact-meta">
+                            <span class="meta-calls"><span class="meta-icon">📞</span> ${contact.call_details ? contact.call_details.length : 0}</span>
+                            <span class="meta-sms"><span class="meta-icon">💬</span> ${contact.sms_conversation ? contact.sms_conversation.length : 0}</span>
+                            <span class="meta-transcripts"><span class="meta-icon">🤖</span> ${contact.retell_transcriptions ? contact.retell_transcriptions.length : 0}</span>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
-            // Add click handlers
             list.querySelectorAll('.contact-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const contact = contactsData.find(c => c.contact_id === item.dataset.id);
@@ -748,22 +1590,29 @@
         function selectContact(contact) {
             selectedContact = contact;
 
-            // Update UI
+            // Clear new message indicator
+            if (contact.phone_digits) {
+                contactsWithNewMessages.delete(contact.phone_digits);
+            }
+
+            // Cancel any existing AI draft
+            cancelAIDraft();
+
             document.getElementById('no-selection').style.display = 'none';
             document.getElementById('contact-view').style.display = 'flex';
+            document.getElementById('reply-container').style.display = 'block';
 
-            // Update contact header
             document.getElementById('selected-name').textContent = contact.name || 'Unknown';
             document.getElementById('selected-phone').textContent = `📞 ${contact.phone || '-'}`;
             document.getElementById('selected-address').textContent = contact.property_address ? `📍 ${contact.property_address}` : '';
-            document.getElementById('selected-auction').textContent = contact.auction_date ? `🔨 Auction: ${contact.auction_date}` : '';
-            document.getElementById('selected-added').textContent = contact.date_added ? `📅 Added: ${formatDate(contact.date_added)}` : '';
+            document.getElementById('selected-auction').textContent = contact.auction_date ? `🔨 ${contact.auction_date}` : '';
+            document.getElementById('selected-added').textContent = contact.date_added ? `📅 ${formatDate(contact.date_added)}` : '';
 
-            // Update contact list to show active state
             document.querySelectorAll('.contact-item').forEach(item => {
                 item.classList.toggle('active', item.dataset.id === contact.contact_id);
             });
 
+            setupMergeFields();
             renderTabContent();
         }
 
@@ -789,43 +1638,26 @@
         }
 
         function renderTimeline(container) {
-            // Combine all events and sort by date
             const events = [];
 
-            // Add calls
             if (selectedContact.call_details) {
                 selectedContact.call_details.forEach(call => {
-                    events.push({
-                        type: 'call',
-                        date: new Date(call.date),
-                        data: call
-                    });
+                    events.push({ type: 'call', date: new Date(call.date), data: call });
                 });
             }
 
-            // Add SMS
             if (selectedContact.sms_conversation) {
                 selectedContact.sms_conversation.forEach(sms => {
-                    events.push({
-                        type: 'sms',
-                        date: new Date(sms.date),
-                        data: sms
-                    });
+                    events.push({ type: 'sms', date: new Date(sms.date), data: sms });
                 });
             }
 
-            // Add Retell transcripts
             if (selectedContact.retell_transcriptions) {
                 selectedContact.retell_transcriptions.forEach(transcript => {
-                    events.push({
-                        type: 'retell',
-                        date: new Date(transcript.date),
-                        data: transcript
-                    });
+                    events.push({ type: 'ai', date: new Date(transcript.date), data: transcript });
                 });
             }
 
-            // Sort by date descending
             events.sort((a, b) => b.date - a.date);
 
             if (events.length === 0) {
@@ -833,83 +1665,66 @@
                 return;
             }
 
-            container.innerHTML = `
-                <div class="timeline">
-                    ${events.map(event => renderTimelineItem(event)).join('')}
-                </div>
-            `;
+            container.innerHTML = `<div class="timeline">${events.map(renderTimelineItem).join('')}</div>`;
+
+            // Setup expand buttons for AI calls
+            container.querySelectorAll('.call-expand-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const transcript = btn.nextElementSibling;
+                    transcript.classList.toggle('expanded');
+                    btn.textContent = transcript.classList.contains('expanded') ? 'Hide Transcript' : 'Show Transcript';
+                });
+            });
         }
 
         function renderTimelineItem(event) {
             const { type, date, data } = event;
+            const direction = type === 'sms' ? data.direction :
+                              type === 'call' ? (data.direction?.includes('originating') ? 'inbound' : 'outbound') :
+                              (data.direction === 'inbound' ? 'inbound' : 'outbound');
 
-            let typeLabel, directionLabel, content;
+            let icon, badge, body, meta = '';
 
             switch (type) {
-                case 'call':
-                    typeLabel = `<span class="badge badge-call">Call</span>`;
-                    directionLabel = data.direction.includes('originating') ?
-                        '<span class="badge badge-inbound">Inbound</span>' :
-                        '<span class="badge badge-outbound">Outbound</span>';
-                    content = `
-                        <div class="timeline-meta">
-                            <span>Duration: ${data.duration || 0}s</span>
-                            <span>Status: ${data.status}</span>
-                            <span>From: ${data.from}</span>
-                            <span>To: ${data.to}</span>
-                        </div>
-                    `;
-                    break;
-
                 case 'sms':
-                    typeLabel = `<span class="badge badge-sms">SMS</span>`;
-                    directionLabel = data.direction === 'inbound' ?
-                        '<span class="badge badge-inbound">Inbound</span>' :
-                        '<span class="badge badge-outbound">Outbound</span>';
-                    content = `
-                        <div class="timeline-content">
-                            ${data.body || 'No message content'}
-                        </div>
-                    `;
+                    icon = '<div class="timeline-icon sms">💬</div>';
+                    badge = '<span class="timeline-type-badge badge-sms">SMS</span>';
+                    body = data.body || 'No message content';
+                    meta = `<span>${formatDateTime(date)}</span>`;
                     break;
 
-                case 'retell':
-                    typeLabel = `<span class="badge badge-retell">AI Call</span>`;
-                    directionLabel = data.direction === 'inbound' ?
-                        '<span class="badge badge-inbound">Inbound</span>' :
-                        '<span class="badge badge-outbound">Outbound</span>';
+                case 'call':
+                    icon = '<div class="timeline-icon call">📞</div>';
+                    badge = '<span class="timeline-type-badge badge-call">CALL</span>';
+                    body = `Duration: ${data.duration || 0}s • Status: ${data.status}`;
+                    meta = `<span>${formatDateTime(date)}</span><span>${data.from} → ${data.to}</span>`;
+                    break;
+
+                case 'ai':
+                    icon = '<div class="timeline-icon ai">🤖</div>';
+                    badge = '<span class="timeline-type-badge badge-ai">AI CALL</span>';
                     const sentiment = data.user_sentiment || 'Neutral';
                     const sentimentClass = sentiment.toLowerCase() === 'positive' ? 'sentiment-positive' :
                                           sentiment.toLowerCase() === 'negative' ? 'sentiment-negative' : 'sentiment-neutral';
-                    content = `
-                        <div class="timeline-meta">
-                            <span>Duration: ${Math.round(data.duration_sec || 0)}s</span>
-                            <span>Successful: ${data.call_successful ? 'Yes' : 'No'}</span>
-                            <span class="sentiment-badge ${sentimentClass}">${sentiment}</span>
-                        </div>
-                        ${data.call_summary ? `
-                            <div class="call-summary">
-                                <div class="call-summary-label">AI Summary</div>
-                                ${data.call_summary}
-                            </div>
-                        ` : ''}
-                        <div class="timeline-content" style="margin-top: 10px;">
-                            ${formatTranscript(data.transcript)}
-                        </div>
+                    body = `
+                        <span class="sentiment-badge ${sentimentClass}">${sentiment}</span>
+                        <div style="margin-top: 8px;">Duration: ${Math.round(data.duration_sec || 0)}s • ${data.call_successful ? 'Successful' : 'Failed'}</div>
+                        ${data.call_summary ? `<div class="call-summary"><div class="call-summary-label">AI Summary</div><div class="call-summary-text">${data.call_summary}</div></div>` : ''}
+                        <button class="call-expand-btn">Show Transcript</button>
+                        <div class="call-transcript">${formatTranscript(data.transcript)}</div>
                     `;
+                    meta = `<span>${formatDateTime(date)}</span>`;
                     break;
             }
 
             return `
-                <div class="timeline-item ${type}">
-                    <div class="timeline-header">
-                        <div class="timeline-type">
-                            ${typeLabel}
-                            ${directionLabel}
-                        </div>
-                        <div class="timeline-date">${formatDateTime(date)}</div>
+                <div class="timeline-item ${direction}">
+                    ${icon}
+                    <div class="timeline-bubble ${type === 'ai' ? 'ai-call' : ''}">
+                        ${badge}
+                        <div class="timeline-body">${body}</div>
+                        <div class="timeline-meta">${meta}</div>
                     </div>
-                    ${content}
                 </div>
             `;
         }
@@ -918,40 +1733,34 @@
             const transcripts = selectedContact.retell_transcriptions || [];
 
             if (transcripts.length === 0) {
-                container.innerHTML = '<div class="empty-state">No Retell transcripts available</div>';
+                container.innerHTML = '<div class="empty-state">No AI call transcripts available</div>';
                 return;
             }
 
-            container.innerHTML = transcripts.map(t => `
-                <div class="timeline-item retell">
-                    <div class="timeline-header">
-                        <div class="timeline-type">
-                            <span class="badge badge-retell">AI Call</span>
-                            <span class="badge ${t.direction === 'inbound' ? 'badge-inbound' : 'badge-outbound'}">
-                                ${t.direction === 'inbound' ? 'Inbound' : 'Outbound'}
-                            </span>
-                            <span class="sentiment-badge sentiment-${(t.user_sentiment || 'neutral').toLowerCase()}">
-                                ${t.user_sentiment || 'Neutral'}
-                            </span>
+            container.innerHTML = transcripts.map(t => {
+                const sentiment = t.user_sentiment || 'Neutral';
+                const sentimentClass = sentiment.toLowerCase() === 'positive' ? 'sentiment-positive' :
+                                      sentiment.toLowerCase() === 'negative' ? 'sentiment-negative' : 'sentiment-neutral';
+                return `
+                    <div class="timeline-item outbound" style="flex-direction: column; align-items: stretch;">
+                        <div class="timeline-bubble ai-call" style="max-width: 100%;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span class="timeline-type-badge badge-ai">AI CALL</span>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">${formatDateTime(new Date(t.date))}</span>
+                            </div>
+                            <div style="display: flex; gap: 16px; margin-bottom: 12px;">
+                                <span>Duration: ${Math.round(t.duration_sec || 0)}s</span>
+                                <span>${t.call_successful ? '✓ Successful' : '✗ Failed'}</span>
+                                <span class="sentiment-badge ${sentimentClass}">${sentiment}</span>
+                            </div>
+                            ${t.call_summary ? `<div class="call-summary"><div class="call-summary-label">AI Summary</div><div class="call-summary-text">${t.call_summary}</div></div>` : ''}
+                            <div style="margin-top: 12px; background: var(--bg-primary); padding: 12px; border-radius: 8px; max-height: 400px; overflow-y: auto;">
+                                ${formatTranscript(t.transcript)}
+                            </div>
                         </div>
-                        <div class="timeline-date">${formatDateTime(new Date(t.date))}</div>
                     </div>
-                    <div class="timeline-meta">
-                        <span>Duration: ${Math.round(t.duration_sec || 0)}s</span>
-                        <span>Successful: ${t.call_successful ? 'Yes ✓' : 'No ✗'}</span>
-                    </div>
-                    ${t.call_summary ? `
-                        <div class="call-summary">
-                            <div class="call-summary-label">AI Summary</div>
-                            ${t.call_summary}
-                        </div>
-                    ` : ''}
-                    <div class="timeline-content" style="margin-top: 15px; max-height: 500px;">
-                        <div class="call-summary-label" style="margin-bottom: 10px;">Full Transcript</div>
-                        ${formatTranscript(t.transcript)}
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function renderSMS(container) {
@@ -962,18 +1771,15 @@
                 return;
             }
 
-            container.innerHTML = `
-                <div style="padding: 20px;">
-                    ${messages.map(msg => `
-                        <div class="sms-bubble ${msg.direction}">
-                            <div style="font-size: 0.75rem; color: ${msg.direction === 'outbound' ? '#333' : '#888'}; margin-bottom: 5px;">
-                                ${formatDateTime(new Date(msg.date))}
-                            </div>
-                            ${msg.body || 'No message content'}
-                        </div>
-                    `).join('')}
+            container.innerHTML = `<div class="timeline">${messages.map(msg => `
+                <div class="timeline-item ${msg.direction}">
+                    <div class="timeline-icon sms">💬</div>
+                    <div class="timeline-bubble">
+                        <div class="timeline-body">${msg.body || 'No message content'}</div>
+                        <div class="timeline-meta"><span>${formatDateTime(new Date(msg.date))}</span></div>
+                    </div>
                 </div>
-            `;
+            `).join('')}</div>`;
         }
 
         function renderCalls(container) {
@@ -985,43 +1791,40 @@
             }
 
             container.innerHTML = `
-                <table style="width: 100%; border-collapse: collapse;">
+                <table class="call-table">
                     <thead>
-                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                            <th style="text-align: left; padding: 12px; color: #888;">Date</th>
-                            <th style="text-align: left; padding: 12px; color: #888;">Direction</th>
-                            <th style="text-align: left; padding: 12px; color: #888;">Duration</th>
-                            <th style="text-align: left; padding: 12px; color: #888;">Status</th>
-                            <th style="text-align: left; padding: 12px; color: #888;">From/To</th>
+                        <tr>
+                            <th>Date</th>
+                            <th>Direction</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                            <th>From → To</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${calls.map(call => `
-                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <td style="padding: 12px;">${formatDateTime(new Date(call.date))}</td>
-                                <td style="padding: 12px;">
-                                    <span class="badge ${call.direction.includes('originating') ? 'badge-inbound' : 'badge-outbound'}">
-                                        ${call.direction.includes('originating') ? 'Inbound' : 'Outbound'}
-                                    </span>
-                                </td>
-                                <td style="padding: 12px;">${call.duration || 0}s</td>
-                                <td style="padding: 12px;">${call.status}</td>
-                                <td style="padding: 12px; font-size: 0.85rem; color: #888;">
-                                    ${call.from} → ${call.to}
-                                </td>
-                            </tr>
-                        `).join('')}
+                        ${calls.map(call => {
+                            const dir = call.direction?.includes('originating') ? 'Inbound' : 'Outbound';
+                            const statusClass = call.status === 'completed' ? 'status-completed' :
+                                               call.status === 'no-answer' ? 'status-missed' : 'status-failed';
+                            return `
+                                <tr>
+                                    <td>${formatDateTime(new Date(call.date))}</td>
+                                    <td><span class="status-badge ${statusClass}">${dir}</span></td>
+                                    <td>${call.duration || 0}s</td>
+                                    <td>${call.status}</td>
+                                    <td style="font-size: 0.8rem; color: var(--text-muted);">${call.from} → ${call.to}</td>
+                                </tr>
+                            `;
+                        }).join('')}
                     </tbody>
                 </table>
             `;
         }
 
         function formatTranscript(transcript) {
-            if (!transcript) return '<em>No transcript available</em>';
+            if (!transcript) return '<em style="color: var(--text-muted);">No transcript available</em>';
 
-            // Parse transcript into lines
             const lines = transcript.split('\n').filter(l => l.trim());
-
             return lines.map(line => {
                 if (line.startsWith('Agent:')) {
                     return `<div class="transcript-line agent"><span class="transcript-speaker">Agent:</span>${line.replace('Agent:', '')}</div>`;
@@ -1035,37 +1838,24 @@
         function formatDate(dateStr) {
             try {
                 return new Date(dateStr).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
+                    year: 'numeric', month: 'short', day: 'numeric'
                 });
-            } catch {
-                return dateStr;
-            }
+            } catch { return dateStr; }
         }
 
         function formatDateTime(date) {
             try {
                 return date.toLocaleString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true
+                    month: 'short', day: 'numeric',
+                    hour: 'numeric', minute: '2-digit', hour12: true
                 });
-            } catch {
-                return date.toString();
-            }
+            } catch { return date.toString(); }
         }
 
         function updateHeaderStats() {
             document.getElementById('total-contacts').textContent = contactsData.length;
 
-            let totalCalls = 0;
-            let totalSMS = 0;
-            let totalTranscripts = 0;
-
+            let totalCalls = 0, totalSMS = 0, totalTranscripts = 0;
             contactsData.forEach(c => {
                 totalCalls += (c.call_details || []).length;
                 totalSMS += (c.sms_conversation || []).length;
