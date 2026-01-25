@@ -1115,34 +1115,34 @@
                     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                     updateConnectionStatus('syncing', 'Loading contacts...');
 
-                    // Query 1: ALL contacts from v_agent_contact_context (7K+ records)
-                    const { data: allContacts, error: contactError } = await withTimeout(
-                        supabaseClient
-                            .from('v_agent_contact_context')
-                            .select('phone_digits, full_name, owners_name, property_address, city, county, auction_date, auction_type')
-                            .order('auction_date', { ascending: true, nullsFirst: false }),
-                        30000  // 30 second timeout for large dataset
-                    );
-
-                    if (contactError) throw contactError;
-                    console.log(`Loaded ${allContacts?.length || 0} contacts from v_agent_contact_context`);
-
-                    updateConnectionStatus('syncing', 'Loading conversations...');
-
-                    // Query 2: All conversations (to get message counts)
+                    // Query 1: ALL conversations (116K+ contacts who were ever touched)
                     const { data: conversations, error: convError } = await withTimeout(
                         supabaseClient
                             .from('conversations')
-                            .select('*'),
-                        15000
+                            .select('*')
+                            .order('last_message_at', { ascending: false, nullsFirst: true }),
+                        60000  // 60 second timeout for large dataset
                     );
 
                     if (convError) throw convError;
                     console.log(`Loaded ${conversations?.length || 0} conversations from Supabase`);
 
-                    if (allContacts && allContacts.length > 0) {
-                        // Merge: Start with all contacts, enrich with conversation data
-                        const enriched = mergeContactsWithConversations(allContacts, conversations || []);
+                    updateConnectionStatus('syncing', 'Loading property data...');
+
+                    // Query 2: Property/contact context data (for enrichment)
+                    const { data: propertyContacts, error: contactError } = await withTimeout(
+                        supabaseClient
+                            .from('v_agent_contact_context')
+                            .select('phone_digits, full_name, owners_name, property_address, city, county, auction_date, auction_type'),
+                        30000
+                    );
+
+                    if (contactError) console.log('Property data load error (non-fatal):', contactError);
+                    console.log(`Loaded ${propertyContacts?.length || 0} property records for enrichment`);
+
+                    if (conversations && conversations.length > 0) {
+                        // Merge: Start with ALL conversations, enrich with property data where available
+                        const enriched = mergeConversationsWithPropertyData(conversations, propertyContacts || []);
                         contactsData = transformSupabaseData(enriched);
 
                         isSupabaseConnected = true;
@@ -1150,7 +1150,7 @@
                         subscribeToMessages();
                     } else {
                         // No data in Supabase, fallback to JSON
-                        console.log('No contacts in Supabase, loading from JSON');
+                        console.log('No conversations in Supabase, loading from JSON');
                         await loadFromJSON();
                     }
                 } catch (e) {
@@ -1166,42 +1166,45 @@
             updateHeaderStats();
         }
 
-        // Merge ALL contacts with conversation data (contacts as base)
-        function mergeContactsWithConversations(contacts, conversations) {
-            // Create lookup map: phone_digits -> conversation data
-            const convMap = new Map(conversations.map(c => [c.phone_digits, c]));
+        // Merge ALL conversations with property data (conversations as base - shows ALL touched contacts)
+        function mergeConversationsWithPropertyData(conversations, propertyContacts) {
+            // Create lookup map: phone_digits -> property data
+            const propertyMap = new Map();
+            for (const p of propertyContacts) {
+                // Keep first (or best) property data per phone
+                if (!propertyMap.has(p.phone_digits)) {
+                    propertyMap.set(p.phone_digits, p);
+                }
+            }
 
-            // Deduplicate contacts by phone_digits (keep first occurrence)
-            const seen = new Set();
-            const uniqueContacts = contacts.filter(c => {
-                if (seen.has(c.phone_digits)) return false;
-                seen.add(c.phone_digits);
-                return true;
-            });
-
-            return uniqueContacts.map(contact => {
-                const conv = convMap.get(contact.phone_digits) || {};
+            return conversations.map(conv => {
+                const property = propertyMap.get(conv.phone_digits) || {};
                 return {
-                    // Contact data (from v_agent_contact_context)
-                    phone_digits: contact.phone_digits,
-                    full_name: contact.full_name || '',
-                    owners_name: contact.owners_name || '',
-                    property_address: contact.property_address || '',
-                    city: contact.city || '',
-                    county: contact.county || '',
-                    auction_date: contact.auction_date || '',
-                    auction_type: contact.auction_type || '',
-                    // Conversation data (from conversations table, may be empty)
-                    conversation_id: conv.conversation_id || null,
-                    first_seen_at: conv.first_seen_at || null,
-                    last_message_at: conv.last_message_at || null,
+                    // Conversation data (from conversations table - PRIMARY)
+                    phone_digits: conv.phone_digits,
+                    conversation_id: conv.conversation_id,
+                    first_seen_at: conv.first_seen_at,
+                    last_message_at: conv.last_message_at,
                     inbound_sms_count: conv.inbound_sms_count || 0,
                     outbound_sms_count: conv.outbound_sms_count || 0,
                     outbound_call_count: conv.outbound_call_count || 0,
-                    status: conv.status || 'not_contacted',
-                    preferred_from_e164: conv.preferred_from_e164 || null
+                    status: conv.status || 'active',
+                    preferred_from_e164: conv.preferred_from_e164 || null,
+                    // Property data (from v_agent_contact_context - may be empty)
+                    full_name: property.full_name || '',
+                    owners_name: property.owners_name || '',
+                    property_address: property.property_address || '',
+                    city: property.city || '',
+                    county: property.county || '',
+                    auction_date: property.auction_date || '',
+                    auction_type: property.auction_type || ''
                 };
             });
+        }
+
+        // Legacy function for backwards compatibility
+        function mergeContactsWithConversations(contacts, conversations) {
+            return mergeConversationsWithPropertyData(conversations, contacts);
         }
 
         // Transform enriched Supabase data to dashboard format
