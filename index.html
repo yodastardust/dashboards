@@ -222,6 +222,9 @@
             cursor: pointer;
             transition: all 0.2s;
             position: relative;
+            /* Virtual scrolling optimization for large lists */
+            content-visibility: auto;
+            contain-intrinsic-size: 0 72px; /* Estimated height of contact item */
         }
 
         .contact-item:hover {
@@ -778,6 +781,29 @@
             color: var(--text-muted);
         }
 
+        .loading-messages {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .loading-messages::before {
+            content: '';
+            display: block;
+            width: 24px;
+            height: 24px;
+            margin: 0 auto 12px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         /* ========================================
            Toast Notifications
            ======================================== */
@@ -1087,24 +1113,40 @@
             if (SUPABASE_URL && SUPABASE_ANON_KEY) {
                 try {
                     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    updateConnectionStatus('syncing', 'Loading...');
 
-                    // Try to load from Supabase with 5 second timeout
-                    const { data, error } = await withTimeout(
+                    // Query 1: All conversations (no limit!)
+                    const { data: conversations, error: convError } = await withTimeout(
                         supabaseClient
                             .from('conversations')
                             .select('*')
-                            .order('last_message_at', { ascending: false })
-                            .limit(100),
-                        5000
+                            .order('last_message_at', { ascending: false, nullsFirst: false }),
+                        15000  // Increased timeout for larger dataset
                     );
 
-                    if (error) throw error;
+                    if (convError) throw convError;
 
-                    if (data && data.length > 0) {
-                        // Transform Supabase data to match expected format
-                        contactsData = await transformSupabaseData(data);
+                    if (conversations && conversations.length > 0) {
+                        console.log(`Loaded ${conversations.length} conversations from Supabase`);
+
+                        // Query 2: Enrich with contact details (parallel)
+                        const phoneDigits = [...new Set(conversations.map(c => c.phone_digits).filter(Boolean))];
+                        const { data: contacts } = await withTimeout(
+                            supabaseClient
+                                .from('v_agent_contact_context')
+                                .select('phone_digits, full_name, owners_name, property_address, city, county, auction_date, auction_type')
+                                .in('phone_digits', phoneDigits),
+                            10000
+                        );
+
+                        console.log(`Enriched with ${contacts?.length || 0} contact details`);
+
+                        // Merge and transform
+                        const enriched = mergeConversationsWithContacts(conversations, contacts || []);
+                        contactsData = transformSupabaseData(enriched);
+
                         isSupabaseConnected = true;
-                        updateConnectionStatus('online', 'Live');
+                        updateConnectionStatus('online', `Live (${contactsData.length})`);
                         subscribeToMessages();
                     } else {
                         // No data in Supabase, fallback to JSON
@@ -1124,24 +1166,76 @@
             updateHeaderStats();
         }
 
-        async function transformSupabaseData(conversations) {
-            // For now, return a simplified transform
-            // In production, you'd fetch related messages and transcripts
-            return conversations.map(c => ({
+        // Merge conversations with contact details from v_agent_contact_context
+        function mergeConversationsWithContacts(conversations, contacts) {
+            const contactMap = new Map(contacts.map(c => [c.phone_digits, c]));
+
+            return conversations.map(conv => {
+                const contact = contactMap.get(conv.phone_digits) || {};
+                return {
+                    ...conv,
+                    full_name: contact.full_name || '',
+                    owners_name: contact.owners_name || '',
+                    property_address: contact.property_address || '',
+                    city: contact.city || '',
+                    county: contact.county || '',
+                    auction_date: contact.auction_date || '',
+                    auction_type: contact.auction_type || ''
+                };
+            });
+        }
+
+        // Transform enriched Supabase data to dashboard format
+        function transformSupabaseData(enrichedConversations) {
+            return enrichedConversations.map(c => ({
                 contact_id: c.conversation_id,
-                name: c.phone_digits, // Will be enriched from v_agent_contact_context
+                name: c.full_name || c.owners_name || c.phone_digits,
                 phone: formatPhoneNumber(c.phone_digits),
                 phone_digits: c.phone_digits,
                 conversation_id: c.conversation_id,
-                property_address: '',
-                auction_date: '',
+                property_address: c.property_address || '',
+                city: c.city || '',
+                county: c.county || '',
+                auction_date: c.auction_date || '',
+                auction_type: c.auction_type || '',
                 date_added: c.first_seen_at,
                 total_touches: (c.inbound_sms_count || 0) + (c.outbound_sms_count || 0) + (c.outbound_call_count || 0),
-                call_details: [],
-                sms_conversation: [],
-                retell_transcriptions: [],
-                preferred_from_e164: c.preferred_from_e164
+                inbound_sms_count: c.inbound_sms_count || 0,
+                outbound_sms_count: c.outbound_sms_count || 0,
+                outbound_call_count: c.outbound_call_count || 0,
+                conversation_status: c.status || 'unknown',
+                call_details: [],           // Loaded on-demand
+                sms_conversation: [],       // Loaded on-demand
+                retell_transcriptions: [],  // Not in Supabase yet
+                preferred_from_e164: c.preferred_from_e164,
+                _messagesLoaded: false      // Track if messages have been loaded
             }));
+        }
+
+        // Lazy load messages for a specific contact
+        async function loadLeadMessages(phone_digits) {
+            if (!supabaseClient) return [];
+
+            try {
+                const { data: messages, error } = await supabaseClient
+                    .from('messages')
+                    .select('direction, body, created_at, status')
+                    .eq('phone_digits', phone_digits)
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+
+                // Transform to expected format
+                return (messages || []).map(m => ({
+                    date: m.created_at,
+                    direction: m.direction,
+                    body: m.body,
+                    status: m.status
+                }));
+            } catch (e) {
+                console.error('Error loading messages:', e);
+                return [];
+            }
         }
 
         async function loadFromJSON() {
@@ -1583,15 +1677,19 @@
 
             list.innerHTML = filtered.map(contact => {
                 const hasNewMessage = contactsWithNewMessages.has(contact.phone_digits);
+                // Use summary counts if available (from Supabase), otherwise fall back to array length (from JSON)
+                const callCount = contact.outbound_call_count || (contact.call_details ? contact.call_details.length : 0);
+                const smsCount = (contact.inbound_sms_count || 0) + (contact.outbound_sms_count || 0) || (contact.sms_conversation ? contact.sms_conversation.length : 0);
+                const transcriptCount = contact.retell_transcriptions ? contact.retell_transcriptions.length : 0;
                 return `
                     <div class="contact-item ${selectedContact && selectedContact.contact_id === contact.contact_id ? 'active' : ''} ${hasNewMessage ? 'has-new-message' : ''}"
                          data-id="${contact.contact_id}">
                         <div class="contact-name">${contact.name || 'Unknown'}</div>
                         <div class="contact-phone">${contact.phone || '-'}</div>
                         <div class="contact-meta">
-                            <span class="meta-calls"><span class="meta-icon">📞</span> ${contact.call_details ? contact.call_details.length : 0}</span>
-                            <span class="meta-sms"><span class="meta-icon">💬</span> ${contact.sms_conversation ? contact.sms_conversation.length : 0}</span>
-                            <span class="meta-transcripts"><span class="meta-icon">🤖</span> ${contact.retell_transcriptions ? contact.retell_transcriptions.length : 0}</span>
+                            <span class="meta-calls"><span class="meta-icon">📞</span> ${callCount}</span>
+                            <span class="meta-sms"><span class="meta-icon">💬</span> ${smsCount}</span>
+                            <span class="meta-transcripts"><span class="meta-icon">🤖</span> ${transcriptCount}</span>
                         </div>
                     </div>
                 `;
@@ -1605,7 +1703,7 @@
             });
         }
 
-        function selectContact(contact) {
+        async function selectContact(contact) {
             selectedContact = contact;
 
             // Clear new message indicator
@@ -1631,6 +1729,20 @@
             });
 
             setupMergeFields();
+
+            // Lazy load messages if using Supabase and not yet loaded
+            if (isSupabaseConnected && !contact._messagesLoaded) {
+                // Show loading state
+                const content = document.getElementById('tab-content');
+                content.innerHTML = '<div class="loading-messages">Loading messages...</div>';
+
+                // Load messages
+                contact.sms_conversation = await loadLeadMessages(contact.phone_digits);
+                contact._messagesLoaded = true;
+
+                console.log(`Loaded ${contact.sms_conversation.length} messages for ${contact.phone_digits}`);
+            }
+
             renderTabContent();
         }
 
