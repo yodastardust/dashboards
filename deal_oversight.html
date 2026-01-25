@@ -117,8 +117,11 @@
             color: var(--text-primary);
             padding: 10px 16px;
             border-radius: 6px;
-            font-size: 14px;
-            min-width: 320px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            min-width: 340px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -155,6 +158,8 @@
             align-items: center;
             gap: 12px;
             transition: background 0.2s;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 13px;
         }
 
         .property-option:hover {
@@ -388,7 +393,7 @@
            ======================================== */
         .main-container {
             display: grid;
-            grid-template-columns: 400px 1fr;
+            grid-template-columns: 380px 1fr;
             gap: 0;
             min-height: calc(100vh - 65px);
         }
@@ -403,8 +408,8 @@
            Checklist Panel (Left)
            ======================================== */
         .checklist-panel {
-            background: var(--bg-secondary);
-            border-right: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            border-left: 1px solid var(--border-color);
             overflow-y: auto;
             max-height: calc(100vh - 65px);
         }
@@ -738,7 +743,8 @@
            Details Panel (Right)
            ======================================== */
         .details-panel {
-            padding: 24px;
+            background: var(--bg-secondary);
+            padding: 20px;
             overflow-y: auto;
             max-height: calc(100vh - 65px);
         }
@@ -1335,26 +1341,10 @@
 
     <!-- Main Content -->
     <div class="main-container">
-        <!-- Checklist Panel -->
-        <div class="checklist-panel">
-            <div class="checklist-header">
-                <div class="checklist-title">
-                    <h2>Checklist</h2>
-                    <span class="completion-badge" id="completionBadge">37%</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill" style="width: 37%"></div>
-                </div>
-            </div>
-
-            <!-- Sections will be populated by JavaScript -->
-            <div id="checklistSections"></div>
-        </div>
-
         <!-- Details Panel -->
         <div class="details-panel">
             <div class="property-header">
-                <a href="#" class="property-address-link" id="propertyAddressLink" target="_blank">
+                <a href="javascript:void(0)" class="property-address-link" id="propertyAddressLink" onclick="openGoogleMaps(event)">
                     <h1 class="property-address" id="propertyAddress">4891 NE 147th Court</h1>
                     <svg class="map-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
@@ -1529,6 +1519,22 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Checklist Panel (MAIN) -->
+        <div class="checklist-panel">
+            <div class="checklist-header">
+                <div class="checklist-title">
+                    <h2>Checklist</h2>
+                    <span class="completion-badge" id="completionBadge">37%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 37%"></div>
+                </div>
+            </div>
+
+            <!-- Sections will be populated by JavaScript -->
+            <div id="checklistSections"></div>
         </div>
     </div>
 
@@ -2555,12 +2561,23 @@
         // ========================================
         // Google Maps Link
         // ========================================
-        function updateGoogleMapsLink() {
+        function getGoogleMapsUrl() {
             const property = DEMO_PROPERTIES[currentProperty];
             const fullAddress = `${property.address}, ${property.city}, ${property.state} ${property.zip}`;
             const encodedAddress = encodeURIComponent(fullAddress);
-            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-            document.getElementById('propertyAddressLink').href = mapsUrl;
+            return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+        }
+
+        function openGoogleMaps(event) {
+            event.preventDefault();
+            const mapsUrl = getGoogleMapsUrl();
+            window.open(mapsUrl, '_blank');
+        }
+
+        function updateGoogleMapsLink() {
+            // Kept for compatibility but onclick handler now handles navigation
+            const mapsUrl = getGoogleMapsUrl();
+            document.getElementById('propertyAddressLink').setAttribute('data-maps-url', mapsUrl);
         }
 
         // ========================================
