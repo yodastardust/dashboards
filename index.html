@@ -1116,11 +1116,12 @@
                     updateConnectionStatus('syncing', 'Loading contacts...');
 
                     // Query 1: ALL conversations (116K+ contacts who were ever touched)
-                    // Supabase default limit is 1000, so we need to paginate
+                    // Supabase PostgREST has max_rows limit (usually 1000-10000)
+                    // We MUST use a page size <= the server's max_rows setting
                     updateConnectionStatus('syncing', 'Loading conversations...');
                     let conversations = [];
-                    let page = 0;
-                    const pageSize = 10000;  // Max per request
+                    let offset = 0;
+                    const pageSize = 1000;  // Stay within Supabase's default max_rows limit
 
                     while (true) {
                         const { data: batch, error: batchError } = await withTimeout(
@@ -1128,7 +1129,7 @@
                                 .from('conversations')
                                 .select('*')
                                 .order('last_message_at', { ascending: false, nullsFirst: true })
-                                .range(page * pageSize, (page + 1) * pageSize - 1),
+                                .range(offset, offset + pageSize - 1),
                             30000
                         );
 
@@ -1136,11 +1137,15 @@
                         if (!batch || batch.length === 0) break;
 
                         conversations = conversations.concat(batch);
-                        updateConnectionStatus('syncing', `Loading... ${conversations.length.toLocaleString()}`);
-                        console.log(`Loaded batch ${page + 1}: ${batch.length} records (total: ${conversations.length})`);
+                        offset += batch.length;
+
+                        // Update status every 10 batches to avoid too many updates
+                        if (offset % 10000 === 0 || batch.length < pageSize) {
+                            updateConnectionStatus('syncing', `Loading... ${conversations.length.toLocaleString()}`);
+                        }
+                        console.log(`Loaded batch: ${batch.length} records (total: ${conversations.length})`);
 
                         if (batch.length < pageSize) break;  // Last page
-                        page++;
                     }
 
                     const convError = null;  // Already handled above
