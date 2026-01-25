@@ -1983,7 +1983,8 @@
                 });
             }
 
-            events.sort((a, b) => b.date - a.date);
+            // Sort oldest first so newest messages appear at bottom (like normal chat)
+            events.sort((a, b) => a.date - b.date);
 
             if (events.length === 0) {
                 container.innerHTML = '<div class="empty-state">No communications recorded</div>';
@@ -1991,6 +1992,11 @@
             }
 
             container.innerHTML = `<div class="timeline">${events.map(renderTimelineItem).join('')}</div>`;
+
+            // Scroll to bottom to show newest messages
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 50);
 
             // Setup expand buttons for AI calls
             container.querySelectorAll('.call-expand-btn').forEach(btn => {
@@ -2096,7 +2102,10 @@
                 return;
             }
 
-            container.innerHTML = `<div class="timeline">${messages.map(msg => `
+            // Sort oldest first so newest messages appear at bottom (like normal chat)
+            const sortedMessages = [...messages].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            container.innerHTML = `<div class="timeline">${sortedMessages.map(msg => `
                 <div class="timeline-item ${msg.direction}">
                     <div class="timeline-icon sms">💬</div>
                     <div class="timeline-bubble">
@@ -2105,6 +2114,11 @@
                     </div>
                 </div>
             `).join('')}</div>`;
+
+            // Scroll to bottom to show newest messages
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 50);
         }
 
         function renderCalls(container) {
