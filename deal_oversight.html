@@ -489,6 +489,24 @@
             color: var(--success-green);
         }
 
+        .reset-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-left: 10px;
+        }
+
+        .reset-btn:hover {
+            background: var(--danger-red);
+            border-color: var(--danger-red);
+            color: white;
+        }
+
         .progress-bar {
             height: 6px;
             background: var(--bg-panel);
@@ -1592,6 +1610,7 @@
                 <div class="checklist-title">
                     <h2>Checklist</h2>
                     <span class="completion-badge" id="completionBadge">37%</span>
+                    <button class="reset-btn" onclick="resetToDefaults()" title="Reset to Paperless Pipeline data">Reset</button>
                 </div>
                 <div class="progress-bar">
                     <div class="progress-fill" id="progressFill" style="width: 37%"></div>
