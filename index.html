@@ -706,6 +706,35 @@
             margin-right: 4px;
         }
 
+        .recording-player {
+            margin: 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .recording-player audio {
+            height: 32px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .recording-link {
+            color: var(--accent-cyan);
+            text-decoration: none;
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border: 1px solid var(--accent-cyan);
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .recording-link:hover {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+        }
+
         /* ========================================
            Reply Input
            ======================================== */
@@ -2234,13 +2263,18 @@
                 case 'ai':
                     icon = '<div class="timeline-icon ai">🤖</div>';
                     badge = '<span class="timeline-type-badge badge-ai">AI CALL</span>';
-                    const sentiment = data.user_sentiment || 'Neutral';
+                    const sentiment = data.user_sentiment || data.sentiment || 'Neutral';
                     const sentimentClass = sentiment.toLowerCase() === 'positive' ? 'sentiment-positive' :
                                           sentiment.toLowerCase() === 'negative' ? 'sentiment-negative' : 'sentiment-neutral';
+                    const durationSec = data.duration_sec || (data.duration_ms ? Math.round(data.duration_ms / 1000) : 0);
+                    const summary = data.call_summary || data.summary || '';
+                    const successful = data.call_successful !== undefined ? data.call_successful : data.successful;
+                    const recordingUrl = data.recording_url;
                     body = `
                         <span class="sentiment-badge ${sentimentClass}">${sentiment}</span>
-                        <div style="margin-top: 8px;">Duration: ${Math.round(data.duration_sec || 0)}s • ${data.call_successful ? 'Successful' : 'Failed'}</div>
-                        ${data.call_summary ? `<div class="call-summary"><div class="call-summary-label">AI Summary</div><div class="call-summary-text">${data.call_summary}</div></div>` : ''}
+                        <div style="margin-top: 8px;">Duration: ${durationSec}s • ${successful ? 'Successful' : 'Failed'}</div>
+                        ${summary ? `<div class="call-summary"><div class="call-summary-label">AI Summary</div><div class="call-summary-text">${summary}</div></div>` : ''}
+                        ${recordingUrl ? `<div class="recording-player"><audio controls preload="none" src="${recordingUrl}"></audio><a href="${recordingUrl}" target="_blank" class="recording-link">🔗 Open Recording</a></div>` : ''}
                         <button class="call-expand-btn">Show Transcript</button>
                         <div class="call-transcript">${formatTranscript(data.transcript)}</div>
                     `;
@@ -2430,6 +2464,25 @@
             document.getElementById('total-calls').textContent = totalCalls.toLocaleString();
             document.getElementById('total-sms').textContent = totalSMS.toLocaleString();
             document.getElementById('total-transcripts').textContent = totalTranscripts.toLocaleString();
+
+            // Also fetch total transcript count from Supabase if connected
+            if (supabaseClient) {
+                fetchTotalTranscriptCount();
+            }
+        }
+
+        async function fetchTotalTranscriptCount() {
+            try {
+                const { count, error } = await supabaseClient
+                    .from('retell_transcripts')
+                    .select('*', { count: 'exact', head: true });
+
+                if (!error && count !== null) {
+                    document.getElementById('total-transcripts').textContent = count.toLocaleString();
+                }
+            } catch (e) {
+                console.error('Error fetching transcript count:', e);
+            }
         }
 
         // Retell Concurrency - Live Updates
