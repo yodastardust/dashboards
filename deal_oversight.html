@@ -507,6 +507,48 @@
             color: white;
         }
 
+        .email-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .email-value {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-cyan);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .copy-email-btn {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .copy-email-btn:hover {
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            color: var(--bg-primary);
+        }
+
+        .copy-email-btn.copied {
+            background: var(--success-green);
+            border-color: var(--success-green);
+            color: white;
+        }
+
         .progress-bar {
             height: 6px;
             background: var(--bg-panel);
@@ -1460,6 +1502,11 @@
                         <span class="info-label">Closes On</span>
                         <span class="info-value" id="closesDate">Feb 13, 2026</span>
                     </div>
+                    <div class="email-row">
+                        <span class="info-label">File Email</span>
+                        <span class="email-value" id="propertyEmail">4891ne147th@stopmyauctionnow.com</span>
+                        <button class="copy-email-btn" onclick="copyPropertyEmail()">Copy</button>
+                    </div>
                 </div>
 
                 <!-- Deal Details -->
@@ -1727,7 +1774,8 @@
                 isProbate: false,
                 acceptedDate: '2026-01-22',
                 closesDate: '2026-02-13',
-                lienPaid: false
+                lienPaid: false,
+                propertyEmail: '4891ne147th@stopmyauctionnow.com'
             },
             sawgrass: {
                 address: '3502 SW Sawgrass Villas Drive',
@@ -1746,7 +1794,8 @@
                 isProbate: false,
                 acceptedDate: '2026-01-22',
                 closesDate: '2026-02-03',
-                lienPaid: false
+                lienPaid: false,
+                propertyEmail: '3502sawgrass@stopmyauctionnow.com'
             },
             norfolk: {
                 address: '3136 Norfolk Street',
@@ -1765,7 +1814,8 @@
                 isProbate: false,
                 acceptedDate: '2026-01-13',
                 closesDate: '2026-01-22',
-                lienPaid: true
+                lienPaid: true,
+                propertyEmail: '3136norfolk@stopmyauctionnow.com'
             },
             homestead: {
                 address: '2735 SE 16th Ave Unit 102',
@@ -1784,7 +1834,8 @@
                 isProbate: false,
                 acceptedDate: '2026-01-08',
                 closesDate: '2026-01-23',
-                lienPaid: true
+                lienPaid: true,
+                propertyEmail: '2735se16th@stopmyauctionnow.com'
             },
             walsh: {
                 address: '375 Walsh Circle',
@@ -1803,7 +1854,8 @@
                 isProbate: false,
                 acceptedDate: '2026-01-25',
                 closesDate: '2026-02-25',
-                lienPaid: false
+                lienPaid: false,
+                propertyEmail: '375walsh@stopmyauctionnow.com'
             }
         };
 
@@ -2660,6 +2712,19 @@
             });
         }
 
+        function copyPropertyEmail() {
+            const email = document.getElementById('propertyEmail').textContent;
+            navigator.clipboard.writeText(email).then(() => {
+                const btn = document.querySelector('.copy-email-btn');
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.classList.remove('copied');
+                }, 1500);
+            });
+        }
+
         // ========================================
         // Settings Modal
         // ========================================
@@ -2832,6 +2897,9 @@
                 new Date(property.acceptedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             document.getElementById('closesDate').textContent =
                 new Date(property.closesDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+            // Update property email
+            document.getElementById('propertyEmail').textContent = property.propertyEmail;
         };
 
         // Update overall progress to also update header stats
