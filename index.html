@@ -111,6 +111,22 @@
             letter-spacing: 0.5px;
         }
 
+        .retell-concurrency {
+            padding: 4px 10px;
+            background: var(--bg-panel);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .retell-concurrency .header-stat-value {
+            color: var(--success-green);
+        }
+
+        .retell-concurrency.active .header-stat-value {
+            color: var(--warning-orange);
+            animation: pulse 1.5s infinite;
+        }
+
         .connection-status {
             display: flex;
             align-items: center;
@@ -1101,6 +1117,10 @@
             <div class="header-stat">
                 <div class="header-stat-value" id="total-transcripts">-</div>
                 <div class="header-stat-label">AI Calls</div>
+            </div>
+            <div class="header-stat retell-concurrency" title="Live Retell AI Concurrency">
+                <div class="header-stat-value" id="retell-concurrency">-/-</div>
+                <div class="header-stat-label">Concurrency</div>
             </div>
             <div class="ai-toggle-container" title="When ON: AI auto-sends replies after delay. When OFF: Human reviews before sending.">
                 <label class="ai-toggle">
@@ -2397,7 +2417,7 @@
         }
 
         function updateHeaderStats() {
-            document.getElementById('total-contacts').textContent = contactsData.length;
+            document.getElementById('total-contacts').textContent = contactsData.length.toLocaleString();
 
             let totalCalls = 0, totalSMS = 0, totalTranscripts = 0;
             contactsData.forEach(c => {
@@ -2411,6 +2431,43 @@
             document.getElementById('total-sms').textContent = totalSMS.toLocaleString();
             document.getElementById('total-transcripts').textContent = totalTranscripts.toLocaleString();
         }
+
+        // Retell Concurrency - Live Updates
+        const RETELL_API_KEY = 'key_27893f6ef20b5c634694fa2d2566';
+
+        async function fetchRetellConcurrency() {
+            try {
+                const response = await fetch('https://api.retellai.com/get-concurrency', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${RETELL_API_KEY}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const concurrencyEl = document.getElementById('retell-concurrency');
+                    const containerEl = concurrencyEl.closest('.retell-concurrency');
+
+                    concurrencyEl.textContent = `${data.current_concurrency}/${data.concurrency_limit}`;
+
+                    // Highlight if calls are active
+                    if (data.current_concurrency > 0) {
+                        containerEl.classList.add('active');
+                    } else {
+                        containerEl.classList.remove('active');
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to fetch Retell concurrency:', e);
+                document.getElementById('retell-concurrency').textContent = '-/-';
+            }
+        }
+
+        // Fetch concurrency every 5 seconds
+        setInterval(fetchRetellConcurrency, 5000);
+        // Initial fetch
+        setTimeout(fetchRetellConcurrency, 1000);
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', init);
