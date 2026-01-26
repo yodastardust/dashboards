@@ -137,6 +137,60 @@
             50% { opacity: 0.4; }
         }
 
+        /* Date Range Dropdown */
+        .date-range-dropdown {
+            position: relative;
+        }
+
+        .date-range-btn {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-family: 'Roboto Mono', monospace;
+            transition: all 0.2s;
+        }
+
+        .date-range-btn:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-cyan);
+        }
+
+        .date-range-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 4px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+            z-index: 1000;
+            min-width: 140px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .date-range-menu.show {
+            display: block;
+        }
+
+        .date-range-option {
+            padding: 10px 14px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            transition: all 0.15s;
+        }
+
+        .date-range-option:hover {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+        }
+
         /* AI Auto-Reply Toggle */
         .ai-toggle-container {
             display: flex;
@@ -199,11 +253,12 @@
 
         .ai-toggle-status {
             font-weight: 500;
-            min-width: 45px;
+            min-width: 110px;
+            font-family: 'Roboto Mono', monospace;
         }
 
         .ai-toggle-status.auto { color: var(--success-green); }
-        .ai-toggle-status.review { color: var(--warning-orange); }
+        .ai-toggle-status.review { color: var(--text-secondary); }
 
         /* ========================================
            Container Layout
@@ -1047,13 +1102,22 @@
                 <div class="header-stat-value" id="total-transcripts">-</div>
                 <div class="header-stat-label">AI Calls</div>
             </div>
-            <div class="ai-toggle-container" title="When OFF: AI auto-sends replies. When ON: Human reviews before sending.">
-                <span class="ai-toggle-label">AI Reply:</span>
+            <div class="ai-toggle-container" title="When ON: AI auto-sends replies after delay. When OFF: Human reviews before sending.">
                 <label class="ai-toggle">
-                    <input type="checkbox" id="ai-review-toggle" checked>
+                    <input type="checkbox" id="ai-review-toggle">
                     <span class="ai-toggle-slider"></span>
                 </label>
-                <span class="ai-toggle-status review" id="ai-toggle-status">Review</span>
+                <span class="ai-toggle-status" id="ai-toggle-status">AI Auto Reply Off</span>
+            </div>
+            <div class="date-range-dropdown">
+                <button class="date-range-btn" id="date-range-btn" onclick="toggleDateRangeMenu()">Last 30 Days ▾</button>
+                <div class="date-range-menu" id="date-range-menu">
+                    <div class="date-range-option" onclick="changeDateRange(7)">Last 7 Days</div>
+                    <div class="date-range-option" onclick="changeDateRange(30)">Last 30 Days</div>
+                    <div class="date-range-option" onclick="changeDateRange(60)">Last 60 Days</div>
+                    <div class="date-range-option" onclick="changeDateRange(90)">Last 90 Days</div>
+                    <div class="date-range-option" onclick="changeDateRange('all')">All Time (slow)</div>
+                </div>
             </div>
             <div class="connection-status">
                 <div class="status-dot" id="status-dot"></div>
@@ -1171,6 +1235,8 @@
         let contactPropertyData = {}; // Cache for merge fields
         let contactsWithNewMessages = new Set();
         let aiReviewMode = true; // true = human reviews, false = auto-send
+        let currentDateRange = 30; // Days of recent activity to load (30, 60, 90, or 'all')
+        let propertyDataCache = null; // Cache property data for reuse
 
         // ========================================
         // Initialize
@@ -1190,72 +1256,10 @@
             if (SUPABASE_URL && SUPABASE_ANON_KEY) {
                 try {
                     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                    updateConnectionStatus('syncing', 'Loading contacts...');
 
-                    // Query 1: ALL conversations (116K+ contacts who were ever touched)
-                    // Supabase PostgREST has max_rows limit (usually 1000-10000)
-                    // We MUST use a page size <= the server's max_rows setting
-                    updateConnectionStatus('syncing', 'Loading conversations...');
-                    let conversations = [];
-                    let offset = 0;
-                    const pageSize = 1000;  // Stay within Supabase's default max_rows limit
+                    // Load recent conversations (default: last 30 days)
+                    await loadRecentConversations(currentDateRange);
 
-                    while (true) {
-                        const { data: batch, error: batchError } = await withTimeout(
-                            supabaseClient
-                                .from('conversations')
-                                .select('*')
-                                .order('last_message_at', { ascending: false, nullsFirst: true })
-                                .range(offset, offset + pageSize - 1),
-                            30000
-                        );
-
-                        if (batchError) throw batchError;
-                        if (!batch || batch.length === 0) break;
-
-                        conversations = conversations.concat(batch);
-                        offset += batch.length;
-
-                        // Update status every 10 batches to avoid too many updates
-                        if (offset % 10000 === 0 || batch.length < pageSize) {
-                            updateConnectionStatus('syncing', `Loading... ${conversations.length.toLocaleString()}`);
-                        }
-                        console.log(`Loaded batch: ${batch.length} records (total: ${conversations.length})`);
-
-                        if (batch.length < pageSize) break;  // Last page
-                    }
-
-                    const convError = null;  // Already handled above
-
-                    if (convError) throw convError;
-                    console.log(`Loaded ${conversations?.length || 0} conversations from Supabase`);
-
-                    updateConnectionStatus('syncing', 'Loading property data...');
-
-                    // Query 2: Property/contact context data (for enrichment)
-                    const { data: propertyContacts, error: contactError } = await withTimeout(
-                        supabaseClient
-                            .from('v_agent_contact_context')
-                            .select('phone_digits, full_name, owners_name, property_address, city, county, auction_date, auction_type'),
-                        30000
-                    );
-
-                    if (contactError) console.log('Property data load error (non-fatal):', contactError);
-                    console.log(`Loaded ${propertyContacts?.length || 0} property records for enrichment`);
-
-                    if (conversations && conversations.length > 0) {
-                        // Merge: Start with ALL conversations, enrich with property data where available
-                        const enriched = mergeConversationsWithPropertyData(conversations, propertyContacts || []);
-                        contactsData = transformSupabaseData(enriched);
-
-                        isSupabaseConnected = true;
-                        updateConnectionStatus('online', `Live (${contactsData.length})`);
-                        subscribeToMessages();
-                    } else {
-                        // No data in Supabase, fallback to JSON
-                        console.log('No conversations in Supabase, loading from JSON');
-                        await loadFromJSON();
-                    }
                 } catch (e) {
                     console.log('Supabase error, loading from JSON:', e);
                     await loadFromJSON();
@@ -1448,6 +1452,93 @@
                     updateConnectionStatus('offline', 'No Data');
                 }
             }
+        }
+
+        // Load conversations with activity in the last N days
+        async function loadRecentConversations(days) {
+            const withTimeout = (promise, ms) => {
+                return Promise.race([
+                    promise,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
+                ]);
+            };
+
+            updateConnectionStatus('syncing', 'Loading recent activity...');
+
+            // Calculate date cutoff
+            let dateFilter = null;
+            if (days !== 'all') {
+                const cutoff = new Date();
+                cutoff.setDate(cutoff.getDate() - days);
+                dateFilter = cutoff.toISOString();
+            }
+
+            // Query conversations with recent activity
+            let query = supabaseClient
+                .from('conversations')
+                .select('*')
+                .order('last_message_at', { ascending: false });
+
+            if (dateFilter) {
+                query = query.gte('last_message_at', dateFilter);
+            }
+
+            // Limit to 5000 max to prevent overload
+            query = query.limit(5000);
+
+            const { data: conversations, error: convError } = await withTimeout(query, 30000);
+
+            if (convError) throw convError;
+            console.log(`Loaded ${conversations?.length || 0} conversations from last ${days} days`);
+
+            // Load property data (only once, then cache)
+            if (!propertyDataCache) {
+                updateConnectionStatus('syncing', 'Loading property data...');
+                const { data: propertyContacts, error: contactError } = await withTimeout(
+                    supabaseClient
+                        .from('v_agent_contact_context')
+                        .select('phone_digits, full_name, owners_name, property_address, city, county, auction_date, auction_type'),
+                    30000
+                );
+                if (!contactError) {
+                    propertyDataCache = propertyContacts || [];
+                    console.log(`Cached ${propertyDataCache.length} property records`);
+                }
+            }
+
+            if (conversations && conversations.length > 0) {
+                const enriched = mergeConversationsWithPropertyData(conversations, propertyDataCache || []);
+                contactsData = transformSupabaseData(enriched);
+
+                isSupabaseConnected = true;
+                const rangeLabel = days === 'all' ? 'All' : `${days}d`;
+                updateConnectionStatus('online', `Live (${contactsData.length.toLocaleString()} - ${rangeLabel})`);
+                subscribeToMessages();
+            } else {
+                console.log('No recent conversations, loading from JSON');
+                await loadFromJSON();
+            }
+
+            renderContactList();
+            updateHeaderStats();
+        }
+
+        // Change date range and reload
+        async function changeDateRange(days) {
+            currentDateRange = days;
+            selectedContact = null;
+            document.getElementById('no-selection').style.display = 'flex';
+            document.getElementById('contact-view').style.display = 'none';
+            document.getElementById('reply-container').style.display = 'none';
+
+            // Update dropdown display
+            const btn = document.getElementById('date-range-btn');
+            if (btn) {
+                const label = days === 'all' ? 'All Time' : `Last ${days} Days`;
+                btn.textContent = label + ' ▾';
+            }
+
+            await loadRecentConversations(days);
         }
 
         // ========================================
@@ -1769,6 +1860,22 @@
         }
 
         // ========================================
+        // Date Range Dropdown
+        // ========================================
+        function toggleDateRangeMenu() {
+            const menu = document.getElementById('date-range-menu');
+            menu.classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.date-range-dropdown')) {
+                const menu = document.getElementById('date-range-menu');
+                if (menu) menu.classList.remove('show');
+            }
+        });
+
+        // ========================================
         // Event Listeners
         // ========================================
         function setupEventListeners() {
@@ -1837,24 +1944,25 @@
 
             // AI Review Mode toggle
             document.getElementById('ai-review-toggle').addEventListener('change', (e) => {
-                aiReviewMode = e.target.checked;
+                const autoReplyOn = e.target.checked;
+                aiReviewMode = !autoReplyOn; // aiReviewMode is opposite of auto-reply
                 const statusEl = document.getElementById('ai-toggle-status');
-                if (aiReviewMode) {
-                    statusEl.textContent = 'Review';
+                if (autoReplyOn) {
+                    statusEl.textContent = 'AI Auto Reply On';
+                    statusEl.className = 'ai-toggle-status auto';
+                    // If there's a draft showing, start the timer
+                    const draftContainer = document.getElementById('ai-draft-container');
+                    if (draftContainer.classList.contains('visible')) {
+                        startAICountdown();
+                    }
+                } else {
+                    statusEl.textContent = 'AI Auto Reply Off';
                     statusEl.className = 'ai-toggle-status review';
                     // Cancel any running auto-send timer
                     if (aiDraftTimer) {
                         clearInterval(aiDraftTimer);
                         aiDraftTimer = null;
                         document.getElementById('ai-countdown').textContent = 'Manual review';
-                    }
-                } else {
-                    statusEl.textContent = 'Auto';
-                    statusEl.className = 'ai-toggle-status auto';
-                    // If there's a draft showing, start the timer
-                    const draftContainer = document.getElementById('ai-draft-container');
-                    if (draftContainer.classList.contains('visible')) {
-                        startAICountdown();
                     }
                 }
             });
