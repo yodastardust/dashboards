@@ -1112,10 +1112,75 @@
             color: var(--accent-cyan);
         }
 
-        /* Header Stats */
+        /* Header Property Info */
+        .header-property-info {
+            display: flex;
+            gap: 32px;
+            align-items: flex-start;
+        }
+
+        .header-info-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .header-info-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .header-info-value {
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .header-info-value.highlight {
+            color: var(--success-green);
+        }
+
+        .header-email-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-email-value {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 11px;
+            color: var(--accent-cyan);
+        }
+
+        .header-copy-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .header-copy-btn:hover {
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            color: var(--bg-primary);
+        }
+
+        .header-copy-btn.copied {
+            background: var(--success-green);
+            border-color: var(--success-green);
+            color: white;
+        }
+
+        /* Header Stats (smaller, bottom aligned) */
         .header-stats {
             display: flex;
-            gap: 24px;
+            gap: 16px;
+            align-items: center;
         }
 
         .stat-item {
@@ -1124,14 +1189,14 @@
 
         .stat-value {
             display: block;
-            font-size: 20px;
+            font-size: 14px;
             font-weight: 600;
             font-family: 'Roboto Mono', monospace;
             color: var(--text-primary);
         }
 
         .stat-label {
-            font-size: 10px;
+            font-size: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--text-secondary);
@@ -1143,6 +1208,14 @@
 
         .stat-item.safe .stat-value {
             color: var(--success-green);
+        }
+
+        /* Header right section with property info and stats */
+        .header-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
         }
 
         /* Credentials Popup */
@@ -1431,26 +1504,56 @@
             </div>
         </div>
 
-        <!-- Header Stats -->
-        <div class="header-stats">
-            <div class="stat-item" id="statDueToday">
-                <span class="stat-value">0</span>
-                <span class="stat-label">Due Today</span>
+        <!-- Header Right: Property Info + Stats -->
+        <div class="header-right">
+            <!-- Property Info -->
+            <div class="header-property-info">
+                <div class="header-info-group">
+                    <span class="header-info-label">Seller</span>
+                    <span class="header-info-value" id="headerSellerName">Marcos Luis Garcia</span>
+                </div>
+                <div class="header-info-group">
+                    <span class="header-info-label">Buyer</span>
+                    <span class="header-info-value" id="headerBuyerName">4891 NE 147th Court Land Trust</span>
+                </div>
+                <div class="header-info-group">
+                    <span class="header-info-label">Accepted</span>
+                    <span class="header-info-value" id="headerAcceptedDate">Jan 22, 2026</span>
+                </div>
+                <div class="header-info-group">
+                    <span class="header-info-label">Closes</span>
+                    <span class="header-info-value" id="headerClosesDate">Feb 13, 2026</span>
+                </div>
+                <div class="header-info-group">
+                    <span class="header-info-label">File Email</span>
+                    <div class="header-email-row">
+                        <span class="header-email-value" id="headerPropertyEmail">4891ne147th@stopmyauctionnow.com</span>
+                        <button class="header-copy-btn" onclick="copyPropertyEmail()">Copy</button>
+                    </div>
+                </div>
             </div>
-            <div class="stat-item urgent" id="statOverdue">
-                <span class="stat-value">0</span>
-                <span class="stat-label">Overdue</span>
+
+            <!-- Stats (smaller) -->
+            <div class="header-stats">
+                <div class="stat-item" id="statDueToday">
+                    <span class="stat-value">0</span>
+                    <span class="stat-label">Due Today</span>
+                </div>
+                <div class="stat-item urgent" id="statOverdue">
+                    <span class="stat-value">0</span>
+                    <span class="stat-label">Overdue</span>
+                </div>
+                <div class="stat-item safe" id="statComplete">
+                    <span class="stat-value">0%</span>
+                    <span class="stat-label">Complete</span>
+                </div>
+                <button class="settings-btn" onclick="openSettingsModal()" title="Settings">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
             </div>
-            <div class="stat-item safe" id="statComplete">
-                <span class="stat-value">0%</span>
-                <span class="stat-label">Complete</span>
-            </div>
-            <button class="settings-btn" onclick="openSettingsModal()" title="Settings">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="3"></circle>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                </svg>
-            </button>
         </div>
 
         <div class="countdown-container">
@@ -1483,33 +1586,7 @@
             </div>
 
             <div class="info-grid">
-                <!-- Property Info (Address + Seller/Buyer) -->
-                <div class="info-card">
-                    <div class="info-card-title">Property Info</div>
-                    <div class="info-row">
-                        <span class="info-label">Seller</span>
-                        <span class="info-value" id="sellerName">Marcos Luis Garcia</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Buyer</span>
-                        <span class="info-value" id="buyerName">4891 NE 147th Court Land Trust</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Accepted On</span>
-                        <span class="info-value" id="acceptedDate">Jan 22, 2026</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Closes On</span>
-                        <span class="info-value" id="closesDate">Feb 13, 2026</span>
-                    </div>
-                    <div class="email-row">
-                        <span class="info-label">File Email</span>
-                        <span class="email-value" id="propertyEmail">4891ne147th@stopmyauctionnow.com</span>
-                        <button class="copy-email-btn" onclick="copyPropertyEmail()">Copy</button>
-                    </div>
-                </div>
-
-                <!-- Deal Details -->
+                <!-- Deal Details (moved up, Property Info now in header) -->
                 <div class="info-card">
                     <div class="info-card-title">Deal Details</div>
                     <div class="info-row">
@@ -2553,8 +2630,9 @@
             document.getElementById('isProbate').textContent = property.isProbate ? 'Yes' : 'No';
             document.getElementById('isProbate').className = 'status-badge ' + (property.isProbate ? 'yes' : 'no');
 
-            document.getElementById('sellerName').textContent = property.seller;
-            document.getElementById('buyerName').textContent = property.buyer;
+            // Update header property info
+            document.getElementById('headerSellerName').textContent = property.seller;
+            document.getElementById('headerBuyerName').textContent = property.buyer;
 
             // Update title company section
             const titleSection = document.getElementById('titleCompanySection');
@@ -2713,9 +2791,9 @@
         }
 
         function copyPropertyEmail() {
-            const email = document.getElementById('propertyEmail').textContent;
+            const email = document.getElementById('headerPropertyEmail').textContent;
             navigator.clipboard.writeText(email).then(() => {
-                const btn = document.querySelector('.copy-email-btn');
+                const btn = document.querySelector('.header-copy-btn');
                 btn.textContent = 'Copied!';
                 btn.classList.add('copied');
                 setTimeout(() => {
@@ -2892,14 +2970,14 @@
                 probateCard.style.display = property.isProbate ? 'flex' : 'none';
             }
 
-            // Update accepted/closes dates
-            document.getElementById('acceptedDate').textContent =
+            // Update header accepted/closes dates
+            document.getElementById('headerAcceptedDate').textContent =
                 new Date(property.acceptedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            document.getElementById('closesDate').textContent =
+            document.getElementById('headerClosesDate').textContent =
                 new Date(property.closesDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-            // Update property email
-            document.getElementById('propertyEmail').textContent = property.propertyEmail;
+            // Update header property email
+            document.getElementById('headerPropertyEmail').textContent = property.propertyEmail;
         };
 
         // Update overall progress to also update header stats
