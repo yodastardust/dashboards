@@ -4,9 +4,18 @@ __pycache__/
 *.pyc
 .env
 
-# Sensitive data (keep these local)
-# Uncomment if you want to exclude large data files
-# *.json
+# Large data files (keep local, too big for git)
+_data/
+
+# Scripts and n8n workflows (keep local)
+_scripts/
+_n8n/
+
+# Archive of old files
+_archive/
+
+# Documentation (optional - can include in git if wanted)
+# _docs/
 
 # IDE
 .idea/
