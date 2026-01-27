@@ -1666,7 +1666,7 @@
 
             <div class="property-selector-row">
                 <div class="property-dropdown" id="propertyDropdown">
-                    <div class="property-dropdown-btn" onclick="togglePropertyDropdown()">
+                    <div class="property-dropdown-btn" onclick="togglePropertyDropdown(event)">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span class="urgency-dot" id="currentUrgencyDot"></span>
                             <span id="currentPropertyName">4891 NE 147th Court, Williston, FL 32696</span>
@@ -2390,6 +2390,30 @@
             const saved = localStorage.getItem('dealOversightNotes');
             if (saved) {
                 propertyNotes = JSON.parse(saved);
+                // Migrate old notes from property ID keys to property address keys
+                migrateNotesToAddressKeys();
+            }
+        }
+
+        function migrateNotesToAddressKeys() {
+            let needsSave = false;
+            // Check for old ID-based keys and migrate to address-based keys
+            Object.keys(DEMO_PROPERTIES).forEach(propId => {
+                const property = DEMO_PROPERTIES[propId];
+                const oldKey = propId; // Old format: 'demo1', 'sawgrass', etc.
+                const newKey = property.address; // New format: '4891 NE 147th Court', etc.
+
+                // If notes exist under old key but not new key, migrate them
+                if (propertyNotes[oldKey] && propertyNotes[oldKey].length > 0 && !propertyNotes[newKey]) {
+                    propertyNotes[newKey] = propertyNotes[oldKey];
+                    delete propertyNotes[oldKey];
+                    needsSave = true;
+                    console.log(`Migrated notes from '${oldKey}' to '${newKey}'`);
+                }
+            });
+
+            if (needsSave) {
+                saveNotes();
             }
         }
 
@@ -2398,7 +2422,9 @@
         }
 
         function getNotesForCurrentProperty() {
-            return propertyNotes[currentProperty] || [];
+            const property = DEMO_PROPERTIES[currentProperty];
+            const key = property ? property.address : currentProperty;
+            return propertyNotes[key] || [];
         }
 
         function toggleNotesSection() {
@@ -2457,17 +2483,20 @@
 
             if (!text) return;
 
-            if (!propertyNotes[currentProperty]) {
-                propertyNotes[currentProperty] = [];
+            const property = DEMO_PROPERTIES[currentProperty];
+            const key = property ? property.address : currentProperty;
+
+            if (!propertyNotes[key]) {
+                propertyNotes[key] = [];
             }
 
             const note = {
-                author: 'Gabe Clemons',
+                author: 'Gabe Clements',
                 timestamp: new Date().toISOString(),
                 text: text
             };
 
-            propertyNotes[currentProperty].unshift(note); // Add to beginning (newest first)
+            propertyNotes[key].unshift(note); // Add to beginning (newest first)
             saveNotes();
             renderNotes();
 
@@ -2479,7 +2508,9 @@
 
         function deleteNote(index) {
             if (confirm('Delete this note?')) {
-                propertyNotes[currentProperty].splice(index, 1);
+                const property = DEMO_PROPERTIES[currentProperty];
+                const key = property ? property.address : currentProperty;
+                propertyNotes[key].splice(index, 1);
                 saveNotes();
                 renderNotes();
             }
@@ -2494,7 +2525,8 @@
         // ========================================
         // Property Dropdown
         // ========================================
-        function togglePropertyDropdown() {
+        function togglePropertyDropdown(event) {
+            if (event) event.stopPropagation();
             document.getElementById('propertyDropdown').classList.toggle('open');
         }
 
@@ -2622,27 +2654,41 @@
 
         function renderTask(section, task, property, isCompleted, isNA, daysUntilAuction) {
             const sectionId = section.id;
-            const auctionDate = new Date(property.auctionDate);
-            const dueDate = new Date(auctionDate);
-            dueDate.setDate(dueDate.getDate() + (task.dueOffset || 0));
-
             const today = new Date();
-            const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+            today.setHours(0, 0, 0, 0);
 
             // Determine owner based on 14-day rule
             let owner = 'C2C';
+            let showDueDate = false;
+            let dueDate = null;
+
             if (task.timingDependent) {
                 owner = daysUntilAuction < 14 ? 'MUCE' : 'C2C';
-            }
 
-            // Due date styling
+                // If MUCE owns it (< 14 days), due date is 1 day from now
+                if (daysUntilAuction < 14) {
+                    showDueDate = true;
+                    dueDate = new Date(today);
+                    dueDate.setDate(dueDate.getDate() + 1); // 1 day from file open (today)
+                }
+                // If C2C owns it (>= 14 days), no due date
+            }
+            // Non-timing-dependent tasks: no due date shown
+
+            // Due date styling (only if showing due date)
             let dueClass = '';
-            if (!isCompleted && !isNA) {
-                if (daysUntilDue < 0) dueClass = 'overdue';
-                else if (daysUntilDue <= 7) dueClass = 'warning';
-            }
+            let formattedDue = '';
 
-            const formattedDue = dueDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+            if (showDueDate && dueDate) {
+                const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+
+                if (!isCompleted && !isNA) {
+                    if (daysUntilDue < 0) dueClass = 'overdue';
+                    else if (daysUntilDue <= 7) dueClass = 'warning';
+                }
+
+                formattedDue = dueDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+            }
 
             // Build class list
             let itemClasses = ['task-item'];
@@ -2699,7 +2745,7 @@
                     <div class="task-content">
                         <div class="task-name">${task.name}</div>
                         <div class="task-meta">
-                            <span class="task-due ${dueClass}">${formattedDue}</span>
+                            ${showDueDate ? `<span class="task-due ${dueClass}">${formattedDue}</span>` : ''}
                             ${task.timingDependent ? `<span class="task-owner ${owner.toLowerCase()}">${owner}</span>` : ''}
                             ${emailLinkHtml}
                             ${serviceLinkHtml}
@@ -3167,6 +3213,8 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
+            const daysUntilAuction = Math.ceil((auctionDate - today) / (1000 * 60 * 60 * 24));
+
             let dueToday = 0;
             let overdue = 0;
             let totalTasks = 0;
@@ -3189,18 +3237,22 @@
                         return;
                     }
 
-                    // Calculate due date
-                    const dueDate = new Date(auctionDate);
-                    dueDate.setDate(dueDate.getDate() + (task.dueOffset || 0));
-                    dueDate.setHours(0, 0, 0, 0);
+                    // Only timing-dependent tasks with auction < 14 days have due dates
+                    if (task.timingDependent && daysUntilAuction < 14) {
+                        // Due date is 1 day from today (tomorrow)
+                        const dueDate = new Date(today);
+                        dueDate.setDate(dueDate.getDate() + 1);
+                        dueDate.setHours(0, 0, 0, 0);
 
-                    const daysUntil = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                        const daysUntil = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
 
-                    if (daysUntil < 0) {
-                        overdue++;
-                    } else if (daysUntil === 0) {
-                        dueToday++;
+                        if (daysUntil < 0) {
+                            overdue++;
+                        } else if (daysUntil === 0) {
+                            dueToday++;
+                        }
                     }
+                    // Non-timing-dependent tasks or auction >= 14 days: no due date, so no overdue tracking
                 });
             });
 
@@ -3238,7 +3290,10 @@
         function updateGoogleMapsLink() {
             // Kept for compatibility but onclick handler now handles navigation
             const mapsUrl = getGoogleMapsUrl();
-            document.getElementById('propertyAddressLink').setAttribute('data-maps-url', mapsUrl);
+            const linkElement = document.getElementById('propertyAddressLink');
+            if (linkElement) {
+                linkElement.setAttribute('data-maps-url', mapsUrl);
+            }
         }
 
         // ========================================
