@@ -1398,7 +1398,7 @@
         function transformSupabaseData(enrichedContacts) {
             return enrichedContacts.map(c => ({
                 contact_id: c.conversation_id || `contact_${c.phone_digits}`,  // Use phone as fallback ID
-                name: c.full_name || c.owners_name || c.phone_digits,
+                name: formatName(c.full_name || c.owners_name) || c.phone_digits,
                 phone: formatPhoneNumber(c.phone_digits),
                 phone_digits: c.phone_digits,
                 conversation_id: c.conversation_id,
@@ -2104,6 +2104,49 @@
             } catch (e) {
                 console.error('Notification error:', e);
             }
+        }
+
+        /**
+         * Format messy names into SMS-friendly display format.
+         * Handles: "Last, First Middle", multiple names, percentages, estates
+         */
+        function formatName(rawName) {
+            if (!rawName) return '';
+            let name = String(rawName);
+
+            // 1. Take first name if multiple (split by semicolon, newline, or Et Al)
+            name = name.split(/[;\n]|Et Al|ET AL/i)[0].trim();
+
+            // 2. Remove percentage ownership annotations
+            name = name.replace(/\s*\d+\.?\d*%\s*/g, ' ').trim();
+
+            // 3. Remove estate/trust suffixes
+            name = name.replace(/\s*(Estate Of|Est Of|Estate|Revocable Trust|Trust|&W|Et Al)$/i, '').trim();
+
+            // 4. Handle "Last, First Middle" format -> "First Last"
+            if (name.includes(',')) {
+                const parts = name.split(',').map(p => p.trim());
+                if (parts.length >= 2) {
+                    const lastName = parts[0];
+                    const firstParts = parts[1].split(' ');
+                    const firstName = firstParts[0];
+                    if (lastName && firstName && !['Jr', 'Sr', 'II', 'III', 'IV'].includes(lastName)) {
+                        name = firstName + ' ' + lastName;
+                    } else {
+                        name = parts.join(' ');
+                    }
+                }
+            }
+
+            // 5. Clean up whitespace
+            name = name.replace(/\s+/g, ' ').trim();
+
+            // 6. Title case
+            name = name.split(' ')
+                .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+                .join(' ');
+
+            return name;
         }
 
         function formatPhoneNumber(digits) {
