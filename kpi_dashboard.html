@@ -756,15 +756,15 @@
         }
 
         async function loadQueueData() {
-            // Get today's queue from outreach_queue
-            const today = new Date().toISOString().split('T')[0];
+            // Get all queued items ready for dispatch (status=queued, next_action_at <= now)
+            const now = new Date().toISOString();
 
             try {
                 let query = sbClient
                     .from('outreach_queue')
                     .select('queue_id, channel, status, meta')
-                    .gte('next_action_at', today)
-                    .lt('next_action_at', today + 'T23:59:59');
+                    .eq('status', 'queued')
+                    .lte('next_action_at', now);
 
                 if (currentChannel !== 'all') {
                     query = query.eq('channel', currentChannel);
@@ -830,14 +830,32 @@
         }
 
         async function loadMessageStats() {
-            // Get message stats for response rate
-            const today = new Date().toISOString().split('T')[0];
+            // Get message stats for response rate based on date range
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            const dateRange = document.getElementById('dateRange')?.value || 'month';
+
+            let startDate;
+            switch(dateRange) {
+                case 'today':
+                    startDate = today;
+                    break;
+                case 'week':
+                    const weekAgo = new Date(now);
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    startDate = weekAgo.toISOString().split('T')[0];
+                    break;
+                case 'month':
+                default:
+                    startDate = now.toISOString().slice(0, 7) + '-01';
+                    break;
+            }
 
             try {
                 const { data: messages, error } = await sbClient
                     .from('messages')
                     .select('direction')
-                    .gte('created_at', today);
+                    .gte('created_at', startDate);
 
                 if (error) {
                     // Table doesn't exist - use Twilio data as fallback
