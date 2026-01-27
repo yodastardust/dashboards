@@ -3,30 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversations Dashboard - Mission Control</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Mission Control - Dashboard Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Roboto:wght@300;400;500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        /* ========================================
-           SpaceX Mission Control Theme
-           ======================================== */
         :root {
-            --bg-primary: #0b0b0f;
-            --bg-secondary: #1a1a1e;
-            --bg-panel: #141418;
-            --bg-hover: #252529;
+            --bg-dark: #0a0a0f;
+            --bg-panel: #0f0f18;
+            --bg-card: #12121c;
+            --accent-cyan: #00f0ff;
+            --accent-magenta: #ff00aa;
+            --accent-yellow: #ffcc00;
+            --accent-green: #00ff88;
             --accent-blue: #005288;
-            --accent-cyan: #00bcd4;
-            --alert-red: #c41e3a;
-            --success-green: #00c853;
-            --warning-yellow: #ffc107;
-            --warning-orange: #ff8800;
             --text-primary: #ffffff;
-            --text-secondary: #9e9e9e;
-            --text-muted: #666666;
-            --border-color: #2a2a2e;
-            --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            --text-secondary: #8888aa;
+            --glow-cyan: 0 0 30px rgba(0, 240, 255, 0.3);
+            --glow-magenta: 0 0 30px rgba(255, 0, 170, 0.3);
         }
 
         * {
@@ -36,2847 +28,456 @@
         }
 
         body {
-            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
+            font-family: 'Roboto', sans-serif;
+            background: var(--bg-dark);
             color: var(--text-primary);
             min-height: 100vh;
-            line-height: 1.5;
+            overflow-x: hidden;
         }
 
-        /* ========================================
-           Header
-           ======================================== */
-        .header {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-            padding: 12px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
+        /* Animated Background Grid */
+        .bg-grid {
+            position: fixed;
             top: 0;
-            z-index: 100;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes gridMove {
+            0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+            100% { transform: perspective(500px) rotateX(60deg) translateY(50px); }
+        }
+
+        /* Scanline Effect */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.1) 2px,
+                rgba(0, 0, 0, 0.1) 4px
+            );
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.3;
+        }
+
+        /* Header */
+        .header {
+            position: relative;
+            z-index: 10;
+            padding: 40px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+            background: linear-gradient(180deg, rgba(0, 240, 255, 0.05) 0%, transparent 100%);
         }
 
         .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 18px;
-            font-family: 'Roboto Mono', monospace;
-        }
-
-        .logo-text {
-            font-weight: 500;
-            font-size: 18px;
-        }
-
-        .logo-text span {
-            color: var(--text-secondary);
-            font-weight: 300;
-        }
-
-        .header-stats {
-            display: flex;
-            gap: 24px;
-            align-items: center;
-        }
-
-        .header-stat {
-            text-align: center;
-        }
-
-        .header-stat-value {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--accent-cyan);
-            font-family: 'Roboto Mono', monospace;
-        }
-
-        .header-stat-label {
-            font-size: 0.65rem;
-            color: var(--text-secondary);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            letter-spacing: 8px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-magenta) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(0, 240, 255, 0.5);
+            margin-bottom: 10px;
+            animation: glitch 5s infinite;
         }
 
-        .retell-concurrency {
-            padding: 4px 10px;
-            background: var(--bg-panel);
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
+        @keyframes glitch {
+            0%, 90%, 100% { transform: translate(0); }
+            92% { transform: translate(-2px, 1px); }
+            94% { transform: translate(2px, -1px); }
+            96% { transform: translate(-1px, 2px); }
+            98% { transform: translate(1px, -2px); }
         }
 
-        .retell-concurrency .header-stat-value {
-            color: var(--success-green);
+        .subtitle {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            letter-spacing: 4px;
+            text-transform: uppercase;
         }
 
-        .retell-concurrency.active .header-stat-value {
-            color: var(--warning-orange);
-            animation: pulse 1.5s infinite;
+        .status-bar {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
         }
 
-        .connection-status {
+        .status-item {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 6px 12px;
-            background: var(--bg-panel);
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-family: 'Roboto Mono', monospace;
         }
 
         .status-dot {
             width: 8px;
             height: 8px;
+            background: var(--accent-green);
             border-radius: 50%;
-            background: var(--success-green);
+            animation: pulse 2s infinite;
         }
-
-        .status-dot.offline { background: var(--alert-red); }
-        .status-dot.syncing { background: var(--warning-orange); animation: pulse 1s infinite; }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
+            0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--accent-green); }
+            50% { opacity: 0.5; box-shadow: 0 0 5px var(--accent-green); }
         }
 
-        /* Date Range Dropdown */
-        .date-range-dropdown {
+        /* Main Content */
+        .main {
             position: relative;
+            z-index: 10;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 60px 20px;
         }
 
-        .date-range-btn {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            font-family: 'Roboto Mono', monospace;
-            transition: all 0.2s;
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--accent-cyan);
+            margin-bottom: 30px;
+            padding-left: 20px;
+            border-left: 3px solid var(--accent-cyan);
         }
 
-        .date-range-btn:hover {
-            background: var(--bg-secondary);
-            border-color: var(--accent-cyan);
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
         }
 
-        .date-range-menu {
-            display: none;
-            position: absolute;
-            top: 100%;
-            right: 0;
-            margin-top: 4px;
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
+        .dashboard-card {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            border-radius: 8px;
+            padding: 30px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s ease;
             overflow: hidden;
-            z-index: 1000;
-            min-width: 140px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
-        .date-range-menu.show {
-            display: block;
-        }
-
-        .date-range-option {
-            padding: 10px 14px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            transition: all 0.15s;
-        }
-
-        .date-range-option:hover {
-            background: var(--accent-cyan);
-            color: var(--bg-primary);
-        }
-
-        /* AI Auto-Reply Toggle */
-        .ai-toggle-container {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
-            background: var(--bg-panel);
-            border-radius: 20px;
-            font-size: 0.75rem;
-        }
-
-        .ai-toggle-label {
-            color: var(--text-secondary);
-            font-family: 'Roboto Mono', monospace;
-        }
-
-        .ai-toggle {
-            position: relative;
-            width: 40px;
-            height: 20px;
-            cursor: pointer;
-        }
-
-        .ai-toggle input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .ai-toggle-slider {
+        .dashboard-card::before {
+            content: '';
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
-            bottom: 0;
-            background: var(--alert-red);
-            border-radius: 20px;
-            transition: 0.3s;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
         }
 
-        .ai-toggle-slider:before {
-            content: "";
-            position: absolute;
-            height: 16px;
-            width: 16px;
-            left: 2px;
-            bottom: 2px;
-            background: white;
-            border-radius: 50%;
-            transition: 0.3s;
-        }
-
-        .ai-toggle input:checked + .ai-toggle-slider {
-            background: var(--success-green);
-        }
-
-        .ai-toggle input:checked + .ai-toggle-slider:before {
-            transform: translateX(20px);
-        }
-
-        .ai-toggle-status {
-            font-weight: 500;
-            min-width: 110px;
-            font-family: 'Roboto Mono', monospace;
-        }
-
-        .ai-toggle-status.auto { color: var(--success-green); }
-        .ai-toggle-status.review { color: var(--text-secondary); }
-
-        /* ========================================
-           Container Layout
-           ======================================== */
-        .container {
-            display: flex;
-            height: calc(100vh - 65px);
-        }
-
-        /* ========================================
-           Sidebar
-           ======================================== */
-        .sidebar {
-            width: 320px;
-            background: var(--bg-secondary);
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .search-box {
-            padding: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .search-box input {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background: var(--bg-panel);
-            color: var(--text-primary);
-            font-size: 0.85rem;
-        }
-
-        .search-box input:focus {
-            outline: none;
+        .dashboard-card:hover {
             border-color: var(--accent-cyan);
+            transform: translateY(-5px);
+            box-shadow: var(--glow-cyan);
         }
 
-        .search-box input::placeholder {
-            color: var(--text-muted);
+        .dashboard-card:hover::before {
+            transform: scaleX(1);
         }
 
-        .filters {
-            padding: 10px 12px;
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            border-bottom: 1px solid var(--border-color);
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            display: inline-block;
         }
 
-        .filter-btn {
-            padding: 5px 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background: transparent;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 0.7rem;
-            transition: all 0.2s;
-            font-family: 'Roboto Mono', monospace;
-        }
-
-        .filter-btn.active {
-            background: var(--accent-cyan);
-            color: var(--bg-primary);
-            border-color: var(--accent-cyan);
-        }
-
-        .filter-btn:hover:not(.active) {
-            border-color: var(--accent-cyan);
-            color: var(--text-primary);
-        }
-
-        .contact-list {
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .contact-item {
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-            /* Virtual scrolling optimization for large lists */
-            content-visibility: auto;
-            contain-intrinsic-size: 0 72px; /* Estimated height of contact item */
-        }
-
-        .contact-item:hover {
-            background: var(--bg-hover);
-        }
-
-        .contact-item.active {
-            background: rgba(0, 188, 212, 0.1);
-            border-left: 3px solid var(--accent-cyan);
-        }
-
-        /* Pulsing green glow for new messages - soothing 2.5s cycle */
-        @keyframes newMessagePulse {
-            0%, 100% {
-                background: rgba(0, 200, 83, 0.08);
-                box-shadow: inset 0 0 20px rgba(0, 200, 83, 0.1);
-            }
-            50% {
-                background: rgba(0, 200, 83, 0.18);
-                box-shadow: inset 0 0 35px rgba(0, 200, 83, 0.15);
-            }
-        }
-
-        .contact-item.has-new-message {
-            animation: newMessagePulse 2.5s ease-in-out infinite;
-            border-left: 3px solid var(--success-green);
-        }
-
-        .contact-item.has-new-message::after {
-            content: '';
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 10px;
-            height: 10px;
-            background: var(--success-green);
-            border-radius: 50%;
-            animation: pulse 1.5s infinite;
-        }
-
-        .contact-name {
-            font-weight: 500;
-            margin-bottom: 2px;
-            font-size: 0.9rem;
-        }
-
-        .contact-phone {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            font-family: 'Roboto Mono', monospace;
-        }
-
-        .contact-meta {
-            display: flex;
-            gap: 12px;
-            margin-top: 6px;
-            font-size: 0.7rem;
-        }
-
-        .contact-meta span {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            color: var(--text-muted);
-        }
-
-        .meta-icon {
-            font-size: 0.8rem;
-        }
-
-        .meta-calls { color: var(--accent-cyan); }
-        .meta-sms { color: var(--warning-orange); }
-        .meta-transcripts { color: var(--success-green); }
-
-        /* ========================================
-           Main Content
-           ======================================== */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            background: var(--bg-primary);
-        }
-
-        .contact-header {
-            padding: 16px 24px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .contact-header h2 {
-            font-size: 1.1rem;
-            font-weight: 500;
-            margin-bottom: 6px;
-        }
-
-        .contact-details {
-            display: flex;
-            gap: 20px;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            flex-wrap: wrap;
-        }
-
-        .contact-details span {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        /* ========================================
-           Tabs
-           ======================================== */
-        .tabs {
-            display: flex;
-            padding: 0 24px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .tab {
-            padding: 12px 16px;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            color: var(--text-secondary);
-            transition: all 0.2s;
-            font-size: 0.85rem;
-        }
-
-        .tab:hover {
-            color: var(--text-primary);
-        }
-
-        .tab.active {
-            color: var(--accent-cyan);
-            border-bottom-color: var(--accent-cyan);
-        }
-
-        /* ========================================
-           Content Area with Merge Fields
-           ======================================== */
-        .content-wrapper {
-            flex: 1;
-            display: flex;
-            overflow: hidden;
-        }
-
-        .tab-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px 24px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .merge-fields-panel {
-            width: 200px;
-            background: var(--bg-secondary);
-            border-left: 1px solid var(--border-color);
-            padding: 12px;
-            overflow-y: auto;
-            display: none;
-        }
-
-        .merge-fields-panel.visible {
-            display: block;
-        }
-
-        .merge-fields-title {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            margin-bottom: 12px;
-            font-weight: 500;
-        }
-
-        .merge-field {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 6px 10px;
-            margin-bottom: 8px;
-            font-size: 0.75rem;
-            font-family: 'Roboto Mono', monospace;
-            color: var(--accent-cyan);
-            cursor: grab;
-            transition: all 0.2s;
-        }
-
-        .merge-field:hover {
-            border-color: var(--accent-cyan);
-            background: var(--bg-hover);
-        }
-
-        .merge-field:active {
-            cursor: grabbing;
-        }
-
-        .merge-field-hint {
-            font-size: 0.65rem;
-            color: var(--text-muted);
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        /* ========================================
-           Timeline
-           ======================================== */
-        .timeline {
-            flex: 1;
-        }
-
-        .timeline-item {
-            display: flex;
-            margin-bottom: 16px;
-            align-items: flex-start;
-            gap: 12px;
-        }
-
-        .timeline-item.inbound {
-            flex-direction: row;
-        }
-
-        .timeline-item.outbound {
-            flex-direction: row-reverse;
-        }
-
-        .timeline-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
-            flex-shrink: 0;
-        }
-
-        .timeline-icon.sms {
-            background: rgba(255, 136, 0, 0.2);
-            color: var(--warning-orange);
-        }
-
-        .timeline-icon.call {
-            background: rgba(0, 188, 212, 0.2);
-            color: var(--accent-cyan);
-        }
-
-        .timeline-icon.ai {
-            background: rgba(0, 200, 83, 0.2);
-            color: var(--success-green);
-        }
-
-        .timeline-bubble {
-            max-width: 70%;
-            padding: 12px 16px;
-            border-radius: 12px;
-            position: relative;
-        }
-
-        .timeline-item.inbound .timeline-bubble {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            border-bottom-left-radius: 4px;
-        }
-
-        .timeline-item.outbound .timeline-bubble {
-            background: var(--accent-blue);
-            border-bottom-right-radius: 4px;
-        }
-
-        .timeline-item.outbound .timeline-bubble.ai-call {
-            background: rgba(0, 200, 83, 0.15);
-            border: 1px solid rgba(0, 200, 83, 0.3);
-        }
-
-        .timeline-type-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            margin-bottom: 6px;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: 'Roboto Mono', monospace;
-        }
-
-        .badge-sms { background: rgba(255, 136, 0, 0.2); color: var(--warning-orange); }
-        .badge-call { background: rgba(0, 188, 212, 0.2); color: var(--accent-cyan); }
-        .badge-ai { background: rgba(0, 200, 83, 0.2); color: var(--success-green); }
-
-        .timeline-body {
-            font-size: 0.9rem;
-            line-height: 1.5;
-        }
-
-        .timeline-meta {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            margin-top: 6px;
-            display: flex;
-            gap: 12px;
-        }
-
-        .timeline-item.outbound .timeline-meta {
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .call-expand-btn {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            cursor: pointer;
-            margin-top: 8px;
-        }
-
-        .call-expand-btn:hover {
-            border-color: var(--accent-cyan);
-            color: var(--accent-cyan);
-        }
-
-        .call-transcript {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid var(--border-color);
-            max-height: 300px;
-            overflow-y: auto;
-            display: none;
-        }
-
-        .call-transcript.expanded {
-            display: block;
-        }
-
-        .transcript-line {
-            margin-bottom: 8px;
-            font-size: 0.85rem;
-        }
-
-        .transcript-line.agent {
-            color: var(--accent-cyan);
-        }
-
-        .transcript-line.user {
-            color: var(--success-green);
-        }
-
-        .transcript-speaker {
-            font-weight: 500;
-            margin-right: 4px;
-        }
-
-        .recording-player {
-            margin: 12px 0;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .recording-player audio {
-            height: 32px;
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .recording-link {
-            color: var(--accent-cyan);
-            text-decoration: none;
-            font-size: 0.8rem;
-            padding: 4px 8px;
-            border: 1px solid var(--accent-cyan);
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
-
-        .recording-link:hover {
-            background: var(--accent-cyan);
-            color: var(--bg-primary);
-        }
-
-        /* ========================================
-           Reply Input
-           ======================================== */
-        .reply-container {
-            padding: 16px 24px;
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-        }
-
-        .ai-draft-container {
-            background: rgba(0, 200, 83, 0.1);
-            border: 1px solid rgba(0, 200, 83, 0.3);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 12px;
-            display: none;
-        }
-
-        .ai-draft-container.visible {
-            display: block;
-        }
-
-        .ai-draft-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .ai-draft-label {
-            font-size: 0.75rem;
-            color: var(--success-green);
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .ai-countdown {
-            font-family: 'Roboto Mono', monospace;
-            font-size: 0.8rem;
-            color: var(--warning-orange);
-        }
-
-        .ai-draft-text {
-            font-size: 0.85rem;
-            color: var(--text-primary);
+        .card-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 600;
             margin-bottom: 10px;
-            line-height: 1.5;
+            color: var(--text-primary);
         }
 
-        .ai-draft-actions {
+        .card-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .card-tags {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
         }
 
-        .ai-btn {
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .ai-btn-use {
-            background: var(--success-green);
-            color: var(--bg-primary);
-            border: none;
-        }
-
-        .ai-btn-use:hover {
-            background: #00e05f;
-        }
-
-        .ai-btn-dismiss {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-        }
-
-        .ai-btn-dismiss:hover {
-            border-color: var(--alert-red);
-            color: var(--alert-red);
-        }
-
-        .ai-btn-edit {
-            background: transparent;
-            border: 1px solid var(--accent-cyan);
-            color: var(--accent-cyan);
-        }
-
-        .ai-btn-edit:hover {
-            background: rgba(0, 188, 212, 0.1);
-        }
-
-        .reply-input-wrapper {
-            display: flex;
-            gap: 12px;
-            align-items: flex-end;
-        }
-
-        .reply-input-container {
-            flex: 1;
-            position: relative;
-        }
-
-        .reply-input {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-panel);
-            color: var(--text-primary);
-            font-size: 0.9rem;
-            resize: none;
-            min-height: 44px;
-            max-height: 120px;
-            font-family: 'Roboto', sans-serif;
-        }
-
-        .reply-input:focus {
-            outline: none;
-            border-color: var(--accent-cyan);
-        }
-
-        .reply-input::placeholder {
-            color: var(--text-muted);
-        }
-
-        .reply-input.drop-target {
-            border-color: var(--accent-cyan);
-            background: rgba(0, 188, 212, 0.1);
-        }
-
-        .char-counter {
-            position: absolute;
-            right: 10px;
-            bottom: 8px;
-            font-size: 0.65rem;
-            color: var(--text-muted);
+        .tag {
             font-family: 'Roboto Mono', monospace;
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 20px;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .char-counter.warning {
-            color: var(--warning-orange);
+        .card-arrow {
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
+            font-size: 1.5rem;
+            color: var(--accent-cyan);
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: all 0.3s ease;
         }
 
-        .char-counter.danger {
-            color: var(--alert-red);
+        .dashboard-card:hover .card-arrow {
+            opacity: 1;
+            transform: translateX(0);
         }
 
-        .send-btn {
-            padding: 12px 20px;
+        /* Featured Card */
+        .dashboard-card.featured {
+            grid-column: span 2;
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(0, 240, 255, 0.05) 100%);
+            border-color: rgba(0, 240, 255, 0.3);
+        }
+
+        .dashboard-card.featured::before {
+            transform: scaleX(1);
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green));
+        }
+
+        .featured-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.65rem;
+            padding: 4px 12px;
             background: var(--accent-cyan);
-            color: var(--bg-primary);
-            border: none;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            color: var(--bg-dark);
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
         }
 
-        .send-btn:hover:not(:disabled) {
-            background: #00d9f5;
-        }
-
-        .send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .send-btn.loading {
-            background: var(--text-muted);
-        }
-
-        /* ========================================
-           Empty/Loading States
-           ======================================== */
-        .no-selection {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: var(--text-muted);
-        }
-
-        .no-selection svg {
-            width: 64px;
-            height: 64px;
-            margin-bottom: 16px;
-            opacity: 0.3;
-        }
-
-        .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-        }
-
-        .loading-spinner {
-            width: 32px;
-            height: 32px;
-            border: 2px solid var(--border-color);
-            border-top-color: var(--accent-cyan);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: var(--text-muted);
-        }
-
-        .loading-messages {
+        /* Footer */
+        .footer {
+            position: relative;
+            z-index: 10;
             text-align: center;
             padding: 40px 20px;
-            color: var(--text-secondary);
-            font-style: italic;
+            border-top: 1px solid rgba(0, 240, 255, 0.1);
+            margin-top: 60px;
         }
 
-        .loading-messages::before {
-            content: '';
-            display: block;
-            width: 24px;
-            height: 24px;
-            margin: 0 auto 12px;
-            border: 2px solid var(--border-color);
-            border-top-color: var(--accent-cyan);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* ========================================
-           Toast Notifications
-           ======================================== */
-        .toast-container {
-            position: fixed;
-            top: 80px;
-            right: 24px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .toast {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: var(--shadow);
-            animation: slideIn 0.3s ease;
-            max-width: 320px;
-        }
-
-        .toast.success {
-            border-color: var(--success-green);
-        }
-
-        .toast.error {
-            border-color: var(--alert-red);
-        }
-
-        .toast-icon {
-            font-size: 1.2rem;
-        }
-
-        .toast-message {
-            font-size: 0.85rem;
-            flex: 1;
-        }
-
-        .toast-close {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            font-size: 1rem;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        /* ========================================
-           Call Log Table
-           ======================================== */
-        .call-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .call-table th {
-            text-align: left;
-            padding: 10px 12px;
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            border-bottom: 1px solid var(--border-color);
-            font-weight: 500;
-        }
-
-        .call-table td {
-            padding: 10px 12px;
-            font-size: 0.85rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .call-table tr:hover {
-            background: var(--bg-hover);
-        }
-
-        /* ========================================
-           Sentiment & Status Badges
-           ======================================== */
-        .sentiment-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            font-weight: 500;
-        }
-
-        .sentiment-positive { background: rgba(0, 200, 83, 0.2); color: var(--success-green); }
-        .sentiment-neutral { background: rgba(158, 158, 158, 0.2); color: var(--text-secondary); }
-        .sentiment-negative { background: rgba(196, 30, 58, 0.2); color: var(--alert-red); }
-
-        .status-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.65rem;
-            text-transform: uppercase;
+        .footer-text {
             font-family: 'Roboto Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            letter-spacing: 2px;
         }
 
-        .status-completed { background: rgba(0, 200, 83, 0.2); color: var(--success-green); }
-        .status-missed { background: rgba(196, 30, 58, 0.2); color: var(--alert-red); }
-        .status-failed { background: rgba(196, 30, 58, 0.2); color: var(--alert-red); }
-
-        /* ========================================
-           Call Summary Box
-           ======================================== */
-        .call-summary {
-            background: rgba(0, 188, 212, 0.1);
-            border-left: 3px solid var(--accent-cyan);
-            padding: 10px 12px;
-            margin-top: 10px;
-            border-radius: 0 6px 6px 0;
-        }
-
-        .call-summary-label {
-            font-size: 0.65rem;
+        .footer-brand {
             color: var(--accent-cyan);
-            text-transform: uppercase;
-            margin-bottom: 4px;
-            font-weight: 500;
         }
 
-        .call-summary-text {
-            font-size: 0.85rem;
-            color: var(--text-primary);
+        /* Responsive */
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 2rem;
+                letter-spacing: 4px;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-card.featured {
+                grid-column: span 1;
+            }
+
+            .status-bar {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        /* Hover Effects for Different Cards */
+        .dashboard-card[data-theme="deals"]:hover {
+            border-color: var(--accent-yellow);
+            box-shadow: 0 0 30px rgba(255, 204, 0, 0.2);
+        }
+
+        .dashboard-card[data-theme="kpi"]:hover {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
+        }
+
+        .dashboard-card[data-theme="queue"]:hover {
+            border-color: var(--accent-magenta);
+            box-shadow: 0 0 30px rgba(255, 0, 170, 0.2);
         }
     </style>
 </head>
 <body>
-    <!-- Audio for notifications -->
-    <audio id="notification-sound" preload="auto">
-        <source src="data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA/+M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAwAAAbAAqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV////////////////////////////////////////////AAAAAExhdmM1OC4xMwAAAAAAAAAAAAAAACQDgAAAAAAAAAGwhFZ+7wAAAAAAAAAAAAAAAAAAAAD/4xjEAAH0AKoAAAAASW5mbwAAAA8AAAADAAACsACqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dX///////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAACJAOAAAAAAAACsMFgdWkAAAAAAAAAAAAAAAAAAAAA/+MYxAAB9ACqAAAAAP/jGMQAAfQAqgAAAAD/4xjEAAH0AKoAAAAA" type="audio/mp3">
-    </audio>
+    <div class="bg-grid"></div>
+    <div class="scanlines"></div>
 
-    <!-- Toast Container -->
-    <div class="toast-container" id="toast-container"></div>
-
-    <div class="header">
-        <div class="logo">
-            <div class="logo-icon">MC</div>
-            <div class="logo-text">Conversations <span>Dashboard</span></div>
-        </div>
-        <div class="header-stats">
-            <div class="header-stat">
-                <div class="header-stat-value" id="total-contacts">-</div>
-                <div class="header-stat-label">Leads</div>
+    <header class="header">
+        <h1 class="logo">Mission Control</h1>
+        <p class="subtitle">Stop My Auction Now - Command Center</p>
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-dot"></span>
+                <span>SYSTEMS ONLINE</span>
             </div>
-            <div class="header-stat">
-                <div class="header-stat-value" id="total-calls">-</div>
-                <div class="header-stat-label">Calls</div>
+            <div class="status-item">
+                <span class="status-dot"></span>
+                <span>DATA FEEDS ACTIVE</span>
             </div>
-            <div class="header-stat">
-                <div class="header-stat-value" id="total-sms">-</div>
-                <div class="header-stat-label">SMS</div>
-            </div>
-            <div class="header-stat">
-                <div class="header-stat-value" id="total-transcripts">-</div>
-                <div class="header-stat-label">AI Calls</div>
-            </div>
-            <div class="header-stat retell-concurrency" title="Live Retell AI Concurrency">
-                <div class="header-stat-value" id="retell-concurrency">-/-</div>
-                <div class="header-stat-label">Concurrency</div>
-            </div>
-            <div class="ai-toggle-container" title="When ON: AI auto-sends replies after delay. When OFF: Human reviews before sending.">
-                <label class="ai-toggle">
-                    <input type="checkbox" id="ai-review-toggle">
-                    <span class="ai-toggle-slider"></span>
-                </label>
-                <span class="ai-toggle-status" id="ai-toggle-status">AI Auto Reply Off</span>
-            </div>
-            <div class="date-range-dropdown">
-                <button class="date-range-btn" id="date-range-btn" onclick="toggleDateRangeMenu()">Last 30 Days ▾</button>
-                <div class="date-range-menu" id="date-range-menu">
-                    <div class="date-range-option" onclick="changeDateRange(7)">Last 7 Days</div>
-                    <div class="date-range-option" onclick="changeDateRange(30)">Last 30 Days</div>
-                    <div class="date-range-option" onclick="changeDateRange(60)">Last 60 Days</div>
-                    <div class="date-range-option" onclick="changeDateRange(90)">Last 90 Days</div>
-                    <div class="date-range-option" onclick="changeDateRange('all')">All Time (slow)</div>
-                </div>
-            </div>
-            <div class="connection-status">
-                <div class="status-dot" id="status-dot"></div>
-                <span id="connection-text">Loading...</span>
+            <div class="status-item">
+                <span class="status-dot"></span>
+                <span id="current-time">--:--:--</span>
             </div>
         </div>
-    </div>
+    </header>
 
-    <div class="container">
-        <div class="sidebar">
-            <div class="search-box">
-                <input type="text" id="search-input" placeholder="Search name, phone, address...">
-            </div>
-            <div class="filters">
-                <button class="filter-btn active" data-filter="all">All</button>
-                <button class="filter-btn" data-filter="with-transcripts">AI Calls</button>
-                <button class="filter-btn" data-filter="with-sms">SMS</button>
-                <button class="filter-btn" data-filter="high-touch">10+</button>
-            </div>
-            <div class="contact-list" id="contact-list">
-                <div class="loading">
-                    <div class="loading-spinner"></div>
+    <main class="main">
+        <h2 class="section-title">Active Dashboards</h2>
+
+        <div class="dashboard-grid">
+            <!-- Featured: Conversations Dashboard -->
+            <a href="conversations.html" class="dashboard-card featured">
+                <span class="featured-badge">Primary</span>
+                <div class="card-icon">💬</div>
+                <h3 class="card-title">Conversations Dashboard</h3>
+                <p class="card-description">
+                    Real-time view of all lead communications. Monitor SMS conversations,
+                    AI call transcripts, and manage inbound responses with human-in-the-loop controls.
+                </p>
+                <div class="card-tags">
+                    <span class="tag">SMS</span>
+                    <span class="tag">Voice</span>
+                    <span class="tag">AI Transcripts</span>
+                    <span class="tag">Real-Time</span>
                 </div>
-            </div>
+                <span class="card-arrow">→</span>
+            </a>
+
+            <!-- Deal Oversight -->
+            <a href="deal_oversight.html" class="dashboard-card" data-theme="deals">
+                <div class="card-icon">🏠</div>
+                <h3 class="card-title">Deal Oversight</h3>
+                <p class="card-description">
+                    SpaceX-themed deal pipeline tracker. Monitor closing checklists,
+                    title company integrations, and MUCE/C2C task timelines.
+                </p>
+                <div class="card-tags">
+                    <span class="tag">Pipeline</span>
+                    <span class="tag">Checklists</span>
+                    <span class="tag">Title Co</span>
+                </div>
+                <span class="card-arrow">→</span>
+            </a>
+
+            <!-- Today's Queue -->
+            <a href="todays_queue.html" class="dashboard-card" data-theme="queue">
+                <div class="card-icon">📋</div>
+                <h3 class="card-title">Today's Outreach Queue</h3>
+                <p class="card-description">
+                    Daily outbound SMS schedule with county rotation. Track send order,
+                    priority tiers, and queue status in real-time.
+                </p>
+                <div class="card-tags">
+                    <span class="tag">Outbound</span>
+                    <span class="tag">Queue</span>
+                    <span class="tag">Scheduling</span>
+                </div>
+                <span class="card-arrow">→</span>
+            </a>
+
+            <!-- KPI Dashboard -->
+            <a href="kpi_dashboard.html" class="dashboard-card" data-theme="kpi">
+                <div class="card-icon">📊</div>
+                <h3 class="card-title">KPI Dashboard</h3>
+                <p class="card-description">
+                    Business metrics and performance analytics. Channel breakdowns,
+                    conversion funnels, cost analysis, and appointment tracking.
+                </p>
+                <div class="card-tags">
+                    <span class="tag">Analytics</span>
+                    <span class="tag">Costs</span>
+                    <span class="tag">Conversions</span>
+                </div>
+                <span class="card-arrow">→</span>
+            </a>
+
+            <!-- Marketing Presentation -->
+            <a href="marketing_presentation.html" class="dashboard-card">
+                <div class="card-icon">📈</div>
+                <h3 class="card-title">Marketing Analysis</h3>
+                <p class="card-description">
+                    Interactive presentation of marketing touch analysis. Discover optimal
+                    timing, channel effectiveness, and conversion patterns.
+                </p>
+                <div class="card-tags">
+                    <span class="tag">Presentation</span>
+                    <span class="tag">Charts</span>
+                    <span class="tag">Insights</span>
+                </div>
+                <span class="card-arrow">→</span>
+            </a>
         </div>
+    </main>
 
-        <div class="main-content">
-            <div id="no-selection" class="no-selection">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                <p>Select a conversation to view</p>
-            </div>
-
-            <div id="contact-view" style="display: none; height: 100%; flex-direction: column;">
-                <div class="contact-header">
-                    <h2 id="selected-name">-</h2>
-                    <div class="contact-details">
-                        <span id="selected-phone">-</span>
-                        <span id="selected-address">-</span>
-                        <span id="selected-auction">-</span>
-                        <span id="selected-added">-</span>
-                    </div>
-                </div>
-
-                <div class="tabs">
-                    <div class="tab active" data-tab="timeline">Communications</div>
-                    <div class="tab" data-tab="transcripts">AI Transcripts</div>
-                    <div class="tab" data-tab="sms">SMS Only</div>
-                    <div class="tab" data-tab="calls">Call Log</div>
-                </div>
-
-                <div class="content-wrapper">
-                    <div class="tab-content" id="tab-content">
-                        <!-- Content loaded dynamically -->
-                    </div>
-                    <div class="merge-fields-panel" id="merge-fields-panel">
-                        <div class="merge-fields-title">Property Fields</div>
-                        <div id="merge-fields-list">
-                            <!-- Fields populated dynamically -->
-                        </div>
-                        <div class="merge-field-hint">Drag into message or click to copy</div>
-                    </div>
-                </div>
-
-                <div class="reply-container" id="reply-container" style="display: none;">
-                    <div class="ai-draft-container" id="ai-draft-container">
-                        <div class="ai-draft-header">
-                            <span class="ai-draft-label">
-                                <span>🤖 AI Suggested Reply</span>
-                            </span>
-                            <span class="ai-countdown" id="ai-countdown">Awaiting approval</span>
-                        </div>
-                        <div class="ai-draft-text" id="ai-draft-text">Loading AI response...</div>
-                        <div class="ai-draft-actions">
-                            <button class="ai-btn ai-btn-use" id="ai-use-btn" title="Send this message immediately">✓ Send This</button>
-                            <button class="ai-btn ai-btn-edit" id="ai-edit-btn" title="Edit before sending">✎ Edit</button>
-                            <button class="ai-btn ai-btn-dismiss" id="ai-dismiss-btn" title="Discard this suggestion">✕ Dismiss</button>
-                        </div>
-                    </div>
-                    <div class="reply-input-wrapper">
-                        <div class="reply-input-container">
-                            <textarea class="reply-input" id="reply-input" placeholder="Type a message..." rows="1"></textarea>
-                            <span class="char-counter" id="char-counter">0/160</span>
-                        </div>
-                        <button class="send-btn" id="send-btn" disabled>
-                            <span>Send</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <footer class="footer">
+        <p class="footer-text">
+            <span class="footer-brand">STOP MY AUCTION NOW</span> // MISSION CONTROL v2.0 // 2026
+        </p>
+    </footer>
 
     <script>
-        // ========================================
-        // Configuration
-        // ========================================
-        const SUPABASE_URL = 'https://saksbjogtkagedmlsrsv.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNTUxMDMsImV4cCI6MjA4NDYxNTEwM30.FvfTxotEWZlkmQNiekbt4KyxvDk_7GBqfWn55pKTjho';
-        const N8N_SEND_SMS_URL = 'https://n8n.stopmyauctionnow.com/webhook/dashboard-send-sms';
-        const N8N_AI_DRAFT_URL = 'https://n8n.stopmyauctionnow.com/webhook/dashboard-ai-draft';
-
-        // ========================================
-        // State
-        // ========================================
-        let contactsData = [];
-        let selectedContact = null;
-        let currentFilter = 'all';
-        let currentTab = 'timeline';
-        let supabaseClient = null;
-        let isSupabaseConnected = false;
-        let messagesChannel = null;
-        let aiDraftTimer = null;
-        let aiDraftSecondsLeft = 0;
-        let contactPropertyData = {}; // Cache for merge fields
-        let contactsWithNewMessages = new Set();
-        let aiReviewMode = true; // true = human reviews, false = auto-send
-        let currentDateRange = 30; // Days of recent activity to load (30, 60, 90, or 'all')
-        let propertyDataCache = null; // Cache property data for reuse
-
-        // ========================================
-        // Initialize
-        // ========================================
-        async function init() {
-            updateConnectionStatus('syncing', 'Connecting...');
-
-            // Request browser notification permission
-            requestNotificationPermission();
-
-            // Helper function for timeout
-            const withTimeout = (promise, ms) => {
-                return Promise.race([
-                    promise,
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
-                ]);
-            };
-
-            // Initialize Supabase
-            if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-                try {
-                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-                    // Load recent conversations (default: last 30 days)
-                    await loadRecentConversations(currentDateRange);
-
-                } catch (e) {
-                    console.log('Supabase error, loading from JSON:', e);
-                    await loadFromJSON();
-                }
-            } else {
-                await loadFromJSON();
-            }
-
-            setupEventListeners();
-            renderContactList();
-            updateHeaderStats();
-        }
-
-        // Merge ALL conversations with property data (conversations as base - shows ALL touched contacts)
-        function mergeConversationsWithPropertyData(conversations, propertyContacts) {
-            // Create lookup map: phone_digits -> property data
-            const propertyMap = new Map();
-            for (const p of propertyContacts) {
-                // Keep first (or best) property data per phone
-                if (!propertyMap.has(p.phone_digits)) {
-                    propertyMap.set(p.phone_digits, p);
-                }
-            }
-
-            return conversations.map(conv => {
-                const property = propertyMap.get(conv.phone_digits) || {};
-                return {
-                    // Conversation data (from conversations table - PRIMARY)
-                    phone_digits: conv.phone_digits,
-                    conversation_id: conv.conversation_id,
-                    first_seen_at: conv.first_seen_at,
-                    last_message_at: conv.last_message_at,
-                    inbound_sms_count: conv.inbound_sms_count || 0,
-                    outbound_sms_count: conv.outbound_sms_count || 0,
-                    outbound_call_count: conv.outbound_call_count || 0,
-                    status: conv.status || 'active',
-                    preferred_from_e164: conv.preferred_from_e164 || null,
-                    // Property data (from v_agent_contact_context - may be empty)
-                    full_name: property.full_name || '',
-                    owners_name: property.owners_name || '',
-                    property_address: property.property_address || '',
-                    city: property.city || '',
-                    county: property.county || '',
-                    auction_date: property.auction_date || '',
-                    auction_type: property.auction_type || ''
-                };
+        // Live Clock
+        function updateTime() {
+            const now = new Date();
+            const time = now.toLocaleTimeString('en-US', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
             });
+            document.getElementById('current-time').textContent = time + ' EST';
         }
-
-        // Legacy function for backwards compatibility
-        function mergeContactsWithConversations(contacts, conversations) {
-            return mergeConversationsWithPropertyData(conversations, contacts);
-        }
-
-        // Transform enriched Supabase data to dashboard format
-        function transformSupabaseData(enrichedContacts) {
-            return enrichedContacts.map(c => ({
-                contact_id: c.conversation_id || `contact_${c.phone_digits}`,  // Use phone as fallback ID
-                name: formatName(c.full_name || c.owners_name) || c.phone_digits,
-                phone: formatPhoneNumber(c.phone_digits),
-                phone_digits: c.phone_digits,
-                conversation_id: c.conversation_id,
-                property_address: c.property_address || '',
-                city: c.city || '',
-                county: c.county || '',
-                auction_date: c.auction_date || '',
-                auction_type: c.auction_type || '',
-                date_added: c.first_seen_at,
-                total_touches: (c.inbound_sms_count || 0) + (c.outbound_sms_count || 0) + (c.outbound_call_count || 0),
-                inbound_sms_count: c.inbound_sms_count || 0,
-                outbound_sms_count: c.outbound_sms_count || 0,
-                outbound_call_count: c.outbound_call_count || 0,
-                conversation_status: c.status || 'not_contacted',
-                call_details: [],           // Loaded on-demand
-                sms_conversation: [],       // Loaded on-demand
-                retell_transcriptions: [],  // Not in Supabase yet
-                preferred_from_e164: c.preferred_from_e164,
-                _messagesLoaded: false      // Track if messages have been loaded
-            }));
-        }
-
-        // Lazy load messages for a specific contact
-        async function loadLeadMessages(phone_digits) {
-            if (!supabaseClient) return [];
-
-            try {
-                const { data: messages, error } = await supabaseClient
-                    .from('messages')
-                    .select('direction, body, created_at, status')
-                    .eq('phone_digits', phone_digits)
-                    .order('created_at', { ascending: true });
-
-                if (error) throw error;
-
-                // Transform to expected format
-                return (messages || []).map(m => ({
-                    date: m.created_at,
-                    direction: m.direction,
-                    body: m.body,
-                    status: m.status
-                }));
-            } catch (e) {
-                console.error('Error loading messages:', e);
-                return [];
-            }
-        }
-
-        // Lazy load calls for a specific contact
-        async function loadLeadCalls(phone_digits) {
-            if (!supabaseClient) return [];
-
-            try {
-                const { data: calls, error } = await supabaseClient
-                    .from('calls')
-                    .select('direction, status, duration_seconds, started_at, ended_at, answered_by, provider_call_sid')
-                    .eq('phone_digits', phone_digits)
-                    .order('started_at', { ascending: true });
-
-                if (error) throw error;
-
-                // Transform to expected format
-                return (calls || []).map(c => ({
-                    date: c.started_at || c.ended_at,
-                    direction: c.direction,
-                    status: c.status,
-                    duration: c.duration_seconds,
-                    answered_by: c.answered_by,
-                    call_sid: c.provider_call_sid
-                }));
-            } catch (e) {
-                console.error('Error loading calls:', e);
-                return [];
-            }
-        }
-
-        // Lazy load Retell AI transcripts for a specific contact
-        async function loadLeadTranscripts(phone_digits) {
-            if (!supabaseClient) return [];
-
-            try {
-                const { data: transcripts, error } = await supabaseClient
-                    .from('retell_transcripts')
-                    .select('retell_call_id, agent_name, direction, call_status, transcript, transcript_object, call_summary, user_sentiment, call_successful, in_voicemail, duration_ms, started_at, ended_at, recording_url, disconnection_reason')
-                    .eq('phone_digits', phone_digits)
-                    .order('started_at', { ascending: true });
-
-                if (error) throw error;
-
-                // Transform to expected format
-                return (transcripts || []).map(t => ({
-                    date: t.started_at || t.ended_at,
-                    call_id: t.retell_call_id,
-                    agent_name: t.agent_name,
-                    direction: t.direction,
-                    status: t.call_status,
-                    transcript: t.transcript,
-                    transcript_object: t.transcript_object,
-                    summary: t.call_summary,
-                    sentiment: t.user_sentiment,
-                    successful: t.call_successful,
-                    voicemail: t.in_voicemail,
-                    duration_ms: t.duration_ms,
-                    recording_url: t.recording_url,
-                    disconnection_reason: t.disconnection_reason
-                }));
-            } catch (e) {
-                console.error('Error loading Retell transcripts:', e);
-                return [];
-            }
-        }
-
-        async function loadFromJSON() {
-            try {
-                const response = await fetch('full_marketing_analysis.json');
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                contactsData = await response.json();
-                updateConnectionStatus('offline', 'Static');
-                console.log(`Loaded ${contactsData.length} contacts from JSON`);
-            } catch (e) {
-                console.log('First JSON fetch failed:', e);
-                try {
-                    const response = await fetch('./full_marketing_analysis.json');
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    contactsData = await response.json();
-                    updateConnectionStatus('offline', 'Static');
-                    console.log(`Loaded ${contactsData.length} contacts from JSON (fallback)`);
-                } catch (e2) {
-                    console.error('Failed to load data from JSON:', e2);
-                    contactsData = [];
-                    updateConnectionStatus('offline', 'No Data');
-                }
-            }
-        }
-
-        // Load conversations with activity in the last N days
-        async function loadRecentConversations(days) {
-            const withTimeout = (promise, ms) => {
-                return Promise.race([
-                    promise,
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
-                ]);
-            };
-
-            updateConnectionStatus('syncing', 'Loading recent activity...');
-
-            // Calculate date cutoff
-            let dateFilter = null;
-            if (days !== 'all') {
-                const cutoff = new Date();
-                cutoff.setDate(cutoff.getDate() - days);
-                dateFilter = cutoff.toISOString();
-            }
-
-            // Query conversations with recent activity
-            let query = supabaseClient
-                .from('conversations')
-                .select('*')
-                .order('last_message_at', { ascending: false });
-
-            if (dateFilter) {
-                query = query.gte('last_message_at', dateFilter);
-            }
-
-            // Limit to 5000 max to prevent overload
-            query = query.limit(5000);
-
-            const { data: conversations, error: convError } = await withTimeout(query, 30000);
-
-            if (convError) throw convError;
-            console.log(`Loaded ${conversations?.length || 0} conversations from last ${days} days`);
-
-            // Load property data (only once, then cache)
-            if (!propertyDataCache) {
-                updateConnectionStatus('syncing', 'Loading property data...');
-                const { data: propertyContacts, error: contactError } = await withTimeout(
-                    supabaseClient
-                        .from('v_agent_contact_context')
-                        .select('phone_digits, full_name, owners_name, property_address, city, county, auction_date, auction_type'),
-                    30000
-                );
-                if (!contactError) {
-                    propertyDataCache = propertyContacts || [];
-                    console.log(`Cached ${propertyDataCache.length} property records`);
-                }
-            }
-
-            if (conversations && conversations.length > 0) {
-                const enriched = mergeConversationsWithPropertyData(conversations, propertyDataCache || []);
-                contactsData = transformSupabaseData(enriched);
-
-                isSupabaseConnected = true;
-                const rangeLabel = days === 'all' ? 'All' : `${days}d`;
-                updateConnectionStatus('online', `Live (${contactsData.length.toLocaleString()} - ${rangeLabel})`);
-                subscribeToMessages();
-            } else {
-                console.log('No recent conversations, loading from JSON');
-                await loadFromJSON();
-            }
-
-            renderContactList();
-            updateHeaderStats();
-        }
-
-        // Change date range and reload
-        async function changeDateRange(days) {
-            currentDateRange = days;
-            selectedContact = null;
-            document.getElementById('no-selection').style.display = 'flex';
-            document.getElementById('contact-view').style.display = 'none';
-            document.getElementById('reply-container').style.display = 'none';
-
-            // Update dropdown display
-            const btn = document.getElementById('date-range-btn');
-            if (btn) {
-                const label = days === 'all' ? 'All Time' : `Last ${days} Days`;
-                btn.textContent = label + ' ▾';
-            }
-
-            await loadRecentConversations(days);
-        }
-
-        // ========================================
-        // Real-time Subscriptions
-        // ========================================
-        function subscribeToMessages() {
-            if (!supabaseClient) return;
-
-            console.log('Setting up real-time subscriptions...');
-
-            // Subscribe to all new messages
-            messagesChannel = supabaseClient
-                .channel('messages-realtime')
-                .on('postgres_changes', {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'messages'
-                }, handleNewMessage)
-                .subscribe((status) => {
-                    console.log('Messages subscription status:', status);
-                    if (status === 'SUBSCRIBED') {
-                        console.log('Real-time messages subscription active');
-                    } else if (status === 'CHANNEL_ERROR') {
-                        console.error('Real-time subscription error - check Supabase realtime settings');
-                    }
-                });
-
-            // Subscribe to draft messages (AI suggestions awaiting approval)
-            supabaseClient
-                .channel('drafts-realtime')
-                .on('postgres_changes', {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'messages',
-                    filter: 'status=eq.draft'
-                }, handleNewDraft)
-                .subscribe((status) => {
-                    console.log('Drafts subscription status:', status);
-                });
-        }
-
-        // Handle new draft message (AI suggestion awaiting human approval)
-        function handleNewDraft(payload) {
-            const draft = payload.new;
-            console.log('New AI draft:', draft);
-
-            // Only show if we're in human review mode
-            if (!aiReviewMode) return;
-
-            // Only show for the currently selected contact
-            if (!selectedContact || selectedContact.phone_digits !== draft.phone_digits) {
-                // Show notification that a draft is pending for another contact
-                showToast(`AI draft ready for ${formatPhoneNumber(draft.phone_digits)}`, 'success');
-
-                // Add pulsing indicator to that contact
-                contactsWithNewMessages.add(draft.phone_digits);
-                renderContactList();
-                return;
-            }
-
-            // Show the draft in the AI suggestion panel
-            const draftContainer = document.getElementById('ai-draft-container');
-            const draftText = document.getElementById('ai-draft-text');
-            const countdown = document.getElementById('ai-countdown');
-
-            draftContainer.classList.add('visible');
-            draftText.textContent = draft.body || 'AI response generated';
-            countdown.textContent = 'Awaiting your approval';
-
-            // Store draft ID for approval
-            draftContainer.dataset.draftId = draft.message_id;
-
-            // Play notification
-            playNotificationSound();
-            showBrowserNotification(selectedContact, { body: 'AI draft ready for review' });
-        }
-
-        function handleNewMessage(payload) {
-            const message = payload.new;
-            console.log('New message:', message);
-
-            // Skip draft messages (handled by handleNewDraft)
-            if (message.status === 'draft') return;
-
-            // Play notification sound for inbound messages
-            if (message.direction === 'inbound') {
-                playNotificationSound();
-                showToast('New message received', 'success');
-
-                // Mark contact as having new message (pulsing green glow)
-                const phoneDigits = message.phone_digits;
-                contactsWithNewMessages.add(phoneDigits);
-                renderContactList();
-
-                // Find contact info for notification
-                const contact = contactsData.find(c => c.phone_digits === phoneDigits) || { phone_digits: phoneDigits };
-
-                // Show browser notification
-                showBrowserNotification(contact, message);
-
-                // If this contact is selected, add message to view
-                if (selectedContact && selectedContact.phone_digits === phoneDigits) {
-                    // Clear the pulsing indicator since they're viewing this contact
-                    contactsWithNewMessages.delete(phoneDigits);
-
-                    // Add message to conversation
-                    if (!selectedContact.sms_conversation) {
-                        selectedContact.sms_conversation = [];
-                    }
-                    selectedContact.sms_conversation.push({
-                        date: message.created_at,
-                        direction: message.direction,
-                        body: message.body,
-                        status: message.status
-                    });
-                    renderTabContent();
-
-                    // Trigger AI draft (only for NEW inbound while dashboard is open)
-                    // In human review mode, n8n will create a draft that comes through handleNewDraft
-                    if (!aiReviewMode) {
-                        fetchAIDraft(message.body);
-                    }
-                }
-            }
-        }
-
-        // ========================================
-        // AI Auto-Response
-        // ========================================
-        async function fetchAIDraft(lastInboundMessage) {
-            if (!selectedContact) return;
-
-            const draftContainer = document.getElementById('ai-draft-container');
-            const draftText = document.getElementById('ai-draft-text');
-
-            draftContainer.classList.add('visible');
-            draftText.textContent = 'Generating AI response...';
-
-            try {
-                const response = await fetch(N8N_AI_DRAFT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        phone_digits: selectedContact.phone_digits,
-                        conversation_id: selectedContact.conversation_id,
-                        last_inbound_message: lastInboundMessage
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.draft) {
-                    draftText.textContent = resolveMessageMergeFields(data.draft);
-                    // Only start countdown if in auto mode
-                    if (!aiReviewMode) {
-                        startAICountdown();
-                    } else {
-                        document.getElementById('ai-countdown').textContent = 'Manual review';
-                    }
-                } else {
-                    draftContainer.classList.remove('visible');
-                }
-            } catch (e) {
-                console.error('AI draft error:', e);
-                draftContainer.classList.remove('visible');
-            }
-        }
-
-        function startAICountdown() {
-            // Only run countdown in auto mode
-            if (aiReviewMode) {
-                document.getElementById('ai-countdown').textContent = 'Manual review';
-                return;
-            }
-
-            // Random time between 150-210 seconds (2.5-3.5 minutes)
-            aiDraftSecondsLeft = Math.floor(150 + Math.random() * 60);
-
-            if (aiDraftTimer) clearInterval(aiDraftTimer);
-
-            updateAICountdown();
-            aiDraftTimer = setInterval(() => {
-                aiDraftSecondsLeft--;
-                updateAICountdown();
-
-                if (aiDraftSecondsLeft <= 0) {
-                    clearInterval(aiDraftTimer);
-                    sendAIDraft();
-                }
-            }, 1000);
-        }
-
-        function updateAICountdown() {
-            const countdownEl = document.getElementById('ai-countdown');
-            const minutes = Math.floor(aiDraftSecondsLeft / 60);
-            const seconds = aiDraftSecondsLeft % 60;
-            countdownEl.textContent = `Auto-send in ${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }
-
-        function cancelAIDraft() {
-            if (aiDraftTimer) {
-                clearInterval(aiDraftTimer);
-                aiDraftTimer = null;
-            }
-            const container = document.getElementById('ai-draft-container');
-            container.classList.remove('visible');
-            delete container.dataset.draftId;
-        }
-
-        // Edit: Copy AI draft to reply input for editing
-        function editAIDraft() {
-            const draftText = document.getElementById('ai-draft-text').textContent;
-            const replyInput = document.getElementById('reply-input');
-
-            replyInput.value = draftText;
-            replyInput.focus();
-            updateCharCounter();
-
-            // Hide the AI draft panel but keep the draft ID for potential update
-            document.getElementById('ai-draft-container').classList.remove('visible');
-            showToast('Draft copied to input - edit and send', 'success');
-        }
-
-        // Send: Approve and send the AI draft
-        async function sendAIDraft() {
-            const draftContainer = document.getElementById('ai-draft-container');
-            const draftText = document.getElementById('ai-draft-text').textContent;
-            const draftId = draftContainer.dataset.draftId;
-
-            // Send the message
-            await sendMessage(draftText, draftId);
-            cancelAIDraft();
-        }
-
-        // Dismiss: Discard the AI draft
-        async function dismissAIDraft() {
-            const draftContainer = document.getElementById('ai-draft-container');
-            const draftId = draftContainer.dataset.draftId;
-
-            // If we have a draft ID from Supabase, mark it as dismissed
-            if (draftId && supabaseClient) {
-                try {
-                    await supabaseClient
-                        .from('messages')
-                        .update({
-                            status: 'dismissed',
-                            meta: { dismissed_at: new Date().toISOString(), dismissed_by: 'dashboard' }
-                        })
-                        .eq('message_id', draftId);
-                    console.log('Draft dismissed:', draftId);
-                } catch (e) {
-                    console.error('Error dismissing draft:', e);
-                }
-            }
-
-            cancelAIDraft();
-            showToast('AI suggestion dismissed', 'success');
-        }
-
-        // ========================================
-        // Send Message
-        // ========================================
-        async function sendMessage(message, draftMessageId = null) {
-            if (!selectedContact || !message.trim()) return;
-
-            const sendBtn = document.getElementById('send-btn');
-            sendBtn.disabled = true;
-            sendBtn.classList.add('loading');
-            sendBtn.innerHTML = '<span>Sending...</span>';
-
-            try {
-                // Resolve any merge fields
-                const resolvedMessage = resolveMessageMergeFields(message);
-
-                const response = await fetch(N8N_SEND_SMS_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        phone_digits: selectedContact.phone_digits,
-                        message: resolvedMessage,
-                        from_number: selectedContact.preferred_from_e164 || '+15617867541',
-                        draft_message_id: draftMessageId // Include draft ID if approving a draft
-                    })
-                });
-
-                if (response.ok) {
-                    // If this was a draft, mark it as sent in Supabase
-                    if (draftMessageId && supabaseClient) {
-                        try {
-                            await supabaseClient
-                                .from('messages')
-                                .update({
-                                    status: 'sent',
-                                    meta: { approved_at: new Date().toISOString(), approved_by: 'dashboard' }
-                                })
-                                .eq('message_id', draftMessageId);
-                        } catch (e) {
-                            console.error('Error updating draft status:', e);
-                        }
-                    }
-
-                    // Optimistic update - add message to view immediately
-                    if (!selectedContact.sms_conversation) {
-                        selectedContact.sms_conversation = [];
-                    }
-                    selectedContact.sms_conversation.push({
-                        date: new Date().toISOString(),
-                        direction: 'outbound',
-                        body: resolvedMessage,
-                        status: 'sent'
-                    });
-                    renderTabContent();
-                    document.getElementById('reply-input').value = '';
-                    updateCharCounter();
-                    showToast('Message sent', 'success');
-
-                    // Cancel AI draft since user sent
-                    cancelAIDraft();
-                } else {
-                    showToast('Failed to send message', 'error');
-                }
-            } catch (e) {
-                console.error('Send error:', e);
-                showToast('Failed to send message', 'error');
-            }
-
-            sendBtn.disabled = false;
-            sendBtn.classList.remove('loading');
-            sendBtn.innerHTML = '<span>Send</span>';
-        }
-
-        // ========================================
-        // Merge Fields
-        // ========================================
-        function setupMergeFields() {
-            if (!selectedContact) return;
-
-            const panel = document.getElementById('merge-fields-panel');
-            const list = document.getElementById('merge-fields-list');
-
-            // Define available merge fields
-            const fields = [
-                { key: 'owners_name', label: '{{owners_name}}', value: selectedContact.name || '' },
-                { key: 'property_address', label: '{{property_address}}', value: selectedContact.property_address || '' },
-                { key: 'city', label: '{{city}}', value: contactPropertyData.city || '' },
-                { key: 'county', label: '{{county}}', value: contactPropertyData.county || '' },
-                { key: 'auction_date', label: '{{auction_date}}', value: selectedContact.auction_date || '' },
-                { key: 'auction_type', label: '{{auction_type}}', value: contactPropertyData.auction_type || '' },
-                { key: 'final_judgment', label: '{{final_judgment}}', value: contactPropertyData.final_judgment || '' },
-                { key: 'zestimate', label: '{{zestimate}}', value: contactPropertyData.zestimate || '' }
-            ];
-
-            list.innerHTML = fields.map(f => `
-                <div class="merge-field" draggable="true" data-key="${f.key}" data-value="${f.value || f.label}">
-                    ${f.label}
-                </div>
-            `).join('');
-
-            // Setup drag events
-            list.querySelectorAll('.merge-field').forEach(field => {
-                field.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.setData('text/plain', field.dataset.value || field.dataset.key);
-                });
-
-                field.addEventListener('click', () => {
-                    // Click to insert at cursor
-                    const input = document.getElementById('reply-input');
-                    const value = field.dataset.value || `{{${field.dataset.key}}}`;
-                    const start = input.selectionStart;
-                    const end = input.selectionEnd;
-                    input.value = input.value.substring(0, start) + value + input.value.substring(end);
-                    input.focus();
-                    input.setSelectionRange(start + value.length, start + value.length);
-                    updateCharCounter();
-                });
-            });
-
-            panel.classList.add('visible');
-        }
-
-        function resolveMessageMergeFields(message) {
-            if (!selectedContact) return message;
-
-            const replacements = {
-                '{{owners_name}}': selectedContact.name || '',
-                '{{property_address}}': selectedContact.property_address || '',
-                '{{city}}': contactPropertyData.city || '',
-                '{{county}}': contactPropertyData.county || '',
-                '{{auction_date}}': selectedContact.auction_date || '',
-                '{{auction_type}}': contactPropertyData.auction_type || '',
-                '{{final_judgment}}': contactPropertyData.final_judgment || '',
-                '{{zestimate}}': contactPropertyData.zestimate || ''
-            };
-
-            let resolved = message;
-            for (const [key, value] of Object.entries(replacements)) {
-                resolved = resolved.replace(new RegExp(key.replace(/[{}]/g, '\\$&'), 'g'), value);
-            }
-            return resolved;
-        }
-
-        // ========================================
-        // UI Helpers
-        // ========================================
-        function updateConnectionStatus(status, text) {
-            const dot = document.getElementById('status-dot');
-            const textEl = document.getElementById('connection-text');
-
-            dot.className = 'status-dot';
-            if (status === 'offline') dot.classList.add('offline');
-            if (status === 'syncing') dot.classList.add('syncing');
-
-            textEl.textContent = text;
-        }
-
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerHTML = `
-                <span class="toast-icon">${type === 'success' ? '✓' : '✗'}</span>
-                <span class="toast-message">${message}</span>
-                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
-            `;
-            container.appendChild(toast);
-
-            setTimeout(() => toast.remove(), 5000);
-        }
-
-        function playNotificationSound() {
-            const audio = document.getElementById('notification-sound');
-            audio.currentTime = 0;
-            audio.play().catch(() => {}); // Ignore if blocked
-        }
-
-        // ========================================
-        // Browser Notifications
-        // ========================================
-        async function requestNotificationPermission() {
-            if (!('Notification' in window)) {
-                console.log('Browser does not support notifications');
-                return false;
-            }
-
-            if (Notification.permission === 'granted') {
-                return true;
-            }
-
-            if (Notification.permission !== 'denied') {
-                const permission = await Notification.requestPermission();
-                return permission === 'granted';
-            }
-
-            return false;
-        }
-
-        function showBrowserNotification(contact, message) {
-            if (Notification.permission !== 'granted') return;
-
-            const contactName = contact?.name || contact?.phone_digits || 'Unknown';
-            const messagePreview = message?.body?.substring(0, 100) || 'New message';
-
-            try {
-                const notification = new Notification(`New message from ${contactName}`, {
-                    body: messagePreview,
-                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💬</text></svg>',
-                    tag: contact?.phone_digits || 'general', // Prevents duplicate notifications
-                    requireInteraction: false // Auto-dismiss
-                });
-
-                // Focus window when notification is clicked
-                notification.onclick = () => {
-                    window.focus();
-                    if (contact) {
-                        const contactData = contactsData.find(c => c.phone_digits === contact.phone_digits);
-                        if (contactData) selectContact(contactData);
-                    }
-                    notification.close();
-                };
-
-                // Auto-close after 5 seconds
-                setTimeout(() => notification.close(), 5000);
-            } catch (e) {
-                console.error('Notification error:', e);
-            }
-        }
-
-        /**
-         * Format messy names into SMS-friendly display format.
-         * Handles: "Last, First Middle", multiple names, percentages, estates
-         */
-        function formatName(rawName) {
-            if (!rawName) return '';
-            let name = String(rawName);
-
-            // 1. Take first name if multiple (split by semicolon, newline, or Et Al)
-            name = name.split(/[;\n]|Et Al|ET AL/i)[0].trim();
-
-            // 2. Remove percentage ownership annotations
-            name = name.replace(/\s*\d+\.?\d*%\s*/g, ' ').trim();
-
-            // 3. Remove estate/trust suffixes
-            name = name.replace(/\s*(Estate Of|Est Of|Estate|Revocable Trust|Trust|&W|Et Al)$/i, '').trim();
-
-            // 4. Handle "Last, First Middle" format -> "First Last"
-            if (name.includes(',')) {
-                const parts = name.split(',').map(p => p.trim());
-                if (parts.length >= 2) {
-                    const lastName = parts[0];
-                    const firstParts = parts[1].split(' ');
-                    const firstName = firstParts[0];
-                    if (lastName && firstName && !['Jr', 'Sr', 'II', 'III', 'IV'].includes(lastName)) {
-                        name = firstName + ' ' + lastName;
-                    } else {
-                        name = parts.join(' ');
-                    }
-                }
-            }
-
-            // 5. Clean up whitespace
-            name = name.replace(/\s+/g, ' ').trim();
-
-            // 6. Title case
-            name = name.split(' ')
-                .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-                .join(' ');
-
-            return name;
-        }
-
-        function formatPhoneNumber(digits) {
-            if (!digits || digits.length !== 10) return digits;
-            return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
-        }
-
-        function updateCharCounter() {
-            const input = document.getElementById('reply-input');
-            const counter = document.getElementById('char-counter');
-            const len = input.value.length;
-
-            counter.textContent = `${len}/160`;
-            counter.className = 'char-counter';
-
-            if (len > 160) {
-                counter.classList.add('danger');
-            } else if (len > 140) {
-                counter.classList.add('warning');
-            }
-
-            // Enable/disable send button
-            document.getElementById('send-btn').disabled = len === 0;
-        }
-
-        // ========================================
-        // Date Range Dropdown
-        // ========================================
-        function toggleDateRangeMenu() {
-            const menu = document.getElementById('date-range-menu');
-            menu.classList.toggle('show');
-        }
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.date-range-dropdown')) {
-                const menu = document.getElementById('date-range-menu');
-                if (menu) menu.classList.remove('show');
-            }
-        });
-
-        // ========================================
-        // Event Listeners
-        // ========================================
-        function setupEventListeners() {
-            // Search
-            document.getElementById('search-input').addEventListener('input', (e) => {
-                renderContactList(e.target.value);
-            });
-
-            // Filters
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    currentFilter = btn.dataset.filter;
-                    renderContactList();
-                });
-            });
-
-            // Tabs
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.addEventListener('click', () => {
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    currentTab = tab.dataset.tab;
-                    renderTabContent();
-                });
-            });
-
-            // Reply input
-            const replyInput = document.getElementById('reply-input');
-            replyInput.addEventListener('input', updateCharCounter);
-            replyInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    if (!document.getElementById('send-btn').disabled) {
-                        sendMessage(replyInput.value);
-                    }
-                }
-            });
-
-            // Drag and drop for merge fields
-            replyInput.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                replyInput.classList.add('drop-target');
-            });
-            replyInput.addEventListener('dragleave', () => {
-                replyInput.classList.remove('drop-target');
-            });
-            replyInput.addEventListener('drop', (e) => {
-                e.preventDefault();
-                replyInput.classList.remove('drop-target');
-                const value = e.dataTransfer.getData('text/plain');
-                const start = replyInput.selectionStart;
-                replyInput.value = replyInput.value.substring(0, start) + value + replyInput.value.substring(start);
-                updateCharCounter();
-            });
-
-            // Send button
-            document.getElementById('send-btn').addEventListener('click', () => {
-                sendMessage(document.getElementById('reply-input').value);
-            });
-
-            // AI draft buttons
-            document.getElementById('ai-use-btn').addEventListener('click', sendAIDraft);
-            document.getElementById('ai-edit-btn').addEventListener('click', editAIDraft);
-            document.getElementById('ai-dismiss-btn').addEventListener('click', dismissAIDraft);
-
-            // AI Review Mode toggle - syncs to Supabase ops.system_settings
-            document.getElementById('ai-review-toggle').addEventListener('change', async (e) => {
-                const autoReplyOn = e.target.checked;
-                aiReviewMode = !autoReplyOn; // aiReviewMode is opposite of auto-reply
-                const statusEl = document.getElementById('ai-toggle-status');
-
-                // Update UI immediately
-                if (autoReplyOn) {
-                    statusEl.textContent = 'AI Auto Reply On';
-                    statusEl.className = 'ai-toggle-status auto';
-                    // If there's a draft showing, start the timer
-                    const draftContainer = document.getElementById('ai-draft-container');
-                    if (draftContainer.classList.contains('visible')) {
-                        startAICountdown();
-                    }
-                } else {
-                    statusEl.textContent = 'AI Auto Reply Off';
-                    statusEl.className = 'ai-toggle-status review';
-                    // Cancel any running auto-send timer
-                    if (aiDraftTimer) {
-                        clearInterval(aiDraftTimer);
-                        aiDraftTimer = null;
-                        document.getElementById('ai-countdown').textContent = 'Manual review';
-                    }
-                }
-
-                // Sync to Supabase
-                if (supabaseClient) {
-                    try {
-                        const { error } = await supabaseClient
-                            .schema('ops')
-                            .from('system_settings')
-                            .update({
-                                setting_value: { enabled: autoReplyOn },
-                                updated_at: new Date().toISOString(),
-                                updated_by: 'dashboard'
-                            })
-                            .eq('setting_key', 'sms_auto_reply_enabled');
-
-                        if (error) {
-                            console.error('Failed to sync auto-reply setting:', error);
-                            showToast('Failed to save setting', 'error');
-                        } else {
-                            console.log('Auto-reply setting synced:', autoReplyOn);
-                        }
-                    } catch (err) {
-                        console.error('Error syncing auto-reply setting:', err);
-                    }
-                }
-            });
-
-            // Load initial auto-reply state from Supabase
-            loadAutoReplyState();
-        }
-
-        // Load auto-reply toggle state from Supabase
-        async function loadAutoReplyState() {
-            if (!supabaseClient) return;
-
-            try {
-                const { data, error } = await supabaseClient
-                    .schema('ops')
-                    .from('system_settings')
-                    .select('setting_value')
-                    .eq('setting_key', 'sms_auto_reply_enabled')
-                    .single();
-
-                if (error) {
-                    console.error('Failed to load auto-reply state:', error);
-                    return;
-                }
-
-                const enabled = data?.setting_value?.enabled ?? false;
-                const toggle = document.getElementById('ai-review-toggle');
-                const statusEl = document.getElementById('ai-toggle-status');
-
-                toggle.checked = enabled;
-                aiReviewMode = !enabled;
-
-                if (enabled) {
-                    statusEl.textContent = 'AI Auto Reply On';
-                    statusEl.className = 'ai-toggle-status auto';
-                } else {
-                    statusEl.textContent = 'AI Auto Reply Off';
-                    statusEl.className = 'ai-toggle-status review';
-                }
-
-                console.log('Loaded auto-reply state:', enabled);
-            } catch (err) {
-                console.error('Error loading auto-reply state:', err);
-            }
-        }
-
-        // ========================================
-        // Render Functions
-        // ========================================
-        function filterContacts(contacts, searchTerm = '') {
-            let filtered = contacts;
-
-            switch (currentFilter) {
-                case 'with-transcripts':
-                    filtered = filtered.filter(c => c.retell_transcriptions && c.retell_transcriptions.length > 0);
-                    break;
-                case 'with-sms':
-                    filtered = filtered.filter(c => c.sms_conversation && c.sms_conversation.length > 0);
-                    break;
-                case 'high-touch':
-                    filtered = filtered.filter(c => c.total_touches >= 10);
-                    break;
-            }
-
-            if (searchTerm) {
-                const term = searchTerm.toLowerCase();
-                // Strip non-digits for phone search
-                const digitsOnly = searchTerm.replace(/\D/g, '');
-                filtered = filtered.filter(c =>
-                    (c.name && c.name.toLowerCase().includes(term)) ||
-                    (c.phone && c.phone.includes(term)) ||
-                    (c.phone_digits && digitsOnly && c.phone_digits.includes(digitsOnly)) ||
-                    (c.property_address && c.property_address.toLowerCase().includes(term))
-                );
-            }
-
-            return filtered;
-        }
-
-        function renderContactList(searchTerm = '') {
-            const list = document.getElementById('contact-list');
-            const filtered = filterContacts(contactsData, searchTerm);
-
-            if (filtered.length === 0) {
-                list.innerHTML = '<div class="empty-state">No contacts found</div>';
-                return;
-            }
-
-            list.innerHTML = filtered.map(contact => {
-                const hasNewMessage = contactsWithNewMessages.has(contact.phone_digits);
-                // Use summary counts if available (from Supabase), otherwise fall back to array length (from JSON)
-                const callCount = contact.outbound_call_count || (contact.call_details ? contact.call_details.length : 0);
-                const smsCount = (contact.inbound_sms_count || 0) + (contact.outbound_sms_count || 0) || (contact.sms_conversation ? contact.sms_conversation.length : 0);
-                const transcriptCount = contact.retell_transcriptions ? contact.retell_transcriptions.length : 0;
-                return `
-                    <div class="contact-item ${selectedContact && selectedContact.contact_id === contact.contact_id ? 'active' : ''} ${hasNewMessage ? 'has-new-message' : ''}"
-                         data-id="${contact.contact_id}">
-                        <div class="contact-name">${contact.name || 'Unknown'}</div>
-                        <div class="contact-phone">${contact.phone || '-'}</div>
-                        <div class="contact-meta">
-                            <span class="meta-calls"><span class="meta-icon">📞</span> ${callCount}</span>
-                            <span class="meta-sms"><span class="meta-icon">💬</span> ${smsCount}</span>
-                            <span class="meta-transcripts"><span class="meta-icon">🤖</span> ${transcriptCount}</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            list.querySelectorAll('.contact-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const contact = contactsData.find(c => c.contact_id === item.dataset.id);
-                    selectContact(contact);
-                });
-            });
-        }
-
-        async function selectContact(contact) {
-            selectedContact = contact;
-
-            // Clear new message indicator
-            if (contact.phone_digits) {
-                contactsWithNewMessages.delete(contact.phone_digits);
-            }
-
-            // Cancel any existing AI draft
-            cancelAIDraft();
-
-            document.getElementById('no-selection').style.display = 'none';
-            document.getElementById('contact-view').style.display = 'flex';
-            document.getElementById('reply-container').style.display = 'block';
-
-            document.getElementById('selected-name').textContent = contact.name || 'Unknown';
-            document.getElementById('selected-phone').textContent = `📞 ${contact.phone || '-'}`;
-            document.getElementById('selected-address').textContent = contact.property_address ? `📍 ${contact.property_address}` : '';
-            document.getElementById('selected-auction').textContent = contact.auction_date ? `🔨 ${contact.auction_date}` : '';
-            document.getElementById('selected-added').textContent = contact.date_added ? `📅 ${formatDate(contact.date_added)}` : '';
-
-            document.querySelectorAll('.contact-item').forEach(item => {
-                item.classList.toggle('active', item.dataset.id === contact.contact_id);
-            });
-
-            setupMergeFields();
-
-            // Lazy load data if using Supabase and not yet loaded
-            if (isSupabaseConnected && !contact._messagesLoaded) {
-                // Show loading state
-                const content = document.getElementById('tab-content');
-                content.innerHTML = '<div class="loading-messages">Loading communications...</div>';
-
-                // Load messages, calls, and Retell transcripts in parallel
-                const [messages, calls, transcripts] = await Promise.all([
-                    loadLeadMessages(contact.phone_digits),
-                    loadLeadCalls(contact.phone_digits),
-                    loadLeadTranscripts(contact.phone_digits)
-                ]);
-
-                contact.sms_conversation = messages;
-                contact.call_details = calls;
-                contact.retell_transcriptions = transcripts;
-                contact._messagesLoaded = true;
-
-                console.log(`Loaded for ${contact.phone_digits}: ${messages.length} messages, ${calls.length} calls, ${transcripts.length} transcripts`);
-            }
-
-            renderTabContent();
-
-            // Auto-preload AI draft if last message was inbound (they're waiting for a reply)
-            autoPreloadAIDraft(contact);
-        }
-
-        // Auto-preload AI draft when selecting a contact with pending inbound message
-        function autoPreloadAIDraft(contact) {
-            const messages = contact.sms_conversation || [];
-            if (messages.length === 0) return;
-
-            // First, check if there's already a pending draft for this contact
-            const pendingDraft = messages.find(m => m.status === 'draft');
-            if (pendingDraft) {
-                console.log('Found pending draft for contact:', pendingDraft.body?.substring(0, 50));
-                const draftContainer = document.getElementById('ai-draft-container');
-                const draftText = document.getElementById('ai-draft-text');
-                const countdown = document.getElementById('ai-countdown');
-
-                draftContainer.classList.add('visible');
-                draftText.textContent = pendingDraft.body || 'AI response generated';
-                countdown.textContent = 'Awaiting your approval';
-                draftContainer.dataset.draftId = pendingDraft.message_id;
-                return; // Don't generate a new draft, show the existing one
-            }
-
-            // Sort by date descending to find most recent
-            const sortedMessages = [...messages].sort((a, b) => {
-                const dateA = new Date(a.created_at || a.date || 0);
-                const dateB = new Date(b.created_at || b.date || 0);
-                return dateB - dateA;
-            });
-
-            const lastMessage = sortedMessages[0];
-            if (!lastMessage) return;
-
-            // Check if last message was inbound (they sent it, waiting for reply)
-            const isInbound = lastMessage.direction === 'inbound' ||
-                              lastMessage.direction === 'received' ||
-                              (lastMessage.from && !lastMessage.from.includes('561')); // Not from our numbers
-
-            if (isInbound) {
-                const messageBody = lastMessage.body || lastMessage.text || '';
-                if (messageBody.trim()) {
-                    console.log('Auto-preloading AI draft for inbound message:', messageBody.substring(0, 50));
-                    fetchAIDraft(messageBody);
-                }
-            }
-        }
-
-        function renderTabContent() {
-            if (!selectedContact) return;
-
-            const content = document.getElementById('tab-content');
-
-            switch (currentTab) {
-                case 'timeline':
-                    renderTimeline(content);
-                    break;
-                case 'transcripts':
-                    renderTranscripts(content);
-                    break;
-                case 'sms':
-                    renderSMS(content);
-                    break;
-                case 'calls':
-                    renderCalls(content);
-                    break;
-            }
-        }
-
-        function renderTimeline(container) {
-            const events = [];
-
-            if (selectedContact.call_details) {
-                selectedContact.call_details.forEach(call => {
-                    events.push({ type: 'call', date: new Date(call.date), data: call });
-                });
-            }
-
-            if (selectedContact.sms_conversation) {
-                // Filter out draft/dismissed messages (they appear in AI draft panel)
-                selectedContact.sms_conversation
-                    .filter(sms => sms.status !== 'draft' && sms.status !== 'dismissed')
-                    .forEach(sms => {
-                        events.push({ type: 'sms', date: new Date(sms.date), data: sms });
-                    });
-            }
-
-            if (selectedContact.retell_transcriptions) {
-                selectedContact.retell_transcriptions.forEach(transcript => {
-                    events.push({ type: 'ai', date: new Date(transcript.date), data: transcript });
-                });
-            }
-
-            // Sort oldest first so newest messages appear at bottom (like normal chat)
-            events.sort((a, b) => a.date - b.date);
-
-            if (events.length === 0) {
-                container.innerHTML = '<div class="empty-state">No communications recorded</div>';
-                return;
-            }
-
-            container.innerHTML = `<div class="timeline">${events.map(renderTimelineItem).join('')}</div>`;
-
-            // Scroll to bottom to show newest messages
-            setTimeout(() => {
-                container.scrollTop = container.scrollHeight;
-            }, 50);
-
-            // Setup expand buttons for AI calls
-            container.querySelectorAll('.call-expand-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const transcript = btn.nextElementSibling;
-                    transcript.classList.toggle('expanded');
-                    btn.textContent = transcript.classList.contains('expanded') ? 'Hide Transcript' : 'Show Transcript';
-                });
-            });
-        }
-
-        function renderTimelineItem(event) {
-            const { type, date, data } = event;
-            const direction = type === 'sms' ? data.direction :
-                              type === 'call' ? (data.direction?.includes('originating') ? 'inbound' : 'outbound') :
-                              (data.direction === 'inbound' ? 'inbound' : 'outbound');
-
-            let icon, badge, body, meta = '';
-
-            switch (type) {
-                case 'sms':
-                    icon = '<div class="timeline-icon sms">💬</div>';
-                    badge = '<span class="timeline-type-badge badge-sms">SMS</span>';
-                    body = data.body || 'No message content';
-                    meta = `<span>${formatDateTime(date)}</span>`;
-                    break;
-
-                case 'call':
-                    icon = '<div class="timeline-icon call">📞</div>';
-                    badge = '<span class="timeline-type-badge badge-call">CALL</span>';
-                    body = `Duration: ${data.duration || 0}s • Status: ${data.status}`;
-                    meta = `<span>${formatDateTime(date)}</span><span>${data.from} → ${data.to}</span>`;
-                    break;
-
-                case 'ai':
-                    icon = '<div class="timeline-icon ai">🤖</div>';
-                    badge = '<span class="timeline-type-badge badge-ai">AI CALL</span>';
-                    const sentiment = data.user_sentiment || data.sentiment || 'Neutral';
-                    const sentimentClass = sentiment.toLowerCase() === 'positive' ? 'sentiment-positive' :
-                                          sentiment.toLowerCase() === 'negative' ? 'sentiment-negative' : 'sentiment-neutral';
-                    const durationSec = data.duration_sec || (data.duration_ms ? Math.round(data.duration_ms / 1000) : 0);
-                    const summary = data.call_summary || data.summary || '';
-                    const successful = data.call_successful !== undefined ? data.call_successful : data.successful;
-                    const recordingUrl = data.recording_url;
-                    body = `
-                        <span class="sentiment-badge ${sentimentClass}">${sentiment}</span>
-                        <div style="margin-top: 8px;">Duration: ${durationSec}s • ${successful ? 'Successful' : 'Failed'}</div>
-                        ${summary ? `<div class="call-summary"><div class="call-summary-label">AI Summary</div><div class="call-summary-text">${summary}</div></div>` : ''}
-                        ${recordingUrl ? `<div class="recording-player"><audio controls preload="none" src="${recordingUrl}"></audio><a href="${recordingUrl}" target="_blank" class="recording-link">🔗 Open Recording</a></div>` : ''}
-                        <button class="call-expand-btn">Show Transcript</button>
-                        <div class="call-transcript">${formatTranscript(data.transcript)}</div>
-                    `;
-                    meta = `<span>${formatDateTime(date)}</span>`;
-                    break;
-            }
-
-            return `
-                <div class="timeline-item ${direction}">
-                    ${icon}
-                    <div class="timeline-bubble ${type === 'ai' ? 'ai-call' : ''}">
-                        ${badge}
-                        <div class="timeline-body">${body}</div>
-                        <div class="timeline-meta">${meta}</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderTranscripts(container) {
-            const transcripts = selectedContact.retell_transcriptions || [];
-
-            if (transcripts.length === 0) {
-                container.innerHTML = '<div class="empty-state">No AI call transcripts available</div>';
-                return;
-            }
-
-            container.innerHTML = transcripts.map(t => {
-                // Support both old format (user_sentiment) and new format (sentiment)
-                const sentiment = t.sentiment || t.user_sentiment || 'Neutral';
-                const sentimentClass = sentiment.toLowerCase() === 'positive' ? 'sentiment-positive' :
-                                      sentiment.toLowerCase() === 'negative' ? 'sentiment-negative' : 'sentiment-neutral';
-                // Support both old format (duration_sec) and new format (duration_ms)
-                const durationSec = t.duration_sec || (t.duration_ms ? Math.round(t.duration_ms / 1000) : 0);
-                const successful = t.successful !== undefined ? t.successful : t.call_successful;
-                const summary = t.summary || t.call_summary;
-                return `
-                    <div class="timeline-item outbound" style="flex-direction: column; align-items: stretch;">
-                        <div class="timeline-bubble ai-call" style="max-width: 100%;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <span class="timeline-type-badge badge-ai">AI CALL${t.agent_name ? ` - ${t.agent_name}` : ''}</span>
-                                <span style="font-size: 0.75rem; color: var(--text-muted);">${formatDateTime(new Date(t.date))}</span>
-                            </div>
-                            <div style="display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap;">
-                                <span>Duration: ${durationSec}s</span>
-                                <span>${successful ? '✓ Successful' : '✗ Failed'}</span>
-                                <span class="sentiment-badge ${sentimentClass}">${sentiment}</span>
-                                ${t.voicemail ? '<span>📫 Voicemail</span>' : ''}
-                                ${t.disconnection_reason ? `<span style="color: var(--text-muted);">Ended: ${t.disconnection_reason}</span>` : ''}
-                            </div>
-                            ${summary ? `<div class="call-summary"><div class="call-summary-label">AI Summary</div><div class="call-summary-text">${summary}</div></div>` : ''}
-                            <div style="margin-top: 12px; background: var(--bg-primary); padding: 12px; border-radius: 8px; max-height: 400px; overflow-y: auto;">
-                                ${formatTranscript(t.transcript, t.transcript_object)}
-                            </div>
-                            ${t.recording_url ? `<div style="margin-top: 8px;"><audio controls style="width: 100%; height: 32px;"><source src="${t.recording_url}" type="audio/mpeg">Audio not supported</audio></div>` : ''}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderSMS(container) {
-            const messages = selectedContact.sms_conversation || [];
-
-            // Filter out draft messages (they appear in AI draft panel, not conversation)
-            const sentMessages = messages.filter(m => m.status !== 'draft' && m.status !== 'dismissed');
-
-            if (sentMessages.length === 0) {
-                container.innerHTML = '<div class="empty-state">No SMS messages recorded</div>';
-                return;
-            }
-
-            // Sort oldest first so newest messages appear at bottom (like normal chat)
-            const sortedMessages = [...sentMessages].sort((a, b) => new Date(a.date) - new Date(b.date));
-
-            container.innerHTML = `<div class="timeline">${sortedMessages.map(msg => `
-                <div class="timeline-item ${msg.direction}">
-                    <div class="timeline-icon sms">💬</div>
-                    <div class="timeline-bubble">
-                        <div class="timeline-body">${msg.body || 'No message content'}</div>
-                        <div class="timeline-meta"><span>${formatDateTime(new Date(msg.date))}</span></div>
-                    </div>
-                </div>
-            `).join('')}</div>`;
-
-            // Scroll to bottom to show newest messages
-            setTimeout(() => {
-                container.scrollTop = container.scrollHeight;
-            }, 50);
-        }
-
-        function renderCalls(container) {
-            const calls = selectedContact.call_details || [];
-
-            if (calls.length === 0) {
-                container.innerHTML = '<div class="empty-state">No calls recorded</div>';
-                return;
-            }
-
-            container.innerHTML = `
-                <table class="call-table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Direction</th>
-                            <th>Duration</th>
-                            <th>Status</th>
-                            <th>Answered By</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${calls.map(call => {
-                            // Support both old format (originating/terminating) and new format (inbound/outbound)
-                            const dir = call.direction === 'inbound' ? 'Inbound' :
-                                       call.direction === 'outbound' ? 'Outbound' :
-                                       call.direction?.includes('originating') ? 'Inbound' : 'Outbound';
-                            const statusClass = call.status === 'completed' ? 'status-completed' :
-                                               call.status === 'no-answer' ? 'status-missed' : 'status-failed';
-                            return `
-                                <tr>
-                                    <td>${formatDateTime(new Date(call.date))}</td>
-                                    <td><span class="status-badge ${dir === 'Inbound' ? 'status-inbound' : 'status-outbound'}">${dir}</span></td>
-                                    <td>${call.duration || 0}s</td>
-                                    <td><span class="status-badge ${statusClass}">${call.status || 'unknown'}</span></td>
-                                    <td style="color: var(--text-muted);">${call.answered_by || '-'}</td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-
-        function formatTranscript(transcript, transcriptObject) {
-            // Prefer structured transcript_object if available (from Retell)
-            if (transcriptObject && Array.isArray(transcriptObject) && transcriptObject.length > 0) {
-                return transcriptObject.map(turn => {
-                    const role = turn.role || turn.speaker || 'unknown';
-                    const content = turn.content || turn.text || turn.message || '';
-                    const isAgent = role.toLowerCase().includes('agent') || role.toLowerCase() === 'assistant';
-                    const isUser = role.toLowerCase().includes('user') || role.toLowerCase() === 'human';
-                    const speakerClass = isAgent ? 'agent' : isUser ? 'user' : '';
-                    const speakerLabel = isAgent ? 'Agent' : isUser ? 'User' : role;
-                    return `<div class="transcript-line ${speakerClass}"><span class="transcript-speaker">${speakerLabel}:</span> ${content}</div>`;
-                }).join('');
-            }
-
-            // Fall back to plain text transcript
-            if (!transcript) return '<em style="color: var(--text-muted);">No transcript available</em>';
-
-            const lines = transcript.split('\n').filter(l => l.trim());
-            return lines.map(line => {
-                if (line.startsWith('Agent:')) {
-                    return `<div class="transcript-line agent"><span class="transcript-speaker">Agent:</span>${line.replace('Agent:', '')}</div>`;
-                } else if (line.startsWith('User:')) {
-                    return `<div class="transcript-line user"><span class="transcript-speaker">User:</span>${line.replace('User:', '')}</div>`;
-                }
-                return `<div class="transcript-line">${line}</div>`;
-            }).join('');
-        }
-
-        function formatDate(dateStr) {
-            try {
-                return new Date(dateStr).toLocaleDateString('en-US', {
-                    year: 'numeric', month: 'short', day: 'numeric'
-                });
-            } catch { return dateStr; }
-        }
-
-        function formatDateTime(date) {
-            try {
-                return date.toLocaleString('en-US', {
-                    month: 'short', day: 'numeric',
-                    hour: 'numeric', minute: '2-digit', hour12: true
-                });
-            } catch { return date.toString(); }
-        }
-
-        function updateHeaderStats() {
-            document.getElementById('total-contacts').textContent = contactsData.length.toLocaleString();
-
-            let totalCalls = 0, totalSMS = 0, totalTranscripts = 0;
-            contactsData.forEach(c => {
-                // Use summary counts if available (from Supabase), otherwise fall back to array length (from JSON)
-                totalCalls += c.outbound_call_count || (c.call_details || []).length;
-                totalSMS += (c.inbound_sms_count || 0) + (c.outbound_sms_count || 0) || (c.sms_conversation || []).length;
-                totalTranscripts += (c.retell_transcriptions || []).length;
-            });
-
-            document.getElementById('total-calls').textContent = totalCalls.toLocaleString();
-            document.getElementById('total-sms').textContent = totalSMS.toLocaleString();
-            document.getElementById('total-transcripts').textContent = totalTranscripts.toLocaleString();
-
-            // Also fetch total transcript count from Supabase if connected
-            if (supabaseClient) {
-                fetchTotalTranscriptCount();
-            }
-        }
-
-        async function fetchTotalTranscriptCount() {
-            try {
-                const { count, error } = await supabaseClient
-                    .from('retell_transcripts')
-                    .select('*', { count: 'exact', head: true });
-
-                if (!error && count !== null) {
-                    document.getElementById('total-transcripts').textContent = count.toLocaleString();
-                }
-            } catch (e) {
-                console.error('Error fetching transcript count:', e);
-            }
-        }
-
-        // Retell Concurrency - Live Updates
-        const RETELL_API_KEY = 'key_27893f6ef20b5c634694fa2d2566';
-
-        async function fetchRetellConcurrency() {
-            try {
-                const response = await fetch('https://api.retellai.com/get-concurrency', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${RETELL_API_KEY}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    const concurrencyEl = document.getElementById('retell-concurrency');
-                    const containerEl = concurrencyEl.closest('.retell-concurrency');
-
-                    concurrencyEl.textContent = `${data.current_concurrency}/${data.concurrency_limit}`;
-
-                    // Highlight if calls are active
-                    if (data.current_concurrency > 0) {
-                        containerEl.classList.add('active');
-                    } else {
-                        containerEl.classList.remove('active');
-                    }
-                }
-            } catch (e) {
-                console.error('Failed to fetch Retell concurrency:', e);
-                document.getElementById('retell-concurrency').textContent = '-/-';
-            }
-        }
-
-        // Fetch concurrency every 5 seconds
-        setInterval(fetchRetellConcurrency, 5000);
-        // Initial fetch
-        setTimeout(fetchRetellConcurrency, 1000);
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', init);
+        updateTime();
+        setInterval(updateTime, 1000);
     </script>
 </body>
 </html>
