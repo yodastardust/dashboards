@@ -375,6 +375,23 @@
             border-left: 3px solid var(--accent-cyan);
         }
 
+        /* Pulsing green glow for new messages - soothing 2.5s cycle */
+        @keyframes newMessagePulse {
+            0%, 100% {
+                background: rgba(0, 200, 83, 0.08);
+                box-shadow: inset 0 0 20px rgba(0, 200, 83, 0.1);
+            }
+            50% {
+                background: rgba(0, 200, 83, 0.18);
+                box-shadow: inset 0 0 35px rgba(0, 200, 83, 0.15);
+            }
+        }
+
+        .contact-item.has-new-message {
+            animation: newMessagePulse 2.5s ease-in-out infinite;
+            border-left: 3px solid var(--success-green);
+        }
+
         .contact-item.has-new-message::after {
             content: '';
             position: absolute;
@@ -385,7 +402,7 @@
             height: 10px;
             background: var(--success-green);
             border-radius: 50%;
-            animation: pulse 1s infinite;
+            animation: pulse 1.5s infinite;
         }
 
         .contact-name {
@@ -820,6 +837,16 @@
             color: var(--alert-red);
         }
 
+        .ai-btn-edit {
+            background: transparent;
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        .ai-btn-edit:hover {
+            background: rgba(0, 188, 212, 0.1);
+        }
+
         .reply-input-wrapper {
             display: flex;
             gap: 12px;
@@ -1236,14 +1263,15 @@
                     <div class="ai-draft-container" id="ai-draft-container">
                         <div class="ai-draft-header">
                             <span class="ai-draft-label">
-                                <span>AI Response</span>
+                                <span>🤖 AI Suggested Reply</span>
                             </span>
-                            <span class="ai-countdown" id="ai-countdown">Auto-send in 3:00</span>
+                            <span class="ai-countdown" id="ai-countdown">Awaiting approval</span>
                         </div>
                         <div class="ai-draft-text" id="ai-draft-text">Loading AI response...</div>
                         <div class="ai-draft-actions">
-                            <button class="ai-btn ai-btn-use" id="ai-use-btn">Send Now</button>
-                            <button class="ai-btn ai-btn-dismiss" id="ai-dismiss-btn">Dismiss</button>
+                            <button class="ai-btn ai-btn-use" id="ai-use-btn" title="Send this message immediately">✓ Send This</button>
+                            <button class="ai-btn ai-btn-edit" id="ai-edit-btn" title="Edit before sending">✎ Edit</button>
+                            <button class="ai-btn ai-btn-dismiss" id="ai-dismiss-btn" title="Discard this suggestion">✕ Dismiss</button>
                         </div>
                     </div>
                     <div class="reply-input-wrapper">
@@ -1292,6 +1320,9 @@
         // ========================================
         async function init() {
             updateConnectionStatus('syncing', 'Connecting...');
+
+            // Request browser notification permission
+            requestNotificationPermission();
 
             // Helper function for timeout
             const withTimeout = (promise, ms) => {
@@ -1596,6 +1627,9 @@
         function subscribeToMessages() {
             if (!supabaseClient) return;
 
+            console.log('Setting up real-time subscriptions...');
+
+            // Subscribe to all new messages
             messagesChannel = supabaseClient
                 .channel('messages-realtime')
                 .on('postgres_changes', {
@@ -1603,25 +1637,93 @@
                     schema: 'public',
                     table: 'messages'
                 }, handleNewMessage)
-                .subscribe();
+                .subscribe((status) => {
+                    console.log('Messages subscription status:', status);
+                    if (status === 'SUBSCRIBED') {
+                        console.log('Real-time messages subscription active');
+                    } else if (status === 'CHANNEL_ERROR') {
+                        console.error('Real-time subscription error - check Supabase realtime settings');
+                    }
+                });
+
+            // Subscribe to draft messages (AI suggestions awaiting approval)
+            supabaseClient
+                .channel('drafts-realtime')
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'messages',
+                    filter: 'status=eq.draft'
+                }, handleNewDraft)
+                .subscribe((status) => {
+                    console.log('Drafts subscription status:', status);
+                });
+        }
+
+        // Handle new draft message (AI suggestion awaiting human approval)
+        function handleNewDraft(payload) {
+            const draft = payload.new;
+            console.log('New AI draft:', draft);
+
+            // Only show if we're in human review mode
+            if (!aiReviewMode) return;
+
+            // Only show for the currently selected contact
+            if (!selectedContact || selectedContact.phone_digits !== draft.phone_digits) {
+                // Show notification that a draft is pending for another contact
+                showToast(`AI draft ready for ${formatPhoneNumber(draft.phone_digits)}`, 'success');
+
+                // Add pulsing indicator to that contact
+                contactsWithNewMessages.add(draft.phone_digits);
+                renderContactList();
+                return;
+            }
+
+            // Show the draft in the AI suggestion panel
+            const draftContainer = document.getElementById('ai-draft-container');
+            const draftText = document.getElementById('ai-draft-text');
+            const countdown = document.getElementById('ai-countdown');
+
+            draftContainer.classList.add('visible');
+            draftText.textContent = draft.body || 'AI response generated';
+            countdown.textContent = 'Awaiting your approval';
+
+            // Store draft ID for approval
+            draftContainer.dataset.draftId = draft.message_id;
+
+            // Play notification
+            playNotificationSound();
+            showBrowserNotification(selectedContact, { body: 'AI draft ready for review' });
         }
 
         function handleNewMessage(payload) {
             const message = payload.new;
             console.log('New message:', message);
 
+            // Skip draft messages (handled by handleNewDraft)
+            if (message.status === 'draft') return;
+
             // Play notification sound for inbound messages
             if (message.direction === 'inbound') {
                 playNotificationSound();
                 showToast('New message received', 'success');
 
-                // Mark contact as having new message
+                // Mark contact as having new message (pulsing green glow)
                 const phoneDigits = message.phone_digits;
                 contactsWithNewMessages.add(phoneDigits);
                 renderContactList();
 
+                // Find contact info for notification
+                const contact = contactsData.find(c => c.phone_digits === phoneDigits) || { phone_digits: phoneDigits };
+
+                // Show browser notification
+                showBrowserNotification(contact, message);
+
                 // If this contact is selected, add message to view
                 if (selectedContact && selectedContact.phone_digits === phoneDigits) {
+                    // Clear the pulsing indicator since they're viewing this contact
+                    contactsWithNewMessages.delete(phoneDigits);
+
                     // Add message to conversation
                     if (!selectedContact.sms_conversation) {
                         selectedContact.sms_conversation = [];
@@ -1629,12 +1731,16 @@
                     selectedContact.sms_conversation.push({
                         date: message.created_at,
                         direction: message.direction,
-                        body: message.body
+                        body: message.body,
+                        status: message.status
                     });
                     renderTabContent();
 
                     // Trigger AI draft (only for NEW inbound while dashboard is open)
-                    fetchAIDraft(message.body);
+                    // In human review mode, n8n will create a draft that comes through handleNewDraft
+                    if (!aiReviewMode) {
+                        fetchAIDraft(message.body);
+                    }
                 }
             }
         }
@@ -1717,19 +1823,65 @@
                 clearInterval(aiDraftTimer);
                 aiDraftTimer = null;
             }
-            document.getElementById('ai-draft-container').classList.remove('visible');
+            const container = document.getElementById('ai-draft-container');
+            container.classList.remove('visible');
+            delete container.dataset.draftId;
         }
 
-        async function sendAIDraft() {
+        // Edit: Copy AI draft to reply input for editing
+        function editAIDraft() {
             const draftText = document.getElementById('ai-draft-text').textContent;
-            await sendMessage(draftText);
+            const replyInput = document.getElementById('reply-input');
+
+            replyInput.value = draftText;
+            replyInput.focus();
+            updateCharCounter();
+
+            // Hide the AI draft panel but keep the draft ID for potential update
+            document.getElementById('ai-draft-container').classList.remove('visible');
+            showToast('Draft copied to input - edit and send', 'success');
+        }
+
+        // Send: Approve and send the AI draft
+        async function sendAIDraft() {
+            const draftContainer = document.getElementById('ai-draft-container');
+            const draftText = document.getElementById('ai-draft-text').textContent;
+            const draftId = draftContainer.dataset.draftId;
+
+            // Send the message
+            await sendMessage(draftText, draftId);
             cancelAIDraft();
+        }
+
+        // Dismiss: Discard the AI draft
+        async function dismissAIDraft() {
+            const draftContainer = document.getElementById('ai-draft-container');
+            const draftId = draftContainer.dataset.draftId;
+
+            // If we have a draft ID from Supabase, mark it as dismissed
+            if (draftId && supabaseClient) {
+                try {
+                    await supabaseClient
+                        .from('messages')
+                        .update({
+                            status: 'dismissed',
+                            meta: { dismissed_at: new Date().toISOString(), dismissed_by: 'dashboard' }
+                        })
+                        .eq('message_id', draftId);
+                    console.log('Draft dismissed:', draftId);
+                } catch (e) {
+                    console.error('Error dismissing draft:', e);
+                }
+            }
+
+            cancelAIDraft();
+            showToast('AI suggestion dismissed', 'success');
         }
 
         // ========================================
         // Send Message
         // ========================================
-        async function sendMessage(message) {
+        async function sendMessage(message, draftMessageId = null) {
             if (!selectedContact || !message.trim()) return;
 
             const sendBtn = document.getElementById('send-btn');
@@ -1747,11 +1899,27 @@
                     body: JSON.stringify({
                         phone_digits: selectedContact.phone_digits,
                         message: resolvedMessage,
-                        from_number: selectedContact.preferred_from_e164 || '+15617867541'
+                        from_number: selectedContact.preferred_from_e164 || '+15617867541',
+                        draft_message_id: draftMessageId // Include draft ID if approving a draft
                     })
                 });
 
                 if (response.ok) {
+                    // If this was a draft, mark it as sent in Supabase
+                    if (draftMessageId && supabaseClient) {
+                        try {
+                            await supabaseClient
+                                .from('messages')
+                                .update({
+                                    status: 'sent',
+                                    meta: { approved_at: new Date().toISOString(), approved_by: 'dashboard' }
+                                })
+                                .eq('message_id', draftMessageId);
+                        } catch (e) {
+                            console.error('Error updating draft status:', e);
+                        }
+                    }
+
                     // Optimistic update - add message to view immediately
                     if (!selectedContact.sms_conversation) {
                         selectedContact.sms_conversation = [];
@@ -1759,14 +1927,15 @@
                     selectedContact.sms_conversation.push({
                         date: new Date().toISOString(),
                         direction: 'outbound',
-                        body: resolvedMessage
+                        body: resolvedMessage,
+                        status: 'sent'
                     });
                     renderTabContent();
                     document.getElementById('reply-input').value = '';
                     updateCharCounter();
                     showToast('Message sent', 'success');
 
-                    // Cancel AI draft since user sent manually
+                    // Cancel AI draft since user sent
                     cancelAIDraft();
                 } else {
                     showToast('Failed to send message', 'error');
@@ -1885,6 +2054,58 @@
             audio.play().catch(() => {}); // Ignore if blocked
         }
 
+        // ========================================
+        // Browser Notifications
+        // ========================================
+        async function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                console.log('Browser does not support notifications');
+                return false;
+            }
+
+            if (Notification.permission === 'granted') {
+                return true;
+            }
+
+            if (Notification.permission !== 'denied') {
+                const permission = await Notification.requestPermission();
+                return permission === 'granted';
+            }
+
+            return false;
+        }
+
+        function showBrowserNotification(contact, message) {
+            if (Notification.permission !== 'granted') return;
+
+            const contactName = contact?.name || contact?.phone_digits || 'Unknown';
+            const messagePreview = message?.body?.substring(0, 100) || 'New message';
+
+            try {
+                const notification = new Notification(`New message from ${contactName}`, {
+                    body: messagePreview,
+                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💬</text></svg>',
+                    tag: contact?.phone_digits || 'general', // Prevents duplicate notifications
+                    requireInteraction: false // Auto-dismiss
+                });
+
+                // Focus window when notification is clicked
+                notification.onclick = () => {
+                    window.focus();
+                    if (contact) {
+                        const contactData = contactsData.find(c => c.phone_digits === contact.phone_digits);
+                        if (contactData) selectContact(contactData);
+                    }
+                    notification.close();
+                };
+
+                // Auto-close after 5 seconds
+                setTimeout(() => notification.close(), 5000);
+            } catch (e) {
+                console.error('Notification error:', e);
+            }
+        }
+
         function formatPhoneNumber(digits) {
             if (!digits || digits.length !== 10) return digits;
             return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
@@ -1989,13 +2210,16 @@
 
             // AI draft buttons
             document.getElementById('ai-use-btn').addEventListener('click', sendAIDraft);
-            document.getElementById('ai-dismiss-btn').addEventListener('click', cancelAIDraft);
+            document.getElementById('ai-edit-btn').addEventListener('click', editAIDraft);
+            document.getElementById('ai-dismiss-btn').addEventListener('click', dismissAIDraft);
 
-            // AI Review Mode toggle
-            document.getElementById('ai-review-toggle').addEventListener('change', (e) => {
+            // AI Review Mode toggle - syncs to Supabase ops.system_settings
+            document.getElementById('ai-review-toggle').addEventListener('change', async (e) => {
                 const autoReplyOn = e.target.checked;
                 aiReviewMode = !autoReplyOn; // aiReviewMode is opposite of auto-reply
                 const statusEl = document.getElementById('ai-toggle-status');
+
+                // Update UI immediately
                 if (autoReplyOn) {
                     statusEl.textContent = 'AI Auto Reply On';
                     statusEl.className = 'ai-toggle-status auto';
@@ -2014,7 +2238,72 @@
                         document.getElementById('ai-countdown').textContent = 'Manual review';
                     }
                 }
+
+                // Sync to Supabase
+                if (supabaseClient) {
+                    try {
+                        const { error } = await supabaseClient
+                            .schema('ops')
+                            .from('system_settings')
+                            .update({
+                                setting_value: { enabled: autoReplyOn },
+                                updated_at: new Date().toISOString(),
+                                updated_by: 'dashboard'
+                            })
+                            .eq('setting_key', 'sms_auto_reply_enabled');
+
+                        if (error) {
+                            console.error('Failed to sync auto-reply setting:', error);
+                            showToast('Failed to save setting', 'error');
+                        } else {
+                            console.log('Auto-reply setting synced:', autoReplyOn);
+                        }
+                    } catch (err) {
+                        console.error('Error syncing auto-reply setting:', err);
+                    }
+                }
             });
+
+            // Load initial auto-reply state from Supabase
+            loadAutoReplyState();
+        }
+
+        // Load auto-reply toggle state from Supabase
+        async function loadAutoReplyState() {
+            if (!supabaseClient) return;
+
+            try {
+                const { data, error } = await supabaseClient
+                    .schema('ops')
+                    .from('system_settings')
+                    .select('setting_value')
+                    .eq('setting_key', 'sms_auto_reply_enabled')
+                    .single();
+
+                if (error) {
+                    console.error('Failed to load auto-reply state:', error);
+                    return;
+                }
+
+                const enabled = data?.setting_value?.enabled ?? false;
+                const toggle = document.getElementById('ai-review-toggle');
+                const statusEl = document.getElementById('ai-toggle-status');
+
+                toggle.checked = enabled;
+                aiReviewMode = !enabled;
+
+                if (enabled) {
+                    statusEl.textContent = 'AI Auto Reply On';
+                    statusEl.className = 'ai-toggle-status auto';
+                } else {
+                    statusEl.textContent = 'AI Auto Reply Off';
+                    statusEl.className = 'ai-toggle-status review';
+                }
+
+                console.log('Loaded auto-reply state:', enabled);
+            } catch (err) {
+                console.error('Error loading auto-reply state:', err);
+            }
         }
 
         // ========================================
@@ -2146,6 +2435,21 @@
             const messages = contact.sms_conversation || [];
             if (messages.length === 0) return;
 
+            // First, check if there's already a pending draft for this contact
+            const pendingDraft = messages.find(m => m.status === 'draft');
+            if (pendingDraft) {
+                console.log('Found pending draft for contact:', pendingDraft.body?.substring(0, 50));
+                const draftContainer = document.getElementById('ai-draft-container');
+                const draftText = document.getElementById('ai-draft-text');
+                const countdown = document.getElementById('ai-countdown');
+
+                draftContainer.classList.add('visible');
+                draftText.textContent = pendingDraft.body || 'AI response generated';
+                countdown.textContent = 'Awaiting your approval';
+                draftContainer.dataset.draftId = pendingDraft.message_id;
+                return; // Don't generate a new draft, show the existing one
+            }
+
             // Sort by date descending to find most recent
             const sortedMessages = [...messages].sort((a, b) => {
                 const dateA = new Date(a.created_at || a.date || 0);
@@ -2201,9 +2505,12 @@
             }
 
             if (selectedContact.sms_conversation) {
-                selectedContact.sms_conversation.forEach(sms => {
-                    events.push({ type: 'sms', date: new Date(sms.date), data: sms });
-                });
+                // Filter out draft/dismissed messages (they appear in AI draft panel)
+                selectedContact.sms_conversation
+                    .filter(sms => sms.status !== 'draft' && sms.status !== 'dismissed')
+                    .forEach(sms => {
+                        events.push({ type: 'sms', date: new Date(sms.date), data: sms });
+                    });
             }
 
             if (selectedContact.retell_transcriptions) {
@@ -2339,13 +2646,16 @@
         function renderSMS(container) {
             const messages = selectedContact.sms_conversation || [];
 
-            if (messages.length === 0) {
+            // Filter out draft messages (they appear in AI draft panel, not conversation)
+            const sentMessages = messages.filter(m => m.status !== 'draft' && m.status !== 'dismissed');
+
+            if (sentMessages.length === 0) {
                 container.innerHTML = '<div class="empty-state">No SMS messages recorded</div>';
                 return;
             }
 
             // Sort oldest first so newest messages appear at bottom (like normal chat)
-            const sortedMessages = [...messages].sort((a, b) => new Date(a.date) - new Date(b.date));
+            const sortedMessages = [...sentMessages].sort((a, b) => new Date(a.date) - new Date(b.date));
 
             container.innerHTML = `<div class="timeline">${sortedMessages.map(msg => `
                 <div class="timeline-item ${msg.direction}">
