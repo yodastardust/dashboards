@@ -3,10 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KPI Dashboard - Stop My Auction Now</title>
+    <title>KPI Dashboard - Mission Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* ========================================
+           SpaceX Mission Control Theme
+           ======================================== */
+        :root {
+            --bg-primary: #0b0b0f;
+            --bg-secondary: #1a1a1e;
+            --bg-panel: #141418;
+            --bg-hover: #252529;
+            --accent-blue: #005288;
+            --accent-cyan: #00bcd4;
+            --alert-red: #c41e3a;
+            --success-green: #00c853;
+            --warning-yellow: #ffc107;
+            --warning-orange: #ff8800;
+            --text-primary: #ffffff;
+            --text-secondary: #9e9e9e;
+            --text-muted: #666666;
+            --border-color: #2a2a2e;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -14,30 +36,34 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
             min-height: 100vh;
-            color: #e4e4e4;
+            color: var(--text-primary);
+            line-height: 1.5;
         }
 
         .header {
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(10px);
-            padding: 15px 30px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
             position: sticky;
             top: 0;
             z-index: 100;
         }
 
         .header h1 {
-            font-size: 1.4rem;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .header h1 span {
+            color: var(--text-secondary);
+            font-weight: 300;
         }
 
         .header-controls {
@@ -46,62 +72,92 @@
             align-items: center;
         }
 
+        .nav-links {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-link {
+            padding: 8px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-panel);
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: var(--accent-cyan);
+            color: var(--text-primary);
+            border-color: var(--accent-cyan);
+        }
+
         .date-selector {
             padding: 8px 15px;
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid var(--border-color);
             border-radius: 6px;
-            background: rgba(255,255,255,0.05);
-            color: #fff;
+            background: var(--bg-panel);
+            color: var(--text-primary);
             cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .date-selector:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
         }
 
         .refresh-btn {
             padding: 8px 20px;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            background: var(--accent-cyan);
             border: none;
             border-radius: 6px;
-            color: #fff;
+            color: var(--bg-primary);
             cursor: pointer;
             font-weight: 500;
-            transition: opacity 0.2s;
+            transition: all 0.2s;
         }
 
         .refresh-btn:hover {
-            opacity: 0.9;
+            background: var(--accent-blue);
+            color: var(--text-primary);
         }
 
         .channel-tabs {
             display: flex;
             gap: 5px;
-            padding: 10px 30px;
-            background: rgba(0,0,0,0.2);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 24px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
         }
 
         .channel-tab {
             padding: 8px 20px;
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
             background: transparent;
-            color: #888;
+            color: var(--text-secondary);
             cursor: pointer;
             transition: all 0.2s;
             font-size: 0.85rem;
         }
 
         .channel-tab.active {
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
-            color: #fff;
-            border-color: transparent;
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            border-color: var(--accent-cyan);
+            font-weight: 500;
         }
 
         .channel-tab:hover:not(.active) {
-            border-color: #00d4ff;
-            color: #00d4ff;
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
         }
 
         .main-content {
-            padding: 20px 30px;
+            padding: 20px 24px;
         }
 
         /* KPI Cards Row */
@@ -113,21 +169,21 @@
         }
 
         .kpi-card {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             padding: 20px;
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
         .kpi-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            box-shadow: var(--shadow);
         }
 
         .kpi-label {
             font-size: 0.75rem;
-            color: #888;
+            color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             margin-bottom: 8px;
@@ -135,15 +191,14 @@
 
         .kpi-value {
             font-size: 2rem;
-            font-weight: bold;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--accent-cyan);
         }
 
         .kpi-subtext {
             font-size: 0.8rem;
-            color: #666;
+            color: var(--text-muted);
             margin-top: 5px;
         }
 
@@ -153,11 +208,11 @@
         }
 
         .kpi-change.positive {
-            color: #00ff88;
+            color: var(--success-green);
         }
 
         .kpi-change.negative {
-            color: #ff4757;
+            color: var(--alert-red);
         }
 
         /* Charts Grid */
@@ -169,16 +224,17 @@
         }
 
         .chart-card {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             padding: 20px;
         }
 
         .chart-title {
             font-size: 1rem;
             margin-bottom: 15px;
-            color: #ccc;
+            color: var(--text-secondary);
+            font-weight: 500;
         }
 
         .chart-container {
@@ -195,9 +251,9 @@
         }
 
         .appt-card {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             padding: 20px;
         }
 
@@ -210,24 +266,24 @@
 
         .appt-title {
             font-size: 1rem;
-            color: #ccc;
+            color: var(--text-secondary);
         }
 
         .appt-badge {
             padding: 4px 12px;
-            border-radius: 15px;
+            border-radius: 6px;
             font-size: 0.75rem;
             font-weight: 500;
         }
 
         .appt-badge.first {
-            background: rgba(0, 212, 255, 0.2);
-            color: #00d4ff;
+            background: rgba(0, 188, 212, 0.2);
+            color: var(--accent-cyan);
         }
 
         .appt-badge.second {
-            background: rgba(123, 44, 191, 0.2);
-            color: #b388ff;
+            background: rgba(0, 82, 136, 0.2);
+            color: var(--accent-blue);
         }
 
         .appt-stats {
@@ -242,29 +298,31 @@
 
         .appt-stat-value {
             font-size: 1.5rem;
-            font-weight: bold;
-            color: #fff;
+            font-weight: 700;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--text-primary);
         }
 
         .appt-stat-label {
             font-size: 0.7rem;
-            color: #666;
+            color: var(--text-muted);
             text-transform: uppercase;
         }
 
         /* Conversion Funnel */
         .funnel-section {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             padding: 20px;
             margin-bottom: 25px;
         }
 
         .funnel-title {
             font-size: 1rem;
-            color: #ccc;
+            color: var(--text-secondary);
             margin-bottom: 20px;
+            font-weight: 500;
         }
 
         .funnel-steps {
@@ -280,25 +338,26 @@
 
         .funnel-value {
             font-size: 1.8rem;
-            font-weight: bold;
-            color: #00d4ff;
+            font-weight: 700;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--accent-cyan);
         }
 
         .funnel-label {
             font-size: 0.8rem;
-            color: #888;
+            color: var(--text-secondary);
             margin-top: 5px;
         }
 
         .funnel-arrow {
             font-size: 1.5rem;
-            color: #444;
+            color: var(--text-muted);
             padding: 0 10px;
         }
 
         .funnel-rate {
             font-size: 0.75rem;
-            color: #00ff88;
+            color: var(--success-green);
             margin-top: 3px;
         }
 
@@ -311,9 +370,9 @@
         }
 
         .cost-card {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             padding: 20px;
         }
 
@@ -326,19 +385,20 @@
 
         .cost-title {
             font-size: 0.9rem;
-            color: #888;
+            color: var(--text-secondary);
         }
 
         .cost-value {
             font-size: 2rem;
-            font-weight: bold;
-            color: #fff;
+            font-weight: 700;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--text-primary);
         }
 
         .cost-breakdown {
             margin-top: 15px;
             padding-top: 15px;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            border-top: 1px solid var(--border-color);
         }
 
         .cost-row {
@@ -349,11 +409,11 @@
         }
 
         .cost-row-label {
-            color: #666;
+            color: var(--text-muted);
         }
 
         .cost-row-value {
-            color: #ccc;
+            color: var(--text-secondary);
         }
 
         /* Loading State */
@@ -362,14 +422,14 @@
             align-items: center;
             justify-content: center;
             height: 200px;
-            color: #666;
+            color: var(--text-muted);
         }
 
         .spinner {
             width: 40px;
             height: 40px;
-            border: 3px solid rgba(255,255,255,0.1);
-            border-top-color: #00d4ff;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-cyan);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -381,29 +441,30 @@
         /* Status indicators */
         .status-dot {
             display: inline-block;
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             margin-right: 8px;
         }
 
         .status-dot.live {
-            background: #00ff88;
+            background: var(--success-green);
             animation: pulse 2s infinite;
+            box-shadow: 0 0 10px var(--success-green);
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% { opacity: 1; box-shadow: 0 0 5px var(--success-green); }
+            50% { opacity: 0.5; box-shadow: 0 0 15px var(--success-green); }
         }
 
         /* Footer */
         .footer {
-            padding: 15px 30px;
+            padding: 15px 24px;
             text-align: center;
-            color: #444;
+            color: var(--text-muted);
             font-size: 0.8rem;
-            border-top: 1px solid rgba(255,255,255,0.05);
+            border-top: 1px solid var(--border-color);
         }
 
         /* Responsive */
@@ -433,6 +494,11 @@
     <div class="header">
         <h1><span class="status-dot live"></span>KPI Dashboard</h1>
         <div class="header-controls">
+            <div class="nav-links">
+                <a href="index.html" class="nav-link active">KPI Dashboard</a>
+                <a href="communications.html" class="nav-link">Communications</a>
+                <a href="todays_queue.html" class="nav-link">Outreach Schedule</a>
+            </div>
             <select class="date-selector" id="dateRange">
                 <option value="today">Today</option>
                 <option value="week">This Week</option>
