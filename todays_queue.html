@@ -3,10 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Today's Outreach Schedule - Stop My Auction Now</title>
+    <title>Today's Outreach Queue - Mission Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* ========================================
+           SpaceX Mission Control Theme
+           ======================================== */
+        :root {
+            --bg-primary: #0b0b0f;
+            --bg-secondary: #1a1a1e;
+            --bg-panel: #141418;
+            --bg-hover: #252529;
+            --accent-blue: #005288;
+            --accent-cyan: #00bcd4;
+            --alert-red: #c41e3a;
+            --success-green: #00c853;
+            --warning-yellow: #ffc107;
+            --warning-orange: #ff8800;
+            --text-primary: #ffffff;
+            --text-secondary: #9e9e9e;
+            --text-muted: #666666;
+            --border-color: #2a2a2e;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -14,30 +36,34 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
             min-height: 100vh;
-            color: #e4e4e4;
+            color: var(--text-primary);
+            line-height: 1.5;
         }
 
         .header {
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(10px);
-            padding: 15px 30px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
             position: sticky;
             top: 0;
             z-index: 100;
         }
 
         .header h1 {
-            font-size: 1.4rem;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .header h1 span {
+            color: var(--text-secondary);
+            font-weight: 300;
         }
 
         .header-controls {
@@ -53,45 +79,47 @@
 
         .nav-link {
             padding: 8px 15px;
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid var(--border-color);
             border-radius: 6px;
-            background: rgba(255,255,255,0.05);
-            color: #aaa;
+            background: var(--bg-panel);
+            color: var(--text-secondary);
             text-decoration: none;
             font-size: 0.85rem;
             transition: all 0.2s;
         }
 
         .nav-link:hover, .nav-link.active {
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
-            color: #fff;
-            border-color: transparent;
+            background: var(--accent-cyan);
+            color: var(--text-primary);
+            border-color: var(--accent-cyan);
         }
 
         .refresh-btn {
             padding: 8px 20px;
-            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            background: var(--accent-cyan);
             border: none;
             border-radius: 6px;
-            color: #fff;
+            color: var(--bg-primary);
             cursor: pointer;
             font-weight: 500;
-            transition: opacity 0.2s;
+            transition: all 0.2s;
         }
 
         .refresh-btn:hover {
-            opacity: 0.9;
+            background: var(--accent-blue);
+            color: var(--text-primary);
         }
 
         .main-content {
-            padding: 20px 30px;
+            padding: 20px 24px;
         }
 
         /* Status Banner */
         .status-banner {
-            background: rgba(0, 212, 255, 0.1);
-            border: 1px solid rgba(0, 212, 255, 0.3);
-            border-radius: 8px;
+            background: var(--bg-panel);
+            border: 1px solid var(--accent-cyan);
+            border-left: 4px solid var(--accent-cyan);
+            border-radius: 6px;
             padding: 12px 20px;
             margin-bottom: 20px;
             display: flex;
@@ -100,35 +128,35 @@
         }
 
         .status-banner.loading {
-            background: rgba(255, 193, 7, 0.1);
-            border-color: rgba(255, 193, 7, 0.3);
+            border-color: var(--warning-yellow);
+            border-left-color: var(--warning-yellow);
         }
 
         .status-banner.error {
-            background: rgba(255, 71, 87, 0.1);
-            border-color: rgba(255, 71, 87, 0.3);
+            border-color: var(--alert-red);
+            border-left-color: var(--alert-red);
         }
 
         .status-dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: #00d4ff;
+            background: var(--accent-cyan);
             animation: pulse 2s infinite;
         }
 
         .status-banner.loading .status-dot {
-            background: #ffc107;
+            background: var(--warning-yellow);
         }
 
         .status-banner.error .status-dot {
-            background: #ff4757;
+            background: var(--alert-red);
             animation: none;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% { opacity: 1; box-shadow: 0 0 5px var(--accent-cyan); }
+            50% { opacity: 0.5; box-shadow: 0 0 15px var(--accent-cyan); }
         }
 
         /* Dispatch Info Banner */
@@ -1003,7 +1031,7 @@
         async function loadTodaysQueue() {
             // Query public.outreach_queue for all queued items
             // Show ALL queued items - dispatcher handles timing
-            const url = `${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.queued&select=queue_id,channel,status,next_action_at,meta,raw_row_id&order=next_action_at.asc&limit=5000`;
+            const url = `${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.queued&select=queue_id,channel,status,next_action_at,meta,raw_row_id&order=next_action_at.asc&limit=10000`;
 
             console.log('Fetching queued items from:', url);
 
