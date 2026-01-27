@@ -1001,10 +1001,9 @@
         }
 
         async function loadTodaysQueue() {
-            // Query public.outreach_queue for all queued items (ready to send)
-            // Show items with status='queued' where next_action_at <= NOW (ready for dispatch)
-            const now = new Date().toISOString();
-            const url = `${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.queued&next_action_at=lte.${now}&select=queue_id,channel,status,next_action_at,meta,raw_row_id&order=next_action_at.asc&limit=5000`;
+            // Query public.outreach_queue for all queued items
+            // Show ALL queued items - dispatcher handles timing
+            const url = `${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.queued&select=queue_id,channel,status,next_action_at,meta,raw_row_id&order=next_action_at.asc&limit=5000`;
 
             console.log('Fetching queued items from:', url);
 
