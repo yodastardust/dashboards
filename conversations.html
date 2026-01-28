@@ -884,6 +884,13 @@
         .reply-input.drop-target {
             border-color: var(--accent-cyan);
             background: rgba(0, 188, 212, 0.1);
+            caret-color: var(--accent-cyan);
+            animation: cursorBlink 0.5s ease-in-out infinite;
+        }
+
+        @keyframes cursorBlink {
+            0%, 100% { border-color: var(--accent-cyan); }
+            50% { border-color: var(--success-green); }
         }
 
         .char-counter {
@@ -1144,10 +1151,8 @@
     </style>
 </head>
 <body>
-    <!-- Audio for notifications -->
-    <audio id="notification-sound" preload="auto">
-        <source src="data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA/+M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAwAAAbAAqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV////////////////////////////////////////////AAAAAExhdmM1OC4xMwAAAAAAAAAAAAAAACQDgAAAAAAAAAGwhFZ+7wAAAAAAAAAAAAAAAAAAAAD/4xjEAAH0AKoAAAAASW5mbwAAAA8AAAADAAACsACqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dX///////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAACJAOAAAAAAAACsMFgdWkAAAAAAAAAAAAAAAAAAAAA/+MYxAAB9ACqAAAAAP/jGMQAAfQAqgAAAAD/4xjEAAH0AKoAAAAA" type="audio/mp3">
-    </audio>
+    <!-- Audio for notifications - using Web Audio API for reliable playback -->
+    <audio id="notification-sound" preload="auto"></audio>
 
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
@@ -2049,9 +2054,29 @@
         }
 
         function playNotificationSound() {
-            const audio = document.getElementById('notification-sound');
-            audio.currentTime = 0;
-            audio.play().catch(() => {}); // Ignore if blocked
+            // Use Web Audio API for reliable notification sound
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                // Two-tone notification sound
+                oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+                oscillator.frequency.setValueAtTime(1108, audioContext.currentTime + 0.1); // C#6
+
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+
+                console.log('Notification sound played');
+            } catch (e) {
+                console.log('Could not play notification sound:', e);
+            }
         }
 
         // ========================================
@@ -2076,7 +2101,13 @@
         }
 
         function showBrowserNotification(contact, message) {
-            if (Notification.permission !== 'granted') return;
+            console.log('showBrowserNotification called, permission:', Notification.permission);
+
+            if (Notification.permission !== 'granted') {
+                console.log('Browser notifications not granted - requesting...');
+                requestNotificationPermission();
+                return;
+            }
 
             const contactName = contact?.name || contact?.phone_digits || 'Unknown';
             const messagePreview = message?.body?.substring(0, 100) || 'New message';
@@ -2088,6 +2119,7 @@
                     tag: contact?.phone_digits || 'general', // Prevents duplicate notifications
                     requireInteraction: false // Auto-dismiss
                 });
+                console.log('Browser notification created');
 
                 // Focus window when notification is clicked
                 notification.onclick = () => {
@@ -2233,6 +2265,19 @@
             replyInput.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 replyInput.classList.add('drop-target');
+
+                // Calculate cursor position based on mouse location
+                replyInput.focus();
+                const rect = replyInput.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const textLength = replyInput.value.length;
+
+                // Estimate character position (rough approximation)
+                const charWidth = replyInput.scrollWidth / Math.max(textLength, 1);
+                const estimatedPos = Math.round(x / charWidth);
+                const cursorPos = Math.min(Math.max(0, estimatedPos), textLength);
+
+                replyInput.setSelectionRange(cursorPos, cursorPos);
             });
             replyInput.addEventListener('dragleave', () => {
                 replyInput.classList.remove('drop-target');
@@ -2242,7 +2287,25 @@
                 replyInput.classList.remove('drop-target');
                 const value = e.dataTransfer.getData('text/plain');
                 const start = replyInput.selectionStart;
-                replyInput.value = replyInput.value.substring(0, start) + value + replyInput.value.substring(start);
+                const before = replyInput.value.substring(0, start);
+                const after = replyInput.value.substring(start);
+
+                // Add spacing: space before if needed, space after if needed
+                let insertText = value;
+                if (before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n')) {
+                    insertText = ' ' + insertText;
+                }
+                if (after.length > 0 && !after.startsWith(' ') && !after.startsWith('\n')) {
+                    insertText = insertText + ' ';
+                }
+
+                replyInput.value = before + insertText + after;
+
+                // Set cursor after inserted text
+                const newCursorPos = start + insertText.length;
+                replyInput.setSelectionRange(newCursorPos, newCursorPos);
+                replyInput.focus();
+
                 updateCharCounter();
             });
 
