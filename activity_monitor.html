@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Monitor - Mission Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* ========================================
+           SpaceX Mission Control Theme
+           ======================================== */
+        :root {
+            --bg-primary: #0b0b0f;
+            --bg-secondary: #1a1a1e;
+            --bg-panel: #141418;
+            --bg-hover: #252529;
+            --accent-blue: #005288;
+            --accent-cyan: #00bcd4;
+            --accent-purple: #7b2cbf;
+            --alert-red: #c41e3a;
+            --success-green: #00c853;
+            --warning-yellow: #ffc107;
+            --warning-orange: #ff8800;
+            --text-primary: #ffffff;
+            --text-secondary: #9e9e9e;
+            --text-muted: #666666;
+            --border-color: #2a2a2e;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* ========================================
+           Header
+           ======================================== */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .logo-text {
+            font-weight: 500;
+            font-size: 18px;
+        }
+
+        .logo-text span {
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .filter-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-btn {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-family: 'Roboto Mono', monospace;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-cyan);
+        }
+
+        .filter-btn.active {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            border-color: var(--accent-cyan);
+        }
+
+        .filter-btn.active-sms {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            border-color: var(--accent-cyan);
+        }
+
+        .filter-btn.active-voice {
+            background: var(--accent-purple);
+            color: var(--text-primary);
+            border-color: var(--accent-purple);
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: var(--bg-panel);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success-green);
+        }
+
+        .status-dot.offline { background: var(--alert-red); }
+        .status-dot.syncing { background: var(--warning-orange); animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ========================================
+           Main Layout
+           ======================================== */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 65px);
+        }
+
+        /* Activity Feed (Left Panel) */
+        .activity-feed {
+            width: 45%;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+        }
+
+        .feed-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .feed-title {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .feed-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 0.75rem;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .feed-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .feed-stat.sms { color: var(--accent-cyan); }
+        .feed-stat.voice { color: var(--accent-purple); }
+
+        .activity-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+
+        .activity-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .activity-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .activity-item.selected {
+            background: var(--bg-panel);
+            border-left: 3px solid var(--accent-cyan);
+        }
+
+        .activity-item.selected.voice {
+            border-left-color: var(--accent-purple);
+        }
+
+        .activity-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.sms {
+            background: rgba(0, 188, 212, 0.15);
+            color: var(--accent-cyan);
+        }
+
+        .activity-icon.voice {
+            background: rgba(123, 44, 191, 0.15);
+            color: var(--accent-purple);
+        }
+
+        .activity-icon.inbound {
+            border: 2px solid var(--success-green);
+        }
+
+        .activity-icon.outbound {
+            border: 2px solid var(--accent-cyan);
+        }
+
+        .activity-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .activity-phone {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .activity-time {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .activity-preview {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .activity-meta {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .activity-badge {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .activity-badge.inbound {
+            background: rgba(0, 200, 83, 0.15);
+            color: var(--success-green);
+        }
+
+        .activity-badge.outbound {
+            background: rgba(0, 188, 212, 0.15);
+            color: var(--accent-cyan);
+        }
+
+        .activity-badge.success {
+            background: rgba(0, 200, 83, 0.15);
+            color: var(--success-green);
+        }
+
+        .activity-badge.failed {
+            background: rgba(196, 30, 58, 0.15);
+            color: var(--alert-red);
+        }
+
+        .load-more-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-panel);
+            border: none;
+            color: var(--accent-cyan);
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.2s;
+        }
+
+        .load-more-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        /* Detail Panel (Right) */
+        .detail-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+        }
+
+        .detail-empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+        }
+
+        .detail-empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .detail-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+
+        .detail-lead-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .lead-name {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .lead-phone {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .lead-property {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        .lead-auction {
+            font-size: 0.75rem;
+            color: var(--warning-orange);
+            margin-top: 4px;
+        }
+
+        .detail-type-badge {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .detail-type-badge.sms {
+            background: rgba(0, 188, 212, 0.15);
+            color: var(--accent-cyan);
+        }
+
+        .detail-type-badge.voice {
+            background: rgba(123, 44, 191, 0.15);
+            color: var(--accent-purple);
+        }
+
+        .detail-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        /* SMS Detail */
+        .sms-detail {
+            background: var(--bg-panel);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .sms-body {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .sms-meta {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 24px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Voice Detail */
+        .voice-detail {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .audio-player-section {
+            background: var(--bg-panel);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .audio-player-title {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .audio-player {
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .audio-player audio {
+            width: 100%;
+            height: 40px;
+        }
+
+        .audio-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .speed-btn {
+            background: var(--bg-hover);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-family: 'Roboto Mono', monospace;
+            transition: all 0.2s;
+        }
+
+        .speed-btn:hover, .speed-btn.active {
+            background: var(--accent-purple);
+            color: var(--text-primary);
+            border-color: var(--accent-purple);
+        }
+
+        .download-link {
+            margin-left: auto;
+            color: var(--accent-cyan);
+            text-decoration: none;
+            font-size: 0.75rem;
+        }
+
+        .download-link:hover {
+            text-decoration: underline;
+        }
+
+        .call-summary-section {
+            background: var(--bg-panel);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .section-title {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .call-summary-text {
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .call-meta {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .call-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+        }
+
+        .sentiment-badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        .sentiment-badge.positive {
+            background: rgba(0, 200, 83, 0.15);
+            color: var(--success-green);
+        }
+
+        .sentiment-badge.negative {
+            background: rgba(196, 30, 58, 0.15);
+            color: var(--alert-red);
+        }
+
+        .sentiment-badge.neutral, .sentiment-badge.unknown {
+            background: rgba(158, 158, 158, 0.15);
+            color: var(--text-secondary);
+        }
+
+        .transcript-section {
+            background: var(--bg-panel);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .transcript-content {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .transcript-turn {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+        }
+
+        .transcript-turn.agent {
+            background: rgba(123, 44, 191, 0.1);
+            border-left: 3px solid var(--accent-purple);
+        }
+
+        .transcript-turn.user {
+            background: rgba(0, 188, 212, 0.1);
+            border-left: 3px solid var(--accent-cyan);
+        }
+
+        .transcript-speaker {
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .transcript-turn.agent .transcript-speaker {
+            color: var(--accent-purple);
+        }
+
+        .transcript-turn.user .transcript-speaker {
+            color: var(--accent-cyan);
+        }
+
+        .transcript-text {
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .no-transcript {
+            color: var(--text-muted);
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* New Activity Indicator */
+        @keyframes newActivityPulse {
+            0%, 100% { background: rgba(0, 200, 83, 0.1); }
+            50% { background: rgba(0, 200, 83, 0.25); }
+        }
+
+        .activity-item.new {
+            animation: newActivityPulse 2s ease-in-out;
+        }
+
+        /* Search Box */
+        .search-box {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-input {
+            width: 100%;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+        }
+
+        /* Date Picker */
+        .date-picker {
+            padding: 4px 8px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 0.75rem;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-container {
+                flex-direction: column;
+            }
+            .activity-feed {
+                width: 100%;
+                height: 50%;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+            .detail-panel {
+                height: 50%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">AM</div>
+            <div class="logo-text">Activity Monitor <span>/ Mission Control</span></div>
+        </div>
+        <div class="header-controls">
+            <div class="filter-group">
+                <span class="filter-label">Channel:</span>
+                <button class="filter-btn active" data-filter="channel" data-value="all">All</button>
+                <button class="filter-btn" data-filter="channel" data-value="sms">SMS</button>
+                <button class="filter-btn" data-filter="channel" data-value="voice">Voice</button>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">Direction:</span>
+                <button class="filter-btn active" data-filter="direction" data-value="all">All</button>
+                <button class="filter-btn" data-filter="direction" data-value="inbound">In</button>
+                <button class="filter-btn" data-filter="direction" data-value="outbound">Out</button>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">Date:</span>
+                <select class="date-picker" id="dateFilter">
+                    <option value="1">Today</option>
+                    <option value="7" selected>Last 7 Days</option>
+                    <option value="30">Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                </select>
+            </div>
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Connecting...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <!-- Activity Feed -->
+        <div class="activity-feed">
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search by phone or content...">
+            </div>
+            <div class="feed-header">
+                <div class="feed-title">Activity Feed</div>
+                <div class="feed-stats">
+                    <div class="feed-stat sms">
+                        <span id="smsCount">0</span> SMS
+                    </div>
+                    <div class="feed-stat voice">
+                        <span id="voiceCount">0</span> Calls
+                    </div>
+                </div>
+            </div>
+            <div class="activity-list" id="activityList">
+                <!-- Activity items will be rendered here -->
+            </div>
+            <button class="load-more-btn" id="loadMoreBtn" style="display: none;">
+                Load More
+            </button>
+        </div>
+
+        <!-- Detail Panel -->
+        <div class="detail-panel" id="detailPanel">
+            <div class="detail-empty">
+                <div class="detail-empty-icon">📡</div>
+                <div>Select an activity to view details</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // Configuration
+        // ========================================
+        const SUPABASE_URL = 'https://saksbjogtkagedmlsrsv.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNTUxMDMsImV4cCI6MjA4NDYxNTEwM30.FvfTxotEWZlkmQNiekbt4KyxvDk_7GBqfWn55pKTjho';
+
+        // ========================================
+        // State
+        // ========================================
+        let supabaseClient = null;
+        let activities = [];
+        let filteredActivities = [];
+        let selectedActivity = null;
+        let filters = {
+            channel: 'all',
+            direction: 'all',
+            days: 7,
+            search: ''
+        };
+        let offset = 0;
+        const PAGE_SIZE = 50;
+        let leadContextCache = {};
+
+        // ========================================
+        // Initialize
+        // ========================================
+        async function init() {
+            updateConnectionStatus('syncing', 'Connecting...');
+
+            if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+                try {
+                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    updateConnectionStatus('online', 'Connected');
+
+                    await loadActivities();
+                    setupRealTimeSubscriptions();
+                } catch (e) {
+                    console.error('Supabase connection error:', e);
+                    updateConnectionStatus('offline', 'Offline');
+                }
+            }
+
+            setupEventListeners();
+        }
+
+        // ========================================
+        // Data Loading
+        // ========================================
+        async function loadActivities(append = false) {
+            if (!supabaseClient) return;
+
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - filters.days);
+            const startDateISO = startDate.toISOString();
+
+            try {
+                // Load SMS messages
+                let smsQuery = supabaseClient
+                    .from('messages')
+                    .select('message_id, conversation_id, direction, body, status, from_number, to_number, phone_digits, created_at')
+                    .gte('created_at', startDateISO)
+                    .order('created_at', { ascending: false });
+
+                if (filters.direction !== 'all') {
+                    smsQuery = smsQuery.eq('direction', filters.direction);
+                }
+
+                if (filters.search) {
+                    smsQuery = smsQuery.or(`phone_digits.ilike.%${filters.search}%,body.ilike.%${filters.search}%`);
+                }
+
+                const { data: smsData, error: smsError } = await smsQuery.range(offset, offset + PAGE_SIZE - 1);
+
+                if (smsError) {
+                    console.error('SMS query error:', smsError);
+                }
+
+                // Load Voice calls from ops.retell_call_outcomes
+                let voiceQuery = supabaseClient
+                    .schema('ops')
+                    .from('retell_call_outcomes')
+                    .select('call_id, agent_name, phone_digits, call_type, start_timestamp, duration_ms, call_status, call_successful, appointment_booked, call_summary, user_sentiment, transcript_text, transcript, recording_url, created_at')
+                    .gte('created_at', startDateISO)
+                    .order('created_at', { ascending: false });
+
+                if (filters.direction !== 'all') {
+                    const callDirection = filters.direction === 'inbound' ? 'inbound' : 'outbound';
+                    voiceQuery = voiceQuery.eq('call_type', callDirection);
+                }
+
+                if (filters.search) {
+                    voiceQuery = voiceQuery.or(`phone_digits.ilike.%${filters.search}%,transcript_text.ilike.%${filters.search}%`);
+                }
+
+                const { data: voiceData, error: voiceError } = await voiceQuery.range(offset, offset + PAGE_SIZE - 1);
+
+                if (voiceError) {
+                    console.error('Voice query error:', voiceError);
+                }
+
+                // Transform and combine
+                const smsActivities = (smsData || []).map(msg => ({
+                    id: msg.message_id,
+                    type: 'sms',
+                    direction: msg.direction,
+                    phone_digits: msg.phone_digits,
+                    preview: msg.body ? msg.body.substring(0, 100) : '',
+                    body: msg.body,
+                    status: msg.status,
+                    from_number: msg.from_number,
+                    to_number: msg.to_number,
+                    created_at: msg.created_at,
+                    raw: msg
+                }));
+
+                const voiceActivities = (voiceData || []).map(call => ({
+                    id: call.call_id,
+                    type: 'voice',
+                    direction: call.call_type === 'inbound' ? 'inbound' : 'outbound',
+                    phone_digits: call.phone_digits,
+                    preview: call.call_summary ? call.call_summary.substring(0, 100) : `${Math.round((call.duration_ms || 0) / 1000)}s call`,
+                    agent_name: call.agent_name,
+                    duration_ms: call.duration_ms,
+                    call_status: call.call_status,
+                    call_successful: call.call_successful,
+                    appointment_booked: call.appointment_booked,
+                    call_summary: call.call_summary,
+                    user_sentiment: call.user_sentiment,
+                    transcript_text: call.transcript_text,
+                    transcript: call.transcript,
+                    recording_url: call.recording_url,
+                    created_at: call.created_at || call.start_timestamp,
+                    raw: call
+                }));
+
+                // Combine and sort by time
+                let combined = [...smsActivities, ...voiceActivities];
+                combined.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                // Apply channel filter
+                if (filters.channel !== 'all') {
+                    combined = combined.filter(a => a.type === filters.channel);
+                }
+
+                if (append) {
+                    activities = [...activities, ...combined];
+                } else {
+                    activities = combined;
+                }
+
+                applyFilters();
+                renderActivityList();
+                updateStats();
+
+            } catch (e) {
+                console.error('Error loading activities:', e);
+            }
+        }
+
+        function applyFilters() {
+            filteredActivities = activities;
+
+            // Channel filter
+            if (filters.channel !== 'all') {
+                filteredActivities = filteredActivities.filter(a => a.type === filters.channel);
+            }
+
+            // Direction filter
+            if (filters.direction !== 'all') {
+                filteredActivities = filteredActivities.filter(a => a.direction === filters.direction);
+            }
+
+            // Search filter
+            if (filters.search) {
+                const searchLower = filters.search.toLowerCase();
+                filteredActivities = filteredActivities.filter(a =>
+                    (a.phone_digits && a.phone_digits.includes(filters.search)) ||
+                    (a.preview && a.preview.toLowerCase().includes(searchLower)) ||
+                    (a.body && a.body.toLowerCase().includes(searchLower))
+                );
+            }
+        }
+
+        // ========================================
+        // Real-Time Subscriptions
+        // ========================================
+        function setupRealTimeSubscriptions() {
+            if (!supabaseClient) return;
+
+            // Subscribe to new SMS messages
+            supabaseClient
+                .channel('activity-sms')
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'messages'
+                }, payload => {
+                    handleNewSMS(payload.new);
+                })
+                .subscribe();
+
+            // Subscribe to new voice calls (ops schema)
+            supabaseClient
+                .channel('activity-voice')
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'ops',
+                    table: 'retell_call_outcomes'
+                }, payload => {
+                    handleNewVoiceCall(payload.new);
+                })
+                .subscribe();
+        }
+
+        function handleNewSMS(msg) {
+            const activity = {
+                id: msg.message_id,
+                type: 'sms',
+                direction: msg.direction,
+                phone_digits: msg.phone_digits,
+                preview: msg.body ? msg.body.substring(0, 100) : '',
+                body: msg.body,
+                status: msg.status,
+                from_number: msg.from_number,
+                to_number: msg.to_number,
+                created_at: msg.created_at,
+                raw: msg,
+                isNew: true
+            };
+
+            // Add to beginning
+            activities.unshift(activity);
+            applyFilters();
+            renderActivityList();
+            updateStats();
+
+            // Remove new flag after animation
+            setTimeout(() => {
+                activity.isNew = false;
+            }, 3000);
+        }
+
+        function handleNewVoiceCall(call) {
+            const activity = {
+                id: call.call_id,
+                type: 'voice',
+                direction: call.call_type === 'inbound' ? 'inbound' : 'outbound',
+                phone_digits: call.phone_digits,
+                preview: call.call_summary ? call.call_summary.substring(0, 100) : `${Math.round((call.duration_ms || 0) / 1000)}s call`,
+                agent_name: call.agent_name,
+                duration_ms: call.duration_ms,
+                call_status: call.call_status,
+                call_successful: call.call_successful,
+                call_summary: call.call_summary,
+                user_sentiment: call.user_sentiment,
+                transcript_text: call.transcript_text,
+                transcript: call.transcript,
+                recording_url: call.recording_url,
+                created_at: call.created_at || call.start_timestamp,
+                raw: call,
+                isNew: true
+            };
+
+            activities.unshift(activity);
+            applyFilters();
+            renderActivityList();
+            updateStats();
+
+            setTimeout(() => {
+                activity.isNew = false;
+            }, 3000);
+        }
+
+        // ========================================
+        // Lead Context
+        // ========================================
+        async function loadLeadContext(phone_digits) {
+            if (leadContextCache[phone_digits]) {
+                return leadContextCache[phone_digits];
+            }
+
+            if (!supabaseClient) return null;
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('v_agent_contact_context')
+                    .select('full_name, owners_name, property_address, city, county, auction_date, auction_type')
+                    .eq('phone_digits', phone_digits)
+                    .limit(1)
+                    .single();
+
+                if (data) {
+                    leadContextCache[phone_digits] = data;
+                }
+                return data;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // ========================================
+        // Rendering
+        // ========================================
+        function renderActivityList() {
+            const container = document.getElementById('activityList');
+
+            if (filteredActivities.length === 0) {
+                container.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                        No activity found
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredActivities.map(activity => {
+                const time = formatTime(activity.created_at);
+                const isSelected = selectedActivity && selectedActivity.id === activity.id;
+                const newClass = activity.isNew ? 'new' : '';
+
+                return `
+                    <div class="activity-item ${activity.type} ${isSelected ? 'selected' : ''} ${newClass}"
+                         data-id="${activity.id}" onclick="selectActivity('${activity.id}')">
+                        <div class="activity-icon ${activity.type} ${activity.direction}">
+                            ${activity.type === 'sms' ? '💬' : '📞'}
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-header">
+                                <span class="activity-phone">...${activity.phone_digits ? activity.phone_digits.slice(-4) : '????'}</span>
+                                <span class="activity-time">${time}</span>
+                            </div>
+                            <div class="activity-preview">${escapeHtml(activity.preview || '')}</div>
+                            <div class="activity-meta">
+                                <span class="activity-badge ${activity.direction}">${activity.direction === 'inbound' ? '← IN' : '→ OUT'}</span>
+                                ${activity.type === 'voice' && activity.call_successful !== undefined ?
+                                    `<span class="activity-badge ${activity.call_successful ? 'success' : 'failed'}">${activity.call_successful ? 'Success' : 'Failed'}</span>` : ''}
+                                ${activity.type === 'sms' && activity.status ?
+                                    `<span class="activity-badge ${activity.status === 'delivered' ? 'success' : ''}">${activity.status}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Show load more if we have data
+            document.getElementById('loadMoreBtn').style.display =
+                filteredActivities.length >= PAGE_SIZE ? 'block' : 'none';
+        }
+
+        async function selectActivity(id) {
+            const activity = activities.find(a => a.id === id);
+            if (!activity) return;
+
+            selectedActivity = activity;
+            renderActivityList(); // Update selection highlight
+
+            // Load lead context
+            const leadContext = await loadLeadContext(activity.phone_digits);
+
+            // Render detail panel
+            const panel = document.getElementById('detailPanel');
+
+            if (activity.type === 'sms') {
+                panel.innerHTML = renderSMSDetail(activity, leadContext);
+            } else {
+                panel.innerHTML = renderVoiceDetail(activity, leadContext);
+            }
+        }
+
+        function renderSMSDetail(activity, lead) {
+            return `
+                <div class="detail-header">
+                    <div class="detail-lead-info">
+                        <div>
+                            <div class="lead-name">${lead?.full_name || lead?.owners_name || 'Unknown'}</div>
+                            <div class="lead-phone">${formatPhone(activity.phone_digits)}</div>
+                            ${lead?.property_address ? `<div class="lead-property">${lead.property_address}, ${lead.city || ''}</div>` : ''}
+                            ${lead?.auction_date ? `<div class="lead-auction">Auction: ${formatDate(lead.auction_date)}</div>` : ''}
+                        </div>
+                        <div class="detail-type-badge sms">SMS ${activity.direction === 'inbound' ? 'Received' : 'Sent'}</div>
+                    </div>
+                </div>
+                <div class="detail-content">
+                    <div class="sms-detail">
+                        <div class="sms-body">${escapeHtml(activity.body || '')}</div>
+                        <div class="sms-meta">
+                            <div><strong>Status:</strong> ${activity.status || 'Unknown'}</div>
+                            <div><strong>Time:</strong> ${formatDateTime(activity.created_at)}</div>
+                            ${activity.direction === 'outbound' ? `<div><strong>From:</strong> ${activity.from_number || 'N/A'}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderVoiceDetail(activity, lead) {
+            const duration = activity.duration_ms ? Math.round(activity.duration_ms / 1000) : 0;
+            const durationStr = duration >= 60 ?
+                `${Math.floor(duration / 60)}m ${duration % 60}s` :
+                `${duration}s`;
+
+            return `
+                <div class="detail-header">
+                    <div class="detail-lead-info">
+                        <div>
+                            <div class="lead-name">${lead?.full_name || lead?.owners_name || 'Unknown'}</div>
+                            <div class="lead-phone">${formatPhone(activity.phone_digits)}</div>
+                            ${lead?.property_address ? `<div class="lead-property">${lead.property_address}, ${lead.city || ''}</div>` : ''}
+                            ${lead?.auction_date ? `<div class="lead-auction">Auction: ${formatDate(lead.auction_date)}</div>` : ''}
+                        </div>
+                        <div class="detail-type-badge voice">Voice ${activity.direction === 'inbound' ? 'Inbound' : 'Outbound'}</div>
+                    </div>
+                </div>
+                <div class="detail-content">
+                    <div class="voice-detail">
+                        ${activity.recording_url ? `
+                            <div class="audio-player-section">
+                                <div class="audio-player-title">Recording</div>
+                                <div class="audio-player">
+                                    <audio id="callAudio" controls preload="metadata">
+                                        <source src="${activity.recording_url}" type="audio/wav">
+                                        Your browser does not support audio playback.
+                                    </audio>
+                                </div>
+                                <div class="audio-controls">
+                                    <button class="speed-btn active" onclick="setPlaybackSpeed(1)">1x</button>
+                                    <button class="speed-btn" onclick="setPlaybackSpeed(1.5)">1.5x</button>
+                                    <button class="speed-btn" onclick="setPlaybackSpeed(2)">2x</button>
+                                    <a href="${activity.recording_url}" target="_blank" class="download-link">Download Recording</a>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <div class="call-summary-section">
+                            <div class="section-title">Call Summary</div>
+                            <div class="call-summary-text">${activity.call_summary || 'No summary available'}</div>
+                            <div class="call-meta">
+                                <div class="call-meta-item">
+                                    <strong>Duration:</strong> ${durationStr}
+                                </div>
+                                <div class="call-meta-item">
+                                    <strong>Agent:</strong> ${activity.agent_name || 'Unknown'}
+                                </div>
+                                <div class="call-meta-item">
+                                    <strong>Status:</strong> ${activity.call_status || 'Unknown'}
+                                </div>
+                                ${activity.user_sentiment ? `
+                                    <div class="call-meta-item">
+                                        <span class="sentiment-badge ${(activity.user_sentiment || '').toLowerCase()}">${activity.user_sentiment}</span>
+                                    </div>
+                                ` : ''}
+                                ${activity.appointment_booked ? `
+                                    <div class="call-meta-item">
+                                        <span class="sentiment-badge positive">Appointment Booked</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <div class="transcript-section">
+                            <div class="section-title">Transcript</div>
+                            <div class="transcript-content">
+                                ${renderTranscript(activity.transcript_text, activity.transcript)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTranscript(transcriptText, transcriptJson) {
+            // Try to parse structured transcript
+            let transcript = null;
+            if (transcriptJson) {
+                try {
+                    transcript = typeof transcriptJson === 'string' ? JSON.parse(transcriptJson) : transcriptJson;
+                } catch (e) {}
+            }
+
+            if (Array.isArray(transcript) && transcript.length > 0) {
+                return transcript.map(turn => {
+                    const role = turn.role || 'unknown';
+                    const content = turn.content || '';
+                    const isAgent = role.toLowerCase().includes('agent');
+                    return `
+                        <div class="transcript-turn ${isAgent ? 'agent' : 'user'}">
+                            <div class="transcript-speaker">${isAgent ? 'Agent' : 'Lead'}</div>
+                            <div class="transcript-text">${escapeHtml(content)}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Fall back to plain text
+            if (transcriptText) {
+                // Try to parse "Agent: ... User: ..." format
+                const lines = transcriptText.split('\n').filter(l => l.trim());
+                if (lines.some(l => l.match(/^(agent|user|lead):/i))) {
+                    return lines.map(line => {
+                        const isAgent = line.toLowerCase().startsWith('agent:');
+                        const content = line.replace(/^(agent|user|lead):\s*/i, '');
+                        return `
+                            <div class="transcript-turn ${isAgent ? 'agent' : 'user'}">
+                                <div class="transcript-speaker">${isAgent ? 'Agent' : 'Lead'}</div>
+                                <div class="transcript-text">${escapeHtml(content)}</div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+                return `<div class="transcript-text" style="white-space: pre-wrap;">${escapeHtml(transcriptText)}</div>`;
+            }
+
+            return '<div class="no-transcript">No transcript available</div>';
+        }
+
+        function updateStats() {
+            const smsCount = activities.filter(a => a.type === 'sms').length;
+            const voiceCount = activities.filter(a => a.type === 'voice').length;
+            document.getElementById('smsCount').textContent = smsCount;
+            document.getElementById('voiceCount').textContent = voiceCount;
+        }
+
+        // ========================================
+        // Audio Player
+        // ========================================
+        function setPlaybackSpeed(speed) {
+            const audio = document.getElementById('callAudio');
+            if (audio) {
+                audio.playbackRate = speed;
+            }
+
+            // Update button states
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (parseFloat(btn.textContent) === speed) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // ========================================
+        // Event Listeners
+        // ========================================
+        function setupEventListeners() {
+            // Filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const filterType = btn.dataset.filter;
+                    const value = btn.dataset.value;
+
+                    // Update active state
+                    document.querySelectorAll(`.filter-btn[data-filter="${filterType}"]`).forEach(b => {
+                        b.classList.remove('active', 'active-sms', 'active-voice');
+                    });
+
+                    if (filterType === 'channel' && value === 'sms') {
+                        btn.classList.add('active-sms');
+                    } else if (filterType === 'channel' && value === 'voice') {
+                        btn.classList.add('active-voice');
+                    } else {
+                        btn.classList.add('active');
+                    }
+
+                    filters[filterType] = value;
+                    offset = 0;
+                    loadActivities();
+                });
+            });
+
+            // Date filter
+            document.getElementById('dateFilter').addEventListener('change', (e) => {
+                filters.days = parseInt(e.target.value);
+                offset = 0;
+                loadActivities();
+            });
+
+            // Search
+            let searchTimeout;
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    filters.search = e.target.value;
+                    offset = 0;
+                    loadActivities();
+                }, 300);
+            });
+
+            // Load more
+            document.getElementById('loadMoreBtn').addEventListener('click', () => {
+                offset += PAGE_SIZE;
+                loadActivities(true);
+            });
+        }
+
+        // ========================================
+        // Utilities
+        // ========================================
+        function updateConnectionStatus(status, text) {
+            const dot = document.getElementById('statusDot');
+            const textEl = document.getElementById('statusText');
+
+            dot.className = 'status-dot';
+            if (status === 'offline') dot.classList.add('offline');
+            if (status === 'syncing') dot.classList.add('syncing');
+
+            textEl.textContent = text;
+        }
+
+        function formatTime(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function formatDateTime(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', {
+                month: '2-digit',
+                day: '2-digit',
+                year: 'numeric'
+            });
+        }
+
+        function formatPhone(digits) {
+            if (!digits || digits.length !== 10) return digits || '';
+            return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ========================================
+        // Initialize on load
+        // ========================================
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
