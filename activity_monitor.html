@@ -848,26 +848,48 @@
                 }
 
                 // Load Voice calls from ops.retell_call_outcomes
-                let voiceQuery = supabaseClient
-                    .schema('ops')
-                    .from('retell_call_outcomes')
-                    .select('call_id, agent_name, phone_digits, call_type, start_timestamp, duration_ms, call_status, call_successful, appointment_booked, call_summary, user_sentiment, transcript_text, transcript, recording_url, created_at')
-                    .gte('created_at', startDateISO)
-                    .order('created_at', { ascending: false });
+                // Use direct REST API for ops schema (Supabase JS .schema() has issues)
+                let voiceParams = new URLSearchParams();
+                voiceParams.append('select', 'call_id,agent_name,phone_digits,call_type,start_timestamp,duration_ms,call_status,call_successful,appointment_booked,call_summary,user_sentiment,transcript_text,transcript,recording_url,created_at');
+                voiceParams.append('created_at', `gte.${startDateISO}`);
+                voiceParams.append('order', 'created_at.desc');
+                voiceParams.append('offset', offset.toString());
+                voiceParams.append('limit', PAGE_SIZE.toString());
 
                 if (filters.direction !== 'all') {
                     const callDirection = filters.direction === 'inbound' ? 'inbound' : 'outbound';
-                    voiceQuery = voiceQuery.eq('call_type', callDirection);
+                    voiceParams.append('call_type', `eq.${callDirection}`);
                 }
 
                 if (filters.search) {
-                    voiceQuery = voiceQuery.or(`phone_digits.ilike.%${filters.search}%,transcript_text.ilike.%${filters.search}%`);
+                    voiceParams.append('or', `(phone_digits.ilike.%${filters.search}%,transcript_text.ilike.%${filters.search}%)`);
                 }
 
-                const { data: voiceData, error: voiceError } = await voiceQuery.range(offset, offset + PAGE_SIZE - 1);
+                const voiceUrl = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?${voiceParams.toString()}`;
+                let voiceData = [];
+                let voiceError = null;
 
-                if (voiceError) {
-                    console.error('Voice query error:', voiceError);
+                try {
+                    const voiceResponse = await fetch(voiceUrl, {
+                        method: 'GET',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Accept-Profile': 'ops',
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!voiceResponse.ok) {
+                        const errText = await voiceResponse.text();
+                        voiceError = { message: errText, status: voiceResponse.status };
+                        console.error('Voice query error:', voiceResponse.status, errText);
+                    } else {
+                        voiceData = await voiceResponse.json();
+                    }
+                } catch (err) {
+                    voiceError = err;
+                    console.error('Voice fetch error:', err);
                 }
 
                 // Transform and combine
