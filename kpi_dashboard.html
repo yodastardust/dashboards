@@ -814,10 +814,161 @@
                 await Promise.all([
                     loadQueueData(),
                     loadMessageStats(),
-                    loadTwilioData()
+                    loadTwilioData(),
+                    loadAppointmentData()
                 ]);
             } catch (error) {
                 console.error('Error refreshing data:', error);
+            }
+        }
+
+        async function loadAppointmentData() {
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            const dateRange = document.getElementById('dateRange')?.value || 'today';
+
+            let startDate;
+            switch(dateRange) {
+                case 'today':
+                    startDate = today;
+                    break;
+                case 'week':
+                    const weekAgo = new Date(now);
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    startDate = weekAgo.toISOString().split('T')[0];
+                    break;
+                case 'month':
+                default:
+                    startDate = now.toISOString().slice(0, 7) + '-01';
+                    break;
+            }
+
+            try {
+                // Load appointment events from ops.lead_appointment_events
+                const eventsUrl = `${SUPABASE_URL}/rest/v1/lead_appointment_events?created_at=gte.${startDate}T00:00:00&order=created_at.desc`;
+                const eventsResponse = await fetch(eventsUrl, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Accept-Profile': 'ops',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                // Load appointment state from ops.lead_appointments
+                const stateUrl = `${SUPABASE_URL}/rest/v1/lead_appointments?select=*`;
+                const stateResponse = await fetch(stateUrl, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Accept-Profile': 'ops',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                let bookedToday = 0;
+                let bookedBySms = 0;
+                let bookedByVoice = 0;
+
+                if (eventsResponse.ok) {
+                    const events = await eventsResponse.json();
+                    console.log('Appointment events loaded:', events.length);
+
+                    // Count bookings by source
+                    const scheduledEvents = events.filter(e => e.action === 'scheduled');
+                    bookedToday = scheduledEvents.length;
+
+                    // For source, we need to look at the lead_appointments table
+                }
+
+                if (stateResponse.ok) {
+                    const appointments = await stateResponse.json();
+                    console.log('Appointment states loaded:', appointments.length);
+
+                    // Filter by date range
+                    const recentAppts = appointments.filter(a => {
+                        const updatedAt = a.updated_at?.split('T')[0];
+                        return updatedAt >= startDate;
+                    });
+
+                    // Count by source and filter by channel if needed
+                    recentAppts.forEach(appt => {
+                        const source = appt.last_source || 'voice';
+                        if (source === 'sms' || source === 'sms_inbound_agent') {
+                            bookedBySms++;
+                        } else {
+                            bookedByVoice++;
+                        }
+                    });
+
+                    bookedToday = recentAppts.length;
+
+                    // Apply channel filter
+                    if (currentChannel === 'sms') {
+                        bookedToday = bookedBySms;
+                    } else if (currentChannel === 'voice') {
+                        bookedToday = bookedByVoice;
+                    }
+
+                    // Update KPI card
+                    document.getElementById('apptsBooked').textContent = bookedToday;
+                    document.getElementById('apptsShowRate').textContent = `${bookedBySms} SMS / ${bookedByVoice} Voice`;
+
+                    // 1st Appointments (using ghl_calendar_id if available, otherwise all)
+                    const firstAppts = appointments.filter(a =>
+                        a.ghl_calendar_id === GHL_CALENDAR_1ST || !a.ghl_calendar_id
+                    );
+                    const firstScheduled = firstAppts.filter(a => a.appointment_status === 'scheduled' || a.status === 'scheduled').length;
+                    const firstCompleted = firstAppts.filter(a => a.appointment_status === 'completed' || a.status === 'completed').length;
+                    const firstNoShow = firstAppts.filter(a => a.appointment_status === 'no_show' || a.status === 'no_show').length;
+                    const firstShowRate = (firstCompleted + firstNoShow) > 0
+                        ? ((firstCompleted / (firstCompleted + firstNoShow)) * 100).toFixed(0)
+                        : '--';
+
+                    document.getElementById('appt1Booked').textContent = firstAppts.length;
+                    document.getElementById('appt1Completed').textContent = firstCompleted;
+                    document.getElementById('appt1NoShow').textContent = firstNoShow;
+                    document.getElementById('appt1ShowRate').textContent = firstShowRate + '%';
+
+                    // 2nd Appointments
+                    const secondAppts = appointments.filter(a => a.ghl_calendar_id === GHL_CALENDAR_2ND);
+                    const secondScheduled = secondAppts.filter(a => a.appointment_status === 'scheduled' || a.status === 'scheduled').length;
+                    const secondCompleted = secondAppts.filter(a => a.appointment_status === 'completed' || a.status === 'completed').length;
+                    const secondNoShow = secondAppts.filter(a => a.appointment_status === 'no_show' || a.status === 'no_show').length;
+                    const secondShowRate = (secondCompleted + secondNoShow) > 0
+                        ? ((secondCompleted / (secondCompleted + secondNoShow)) * 100).toFixed(0)
+                        : '--';
+
+                    document.getElementById('appt2Booked').textContent = secondAppts.length;
+                    document.getElementById('appt2Completed').textContent = secondCompleted;
+                    document.getElementById('appt2NoShow').textContent = secondNoShow;
+                    document.getElementById('appt2ShowRate').textContent = secondShowRate + '%';
+
+                    // Update funnel appointments
+                    document.getElementById('funnelAppts').textContent = bookedToday;
+                    const funnelSent = parseInt(document.getElementById('funnelSent').textContent.replace(/,/g, '')) || 0;
+                    if (funnelSent > 0) {
+                        const apptRate = ((bookedToday / funnelSent) * 100).toFixed(2);
+                        document.getElementById('funnelApptRate').textContent = apptRate + '%';
+                    }
+
+                    // Cost per appointment
+                    const totalCostText = document.getElementById('totalCost').textContent.replace('$', '');
+                    const totalCost = parseFloat(totalCostText) || 0;
+                    if (bookedToday > 0) {
+                        const costPerAppt = (totalCost / bookedToday).toFixed(2);
+                        document.getElementById('costPerAppt').textContent = '$' + costPerAppt + ' per appt';
+                        document.getElementById('costPerApptDetail').textContent = '$' + costPerAppt;
+                    }
+                } else {
+                    console.error('Failed to load appointments:', stateResponse.status);
+                    document.getElementById('apptsBooked').textContent = 'N/A';
+                }
+            } catch (e) {
+                console.error('Appointment data error:', e);
+                document.getElementById('apptsBooked').textContent = 'ERR';
             }
         }
 
