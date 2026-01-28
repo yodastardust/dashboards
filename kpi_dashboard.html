@@ -916,8 +916,8 @@
                     document.getElementById('apptsBooked').textContent = bookedToday;
                     document.getElementById('apptsShowRate').textContent = `${bookedBySms} SMS / ${bookedByVoice} Voice`;
 
-                    // 1st Appointments (using ghl_calendar_id if available, otherwise all)
-                    const firstAppts = appointments.filter(a =>
+                    // 1st Appointments - filter by date range AND calendar
+                    const firstAppts = recentAppts.filter(a =>
                         a.ghl_calendar_id === GHL_CALENDAR_1ST || !a.ghl_calendar_id
                     );
                     const firstScheduled = firstAppts.filter(a => a.appointment_status === 'scheduled' || a.status === 'scheduled').length;
@@ -932,8 +932,8 @@
                     document.getElementById('appt1NoShow').textContent = firstNoShow;
                     document.getElementById('appt1ShowRate').textContent = firstShowRate + '%';
 
-                    // 2nd Appointments
-                    const secondAppts = appointments.filter(a => a.ghl_calendar_id === GHL_CALENDAR_2ND);
+                    // 2nd Appointments - filter by date range AND calendar
+                    const secondAppts = recentAppts.filter(a => a.ghl_calendar_id === GHL_CALENDAR_2ND);
                     const secondScheduled = secondAppts.filter(a => a.appointment_status === 'scheduled' || a.status === 'scheduled').length;
                     const secondCompleted = secondAppts.filter(a => a.appointment_status === 'completed' || a.status === 'completed').length;
                     const secondNoShow = secondAppts.filter(a => a.appointment_status === 'no_show' || a.status === 'no_show').length;
