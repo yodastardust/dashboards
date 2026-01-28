@@ -893,6 +893,30 @@
             50% { border-color: var(--success-green); }
         }
 
+        /* Visual drop position indicator */
+        .drop-indicator {
+            position: absolute;
+            top: 8px;
+            bottom: 8px;
+            width: 3px;
+            background: var(--accent-cyan);
+            border-radius: 2px;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 10;
+            box-shadow: 0 0 8px var(--accent-cyan), 0 0 16px rgba(0, 188, 212, 0.5);
+            animation: dropIndicatorPulse 0.6s ease-in-out infinite;
+        }
+
+        .drop-indicator.visible {
+            opacity: 1;
+        }
+
+        @keyframes dropIndicatorPulse {
+            0%, 100% { transform: scaleY(1); opacity: 1; }
+            50% { transform: scaleY(0.9); opacity: 0.7; }
+        }
+
         .char-counter {
             position: absolute;
             right: 10px;
@@ -1282,6 +1306,7 @@
                     <div class="reply-input-wrapper">
                         <div class="reply-input-container">
                             <textarea class="reply-input" id="reply-input" placeholder="Type a message..." rows="1"></textarea>
+                            <div class="drop-indicator" id="drop-indicator"></div>
                             <span class="char-counter" id="char-counter">0/160</span>
                         </div>
                         <button class="send-btn" id="send-btn" disabled>
@@ -2262,29 +2287,42 @@
             });
 
             // Drag and drop for merge fields
+            const dropIndicator = document.getElementById('drop-indicator');
+
             replyInput.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 replyInput.classList.add('drop-target');
 
                 // Calculate cursor position based on mouse location
-                replyInput.focus();
                 const rect = replyInput.getBoundingClientRect();
                 const x = e.clientX - rect.left;
-                const textLength = replyInput.value.length;
+                const padding = 14; // Match the input padding
 
-                // Estimate character position (rough approximation)
-                const charWidth = replyInput.scrollWidth / Math.max(textLength, 1);
-                const estimatedPos = Math.round(x / charWidth);
+                // Position the drop indicator
+                const indicatorX = Math.max(padding, Math.min(x, rect.width - padding));
+                dropIndicator.style.left = indicatorX + 'px';
+                dropIndicator.classList.add('visible');
+
+                // Calculate text cursor position
+                const textLength = replyInput.value.length;
+                const textAreaWidth = rect.width - (padding * 2);
+                const charWidth = textAreaWidth / Math.max(textLength, 1);
+                const estimatedPos = Math.round((x - padding) / charWidth);
                 const cursorPos = Math.min(Math.max(0, estimatedPos), textLength);
 
                 replyInput.setSelectionRange(cursorPos, cursorPos);
             });
-            replyInput.addEventListener('dragleave', () => {
-                replyInput.classList.remove('drop-target');
+            replyInput.addEventListener('dragleave', (e) => {
+                // Only hide if actually leaving the input (not entering child elements)
+                if (!replyInput.contains(e.relatedTarget)) {
+                    replyInput.classList.remove('drop-target');
+                    dropIndicator.classList.remove('visible');
+                }
             });
             replyInput.addEventListener('drop', (e) => {
                 e.preventDefault();
                 replyInput.classList.remove('drop-target');
+                dropIndicator.classList.remove('visible');
                 const value = e.dataTransfer.getData('text/plain');
                 const start = replyInput.selectionStart;
                 const before = replyInput.value.substring(0, start);
