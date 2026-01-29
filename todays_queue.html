@@ -159,59 +159,6 @@
             50% { opacity: 0.5; box-shadow: 0 0 15px var(--accent-cyan); }
         }
 
-        /* Dispatch Info Banner */
-        .dispatch-info {
-            background: rgba(0, 255, 136, 0.1);
-            border: 1px solid rgba(0, 255, 136, 0.3);
-            border-radius: 8px;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .dispatch-info-left {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .dispatch-icon {
-            font-size: 1.5rem;
-        }
-
-        .dispatch-text h3 {
-            color: #00ff88;
-            font-size: 1rem;
-            margin-bottom: 3px;
-        }
-
-        .dispatch-text p {
-            color: #888;
-            font-size: 0.85rem;
-        }
-
-        .dispatch-stats {
-            display: flex;
-            gap: 30px;
-        }
-
-        .dispatch-stat {
-            text-align: center;
-        }
-
-        .dispatch-stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #00ff88;
-        }
-
-        .dispatch-stat-label {
-            font-size: 0.75rem;
-            color: #888;
-        }
-
         /* KPI Cards Row */
         .kpi-cards {
             display: grid;
@@ -629,21 +576,6 @@
                 grid-template-columns: 1fr;
             }
 
-            .dispatch-info {
-                flex-direction: column;
-                gap: 15px;
-                padding: 12px 15px;
-            }
-
-            .dispatch-info-left {
-                width: 100%;
-            }
-
-            .dispatch-stats {
-                width: 100%;
-                justify-content: space-around;
-            }
-
             .section-header {
                 flex-direction: column;
                 align-items: flex-start;
@@ -749,30 +681,6 @@
 
             .kpi-subtext {
                 font-size: 0.7rem;
-            }
-
-            .dispatch-info {
-                padding: 10px;
-            }
-
-            .dispatch-icon {
-                font-size: 1.2rem;
-            }
-
-            .dispatch-text h3 {
-                font-size: 0.9rem;
-            }
-
-            .dispatch-text p {
-                font-size: 0.75rem;
-            }
-
-            .dispatch-stat-value {
-                font-size: 1.2rem;
-            }
-
-            .dispatch-stat-label {
-                font-size: 0.65rem;
             }
 
             .chart-container {
@@ -1015,30 +923,18 @@
         }
 
         async function loadTodaysQueue() {
-            // First, get accurate counts using HEAD requests with count=exact
-            // This bypasses the 10k limit issue
+            // Get accurate counts using GET with Prefer: count=exact (more reliable than HEAD)
             const countHeaders = {
                 'apikey': SUPABASE_ANON_KEY,
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json',
                 'Prefer': 'count=exact'
             };
 
-            // Get total queued count (no limit)
-            const [queuedCountResp, sentTodayResp] = await Promise.all([
-                fetch(`${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.queued&select=queue_id`, {
-                    method: 'HEAD',
-                    headers: countHeaders
-                }),
-                // Get sent today count - items with status=sent and updated_at >= today start
-                fetch(`${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.sent&updated_at=gte.${new Date().toISOString().split('T')[0]}&select=queue_id`, {
-                    method: 'HEAD',
-                    headers: countHeaders
-                })
-            ]);
-
-            // Extract counts from Content-Range header (format: "0-0/123" or "*/123")
+            // Parse count from Content-Range header (format: "0-0/123" or "*/123")
             const parseCount = (resp) => {
                 const range = resp.headers.get('Content-Range');
+                console.log('Content-Range header:', range);
                 if (range) {
                     const match = range.match(/\/(\d+)$/);
                     return match ? parseInt(match[1]) : 0;
@@ -1046,16 +942,54 @@
                 return 0;
             };
 
+            // Get total queued count (using limit=1 to minimize data transfer)
+            const [queuedCountResp, sentTodayResp] = await Promise.all([
+                fetch(`${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.queued&select=queue_id&limit=1`, {
+                    headers: countHeaders
+                }),
+                // Get sent today count - items with status=sent and updated_at >= today start
+                fetch(`${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.sent&updated_at=gte.${new Date().toISOString().split('T')[0]}&select=queue_id&limit=1`, {
+                    headers: countHeaders
+                })
+            ]);
+
             const totalQueuedCount = parseCount(queuedCountResp);
             const sentTodayCount = parseCount(sentTodayResp);
 
-            console.log('Accurate counts - Queued:', totalQueuedCount, 'Sent Today:', sentTodayCount);
+            console.log('Accurate counts - Total Queued:', totalQueuedCount, 'Sent Today:', sentTodayCount);
+
+            // Calculate today's remaining capacity based on 3/min rate and time left
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            let remainingCapacity = 0;
+
+            if (currentHour < START_HOUR) {
+                // Before operating hours - full day capacity
+                remainingCapacity = (END_HOUR - START_HOUR) * 60 * MESSAGES_PER_MINUTE;
+            } else if (currentHour >= END_HOUR) {
+                // After operating hours - no capacity today
+                remainingCapacity = 0;
+            } else {
+                // During operating hours - calculate remaining
+                const minutesLeft = (END_HOUR - currentHour) * 60 - currentMinute;
+                remainingCapacity = minutesLeft * MESSAGES_PER_MINUTE;
+            }
+
+            // Pending = what can actually be sent today (limited by rate)
+            const pendingToday = Math.min(totalQueuedCount, remainingCapacity);
+
+            console.log('Today capacity:', remainingCapacity, 'Pending today:', pendingToday);
 
             // Store for later use in processQueueData
-            window._accurateCounts = { totalQueued: totalQueuedCount, sentToday: sentTodayCount };
+            window._accurateCounts = {
+                totalQueued: totalQueuedCount,
+                sentToday: sentTodayCount,
+                pendingToday: pendingToday,
+                remainingCapacity: remainingCapacity
+            };
 
-            // Query public.outreach_queue for all queued items
-            // Show ALL queued items - dispatcher handles timing
+            // Query public.outreach_queue for queued items (for display)
             const url = `${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.queued&select=queue_id,channel,status,next_action_at,meta,raw_row_id,phone_digits&order=next_action_at.asc&limit=10000`;
 
             console.log('Fetching queued items from:', url);
@@ -1231,8 +1165,8 @@
         }
 
         function processQueueData(data) {
-            // Use accurate counts from HEAD requests (bypasses 10k limit)
-            const accurateCounts = window._accurateCounts || { totalQueued: 0, sentToday: 0 };
+            // Use accurate counts (bypasses 10k limit)
+            const accurateCounts = window._accurateCounts || { totalQueued: 0, sentToday: 0, pendingToday: 0 };
 
             // Calculate channel breakdown from loaded data (may be capped at 10k but good enough for display)
             let smsCount = 0;
@@ -1256,7 +1190,7 @@
 
             // Use accurate counts for totals
             const totalQueued = accurateCounts.totalQueued;
-            const pendingCount = accurateCounts.totalQueued; // Same as total queued
+            const pendingCount = accurateCounts.pendingToday; // Limited by today's remaining capacity
             const sentCount = accurateCounts.sentToday;
 
             // Update KPI cards
