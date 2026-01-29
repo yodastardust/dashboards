@@ -666,7 +666,7 @@
 
             .queue-table {
                 font-size: 0.75rem;
-                min-width: 600px;
+                min-width: 650px;
             }
 
             .queue-table th,
@@ -779,7 +779,7 @@
             }
 
             .queue-table {
-                min-width: 550px;
+                min-width: 600px;
             }
 
             .batch-number {
@@ -953,15 +953,14 @@
                         <th>Est. Send</th>
                         <th>Channel</th>
                         <th>Tier</th>
-                        <th>County</th>
-                        <th>Audience</th>
-                        <th>Status</th>
-                        <th>Count</th>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Link</th>
                     </tr>
                 </thead>
                 <tbody id="queueTableBody">
                     <tr>
-                        <td colspan="8" class="empty-state">
+                        <td colspan="7" class="empty-state">
                             <div class="empty-state-icon">📋</div>
                             <div>Loading queue data...</div>
                         </td>
@@ -1053,16 +1052,16 @@
             const rawData = await response.json();
             console.log('Raw queue data:', rawData.length, 'items');
 
-            // Fetch property data to get county
+            // Fetch contact details from v_agent_contact_context
             const rawRowIds = [...new Set(rawData.map(r => r.raw_row_id).filter(Boolean))];
-            let propertyMap = {};
+            let contactMap = {};
 
             if (rawRowIds.length > 0) {
                 for (let i = 0; i < rawRowIds.length; i += 100) {
                     const batch = rawRowIds.slice(i, i + 100);
-                    const propUrl = `${SUPABASE_URL}/rest/v1/marketing_ready_rows?raw_row_id=in.(${batch.join(',')})&select=raw_row_id,county,property_address`;
+                    const contactUrl = `${SUPABASE_URL}/rest/v1/v_agent_contact_context?raw_row_id=in.(${batch.join(',')})&select=raw_row_id,full_name,phone_digits,likely_relationship,county,property_address`;
 
-                    const propResponse = await fetch(propUrl, {
+                    const contactResponse = await fetch(contactUrl, {
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
                             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -1070,21 +1069,31 @@
                         }
                     });
 
-                    if (propResponse.ok) {
-                        const propData = await propResponse.json();
-                        propData.forEach(p => {
-                            propertyMap[p.raw_row_id] = { county: p.county, address: p.property_address };
+                    if (contactResponse.ok) {
+                        const contactData = await contactResponse.json();
+                        contactData.forEach(c => {
+                            contactMap[c.raw_row_id] = {
+                                full_name: c.full_name,
+                                phone_digits: c.phone_digits,
+                                likely_relationship: c.likely_relationship,
+                                county: c.county,
+                                property_address: c.property_address
+                            };
                         });
                     }
                 }
-                console.log('Property data loaded:', Object.keys(propertyMap).length, 'properties');
+                console.log('Contact data loaded:', Object.keys(contactMap).length, 'contacts');
             }
 
-            // Enrich queue data with property info
+            // Enrich queue data with contact info
             rawData.forEach(item => {
-                if (item.raw_row_id && propertyMap[item.raw_row_id]) {
-                    item.county = propertyMap[item.raw_row_id].county;
-                    item.property_address = propertyMap[item.raw_row_id].address;
+                if (item.raw_row_id && contactMap[item.raw_row_id]) {
+                    const contact = contactMap[item.raw_row_id];
+                    item.full_name = contact.full_name;
+                    item.phone_digits = contact.phone_digits;
+                    item.likely_relationship = contact.likely_relationship;
+                    item.county = contact.county;
+                    item.property_address = contact.property_address;
                 }
             });
 
@@ -1421,10 +1430,13 @@
         function updateQueueTable(data) {
             const tbody = document.getElementById('queueTableBody');
 
-            if (!data || data.length === 0) {
+            // Use individual items instead of grouped data
+            const items = rawQueueItems;
+
+            if (!items || items.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="empty-state">
+                        <td colspan="7" class="empty-state">
                             <div class="empty-state-icon">📭</div>
                             <div>No messages scheduled for today</div>
                         </td>
@@ -1445,15 +1457,27 @@
                 currentBatchStart = minutesElapsed * MESSAGES_PER_MINUTE;
             }
 
-            tbody.innerHTML = data.map((row, index) => {
-                const orderDisplay = row.count > 1
-                    ? `${row.startPosition} - ${row.endPosition}`
-                    : `${row.startPosition}`;
+            // Sort items by send order (same as aggregateForOrderSheet logic)
+            const sortedItems = [...items].sort((a, b) => {
+                const priorityA = a.meta?.priority_rank || 999999;
+                const priorityB = b.meta?.priority_rank || 999999;
+                if (priorityA !== priorityB) return priorityA - priorityB;
+                return new Date(a.next_action_at) - new Date(b.next_action_at);
+            });
 
-                // Calculate start time (when first message in group sends)
-                const estStartTime = calculateEstSendTime(row.startPosition);
-                // Calculate end time (when last message in group sends)
-                const estEndTime = calculateEstSendTime(row.endPosition);
+            // Format phone for display
+            const formatPhone = (digits) => {
+                if (!digits) return '-';
+                const d = digits.replace(/\D/g, '');
+                if (d.length === 10) {
+                    return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+                }
+                return digits;
+            };
+
+            tbody.innerHTML = sortedItems.map((row, index) => {
+                const position = index + 1;
+                const estTime = calculateEstSendTime(position);
 
                 const formatTime = (t) => t.toLocaleTimeString('en-US', {
                     hour: 'numeric',
@@ -1461,30 +1485,23 @@
                     hour12: true
                 });
 
-                // Show range if group spans more than 1 minute
-                const startTimeStr = formatTime(estStartTime);
-                const endTimeStr = formatTime(estEndTime);
-                const estTimeDisplay = (row.count > 3 && startTimeStr !== endTimeStr)
-                    ? `${startTimeStr} - ${endTimeStr}`
-                    : startTimeStr;
-
                 // Highlight current batch
-                const isCurrentBatch = row.startPosition <= currentBatchStart + 3 &&
-                                       row.endPosition >= currentBatchStart &&
+                const isCurrentBatch = position >= currentBatchStart &&
+                                       position <= currentBatchStart + 3 &&
                                        row.status === 'queued';
 
-                const tierLabel = getTierLabel(row.tier);
+                const tier = row.meta?.urgency_tier || '-';
+                const channel = row.channel || 'unknown';
 
                 return `
-                <tr data-channel="${row.channel}" data-status="${row.status}" class="${isCurrentBatch ? 'current-batch' : ''}">
-                    <td><span class="batch-number">#${orderDisplay}</span></td>
-                    <td><span class="est-time">${row.status === 'sent' ? 'Sent' : estTimeDisplay}</span></td>
-                    <td><span class="badge ${row.channel}">${(row.channel || '').toUpperCase()}</span></td>
-                    <td><span class="badge ${(row.tier || '').toLowerCase()}">${row.tier || '-'}</span> <span class="tier-desc">${tierLabel}</span></td>
-                    <td>${row.county || '-'}</td>
-                    <td>${formatAudienceLabel(row.audience)}</td>
-                    <td><span class="badge ${row.status}">${row.status || '-'}</span></td>
-                    <td><strong>${parseInt(row.count).toLocaleString()}</strong></td>
+                <tr data-channel="${channel}" data-status="${row.status}" class="${isCurrentBatch ? 'current-batch' : ''}">
+                    <td><span class="batch-number">#${position}</span></td>
+                    <td><span class="est-time">${row.status === 'sent' ? 'Sent' : formatTime(estTime)}</span></td>
+                    <td><span class="badge ${channel}">${channel.toUpperCase()}</span></td>
+                    <td><span class="badge ${tier.toLowerCase()}">${tier}</span></td>
+                    <td>${row.full_name || '-'}</td>
+                    <td>${formatPhone(row.phone_digits)}</td>
+                    <td>${row.likely_relationship || '-'}</td>
                 </tr>
             `}).join('');
         }
