@@ -853,7 +853,7 @@
                         <th>Tier</th>
                         <th>Name</th>
                         <th>Phone</th>
-                        <th>Link</th>
+                        <th>Relationship</th>
                     </tr>
                 </thead>
                 <tbody id="queueTableBody">
@@ -1392,7 +1392,7 @@
                     <td><span class="badge ${tier.toLowerCase()}">${tier}</span></td>
                     <td>${formatName(row.full_name)}</td>
                     <td>${formatPhone(row.phone_digits)}</td>
-                    <td><a href="${conversationsLink}" title="View conversation">View</a></td>
+                    <td>${row.likely_relationship || 'Owner'}</td>
                 </tr>
             `}).join('');
         }
