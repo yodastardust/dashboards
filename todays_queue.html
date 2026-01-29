@@ -367,7 +367,7 @@
         }
 
         .queue-table {
-            width: 100%;
+            width: auto;
             border-collapse: collapse;
         }
 
@@ -387,21 +387,16 @@
             font-size: 0.9rem;
         }
 
-        /* Column widths */
-        .queue-table th:nth-child(1),
-        .queue-table td:nth-child(1) { width: 70px; }  /* Order */
-        .queue-table th:nth-child(2),
-        .queue-table td:nth-child(2) { width: 90px; }  /* Est. Send */
-        .queue-table th:nth-child(3),
-        .queue-table td:nth-child(3) { width: 80px; }  /* Channel */
-        .queue-table th:nth-child(4),
-        .queue-table td:nth-child(4) { width: 60px; }  /* Tier */
-        .queue-table th:nth-child(5),
-        .queue-table td:nth-child(5) { width: auto; }  /* Name - flexible */
-        .queue-table th:nth-child(6),
-        .queue-table td:nth-child(6) { width: 130px; } /* Phone */
-        .queue-table th:nth-child(7),
-        .queue-table td:nth-child(7) { width: 120px; } /* Link */
+        /* Column widths - compact layout */
+        .queue-table th,
+        .queue-table td {
+            white-space: nowrap;
+        }
+        .queue-table td:nth-child(5) {
+            /* Name column can wrap if needed */
+            white-space: normal;
+            max-width: 250px;
+        }
 
         .queue-table tr:hover {
             background: rgba(255,255,255,0.02);
