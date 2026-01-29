@@ -350,6 +350,34 @@
             color: var(--text-primary);
         }
 
+        .filter-divider {
+            width: 1px;
+            height: 20px;
+            background: var(--border-color);
+            margin: 0 4px;
+            align-self: center;
+        }
+
+        .filter-btn[data-filter="no-response"] {
+            border-color: var(--warning-orange);
+            color: var(--warning-orange);
+        }
+
+        .filter-btn[data-filter="no-response"].active {
+            background: var(--warning-orange);
+            color: var(--bg-primary);
+        }
+
+        .filter-btn[data-filter="with-response"] {
+            border-color: var(--success-green);
+            color: var(--success-green);
+        }
+
+        .filter-btn[data-filter="with-response"].active {
+            background: var(--success-green);
+            color: var(--bg-primary);
+        }
+
         .contact-list {
             flex: 1;
             overflow-y: auto;
@@ -1241,6 +1269,9 @@
                 <button class="filter-btn" data-filter="with-transcripts">AI Calls</button>
                 <button class="filter-btn" data-filter="with-sms">SMS</button>
                 <button class="filter-btn" data-filter="high-touch">10+</button>
+                <span class="filter-divider"></span>
+                <button class="filter-btn" data-filter="with-response">✓ Response</button>
+                <button class="filter-btn" data-filter="no-response">⊘ No Response</button>
             </div>
             <div class="contact-list" id="contact-list">
                 <div class="loading">
@@ -2465,6 +2496,12 @@
                     break;
                 case 'high-touch':
                     filtered = filtered.filter(c => c.total_touches >= 10);
+                    break;
+                case 'with-response':
+                    filtered = filtered.filter(c => (c.outbound_sms_count || 0) > 0);
+                    break;
+                case 'no-response':
+                    filtered = filtered.filter(c => (c.outbound_sms_count || 0) === 0 && (c.inbound_sms_count || 0) > 0);
                     break;
             }
 
