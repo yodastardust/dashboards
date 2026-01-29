@@ -368,6 +368,8 @@
 
         .queue-table {
             border-collapse: collapse;
+            width: 100%;
+            table-layout: fixed;
         }
 
         .queue-table th {
@@ -381,11 +383,30 @@
             white-space: nowrap;
         }
 
+        .queue-table th:nth-child(1) { width: 60px; }  /* Order */
+        .queue-table th:nth-child(2) { width: 90px; }  /* Est. Send */
+        .queue-table th:nth-child(3) { width: 70px; }  /* Channel */
+        .queue-table th:nth-child(4) { width: 60px; }  /* Tier */
+        .queue-table th:nth-child(5) { width: auto; }  /* Name - flexible */
+        .queue-table th:nth-child(6) { width: 130px; } /* Phone */
+        .queue-table th:nth-child(7) { width: 60px; }  /* Link */
+
         .queue-table td {
             padding: 10px 12px;
             border-bottom: 1px solid rgba(255,255,255,0.05);
             font-size: 0.9rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        .queue-table td a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+        }
+
+        .queue-table td a:hover {
+            text-decoration: underline;
         }
 
         .queue-table tr:hover {
@@ -837,27 +858,6 @@
             <span id="statusText">Loading queue data...</span>
         </div>
 
-        <!-- Dispatch Info -->
-        <div class="dispatch-info">
-            <div class="dispatch-info-left">
-                <div class="dispatch-icon">📤</div>
-                <div class="dispatch-text">
-                    <h3>SMS Dispatcher Active</h3>
-                    <p>Sending 3 messages per minute between 8am - 8pm Eastern</p>
-                </div>
-            </div>
-            <div class="dispatch-stats">
-                <div class="dispatch-stat">
-                    <div class="dispatch-stat-value" id="estCompletionTime">--</div>
-                    <div class="dispatch-stat-label">Est. Completion</div>
-                </div>
-                <div class="dispatch-stat">
-                    <div class="dispatch-stat-value" id="messagesPerHour">180</div>
-                    <div class="dispatch-stat-label">Per Hour</div>
-                </div>
-            </div>
-        </div>
-
         <!-- Queue Summary Stats -->
         <div class="summary-stats" id="summaryStats">
             <div class="summary-title">Queue Summary (<span id="summaryTotal">--</span> contacts)</div>
@@ -910,24 +910,10 @@
         </div>
 
         <!-- Charts -->
-        <div class="charts-grid">
-            <div class="chart-card">
-                <div class="chart-title">Urgency Tier Distribution</div>
-                <div class="chart-container">
-                    <canvas id="tierChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-title">Audience Type</div>
-                <div class="chart-container">
-                    <canvas id="audienceChart"></canvas>
-                </div>
-            </div>
-            <div class="chart-card">
-                <div class="chart-title">Hourly Schedule</div>
-                <div class="chart-container">
-                    <canvas id="hourlyChart"></canvas>
-                </div>
+        <div class="chart-card" style="margin-bottom: 25px;">
+            <div class="chart-title">Hourly Schedule Distribution</div>
+            <div class="chart-container">
+                <canvas id="hourlyChart"></canvas>
             </div>
         </div>
 
@@ -982,7 +968,7 @@
         const START_HOUR = 8;
         const END_HOUR = 20;
 
-        let tierChart, audienceChart, hourlyChart;
+        let hourlyChart;
         let allQueueData = [];
         let rawQueueItems = [];
 
@@ -1029,6 +1015,45 @@
         }
 
         async function loadTodaysQueue() {
+            // First, get accurate counts using HEAD requests with count=exact
+            // This bypasses the 10k limit issue
+            const countHeaders = {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Prefer': 'count=exact'
+            };
+
+            // Get total queued count (no limit)
+            const [queuedCountResp, sentTodayResp] = await Promise.all([
+                fetch(`${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.queued&select=queue_id`, {
+                    method: 'HEAD',
+                    headers: countHeaders
+                }),
+                // Get sent today count - items with status=sent and updated_at >= today start
+                fetch(`${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.sent&updated_at=gte.${new Date().toISOString().split('T')[0]}&select=queue_id`, {
+                    method: 'HEAD',
+                    headers: countHeaders
+                })
+            ]);
+
+            // Extract counts from Content-Range header (format: "0-0/123" or "*/123")
+            const parseCount = (resp) => {
+                const range = resp.headers.get('Content-Range');
+                if (range) {
+                    const match = range.match(/\/(\d+)$/);
+                    return match ? parseInt(match[1]) : 0;
+                }
+                return 0;
+            };
+
+            const totalQueuedCount = parseCount(queuedCountResp);
+            const sentTodayCount = parseCount(sentTodayResp);
+
+            console.log('Accurate counts - Queued:', totalQueuedCount, 'Sent Today:', sentTodayCount);
+
+            // Store for later use in processQueueData
+            window._accurateCounts = { totalQueued: totalQueuedCount, sentToday: sentTodayCount };
+
             // Query public.outreach_queue for all queued items
             // Show ALL queued items - dispatcher handles timing
             const url = `${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.queued&select=queue_id,channel,status,next_action_at,meta,raw_row_id,phone_digits&order=next_action_at.asc&limit=10000`;
@@ -1206,24 +1231,21 @@
         }
 
         function processQueueData(data) {
-            // Calculate totals
-            let totalQueued = 0;
+            // Use accurate counts from HEAD requests (bypasses 10k limit)
+            const accurateCounts = window._accurateCounts || { totalQueued: 0, sentToday: 0 };
+
+            // Calculate channel breakdown from loaded data (may be capped at 10k but good enough for display)
             let smsCount = 0;
             let voiceCount = 0;
-            let pendingCount = 0;
-            let sentCount = 0;
 
             const tierCounts = { V1: 0, V2: 0, V3: 0, V4: 0 };
             const audienceCounts = {};
 
             data.forEach(row => {
                 const count = parseInt(row.count) || 0;
-                totalQueued += count;
 
                 if (row.channel === 'sms') smsCount += count;
                 if (row.channel === 'voice') voiceCount += count;
-                if (row.status === 'queued') pendingCount += count;
-                if (row.status === 'sent') sentCount += count;
 
                 const tier = row.tier || 'Unknown';
                 if (tierCounts[tier] !== undefined) tierCounts[tier] += count;
@@ -1231,6 +1253,11 @@
                 const audience = row.audience || 'Unknown';
                 audienceCounts[audience] = (audienceCounts[audience] || 0) + count;
             });
+
+            // Use accurate counts for totals
+            const totalQueued = accurateCounts.totalQueued;
+            const pendingCount = accurateCounts.totalQueued; // Same as total queued
+            const sentCount = accurateCounts.sentToday;
 
             // Update KPI cards
             document.getElementById('totalQueued').textContent = totalQueued.toLocaleString();
@@ -1242,101 +1269,8 @@
             // Update summary stats
             updateSummaryStats(totalQueued, audienceCounts, tierCounts, data);
 
-            // Calculate estimated completion time for pending items
-            if (pendingCount > 0) {
-                const estCompletion = calculateEstSendTime(pendingCount);
-                document.getElementById('estCompletionTime').textContent = estCompletion.toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true
-                });
-            } else {
-                document.getElementById('estCompletionTime').textContent = 'Done!';
-            }
-
-            // Update charts
-            updateTierChart(tierCounts);
-            updateAudienceChart(audienceCounts);
-
             // Update table
             updateQueueTable(data);
-        }
-
-        function updateTierChart(tierCounts) {
-            const ctx = document.getElementById('tierChart').getContext('2d');
-
-            if (tierChart) tierChart.destroy();
-
-            tierChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['V1 (45+ days)', 'V2 (30-44 days)', 'V3 (14-29 days)', 'V4 (1-13 days)'],
-                    datasets: [{
-                        data: [tierCounts.V1, tierCounts.V2, tierCounts.V3, tierCounts.V4],
-                        backgroundColor: [
-                            'rgba(0, 212, 255, 0.8)',
-                            'rgba(255, 193, 7, 0.8)',
-                            'rgba(255, 152, 0, 0.8)',
-                            'rgba(255, 71, 87, 0.8)'
-                        ],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { color: '#888' }
-                        }
-                    }
-                }
-            });
-        }
-
-        function updateAudienceChart(audienceCounts) {
-            const ctx = document.getElementById('audienceChart').getContext('2d');
-
-            if (audienceChart) audienceChart.destroy();
-
-            const labels = Object.keys(audienceCounts);
-            const values = Object.values(audienceCounts);
-
-            const colors = [
-                'rgba(0, 212, 255, 0.8)',
-                'rgba(123, 44, 191, 0.8)',
-                'rgba(0, 255, 136, 0.8)',
-                'rgba(255, 152, 0, 0.8)',
-                'rgba(255, 71, 87, 0.8)'
-            ];
-
-            audienceChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels.map(l => formatAudienceLabel(l)),
-                    datasets: [{
-                        data: values,
-                        backgroundColor: colors.slice(0, labels.length),
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { color: '#888' }
-                        }
-                    }
-                }
-            });
-        }
-
-        function formatAudienceLabel(audience) {
-            if (!audience) return 'Unknown';
-            return audience.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         }
 
         async function loadHourlyData() {
@@ -1477,6 +1411,19 @@
                 return digits;
             };
 
+            // Helper to convert "Last, First" to "First Last"
+            const formatName = (name) => {
+                if (!name) return '-';
+                // Check if name contains comma (Last, First format)
+                if (name.includes(',')) {
+                    const parts = name.split(',').map(p => p.trim());
+                    if (parts.length === 2) {
+                        return `${parts[1]} ${parts[0]}`;
+                    }
+                }
+                return name;
+            };
+
             tbody.innerHTML = sortedItems.map((row, index) => {
                 const position = index + 1;
                 const estTime = calculateEstSendTime(position);
@@ -1495,15 +1442,20 @@
                 const tier = row.meta?.urgency_tier || '-';
                 const channel = row.channel || 'unknown';
 
+                // Build conversations link with phone filter
+                const conversationsLink = row.phone_digits
+                    ? `communications.html?phone=${row.phone_digits}`
+                    : '#';
+
                 return `
                 <tr data-channel="${channel}" data-status="${row.status}" class="${isCurrentBatch ? 'current-batch' : ''}">
                     <td><span class="batch-number">#${position}</span></td>
                     <td><span class="est-time">${row.status === 'sent' ? 'Sent' : formatTime(estTime)}</span></td>
                     <td><span class="badge ${channel}">${channel.toUpperCase()}</span></td>
                     <td><span class="badge ${tier.toLowerCase()}">${tier}</span></td>
-                    <td>${row.full_name || '-'}</td>
+                    <td>${formatName(row.full_name)}</td>
                     <td>${formatPhone(row.phone_digits)}</td>
-                    <td>${row.likely_relationship || 'Owner'}</td>
+                    <td><a href="${conversationsLink}" title="View conversation">View</a></td>
                 </tr>
             `}).join('');
         }
