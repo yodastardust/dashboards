@@ -316,7 +316,6 @@
         .queue-table {
             border-collapse: collapse;
             width: 100%;
-            table-layout: fixed;
         }
 
         .queue-table th {
@@ -330,21 +329,10 @@
             white-space: nowrap;
         }
 
-        .queue-table th:nth-child(1) { width: 60px; }  /* Order */
-        .queue-table th:nth-child(2) { width: 90px; }  /* Est. Send */
-        .queue-table th:nth-child(3) { width: 70px; }  /* Channel */
-        .queue-table th:nth-child(4) { width: 60px; }  /* Tier */
-        .queue-table th:nth-child(5) { width: auto; }  /* Name - flexible */
-        .queue-table th:nth-child(6) { width: 130px; } /* Phone */
-        .queue-table th:nth-child(7) { width: 60px; }  /* Link */
-
         .queue-table td {
             padding: 10px 12px;
             border-bottom: 1px solid rgba(255,255,255,0.05);
             font-size: 0.9rem;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
         .queue-table td a {
