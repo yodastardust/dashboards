@@ -329,13 +329,15 @@
         }
 
         /* Column widths */
-        .queue-table th:nth-child(1), .queue-table td:nth-child(1) { width: 5%; }   /* Order */
-        .queue-table th:nth-child(2), .queue-table td:nth-child(2) { width: 8%; }   /* Est. Send */
-        .queue-table th:nth-child(3), .queue-table td:nth-child(3) { width: 7%; }   /* Channel */
-        .queue-table th:nth-child(4), .queue-table td:nth-child(4) { width: 5%; }   /* Tier */
-        .queue-table th:nth-child(5), .queue-table td:nth-child(5) { width: 45%; }  /* Name */
-        .queue-table th:nth-child(6), .queue-table td:nth-child(6) { width: 15%; }  /* Phone */
-        .queue-table th:nth-child(7), .queue-table td:nth-child(7) { width: 15%; }  /* Link */
+        .queue-table th:nth-child(1), .queue-table td:nth-child(1) { width: 4%; }   /* Order */
+        .queue-table th:nth-child(2), .queue-table td:nth-child(2) { width: 7%; }   /* Est. Send */
+        .queue-table th:nth-child(3), .queue-table td:nth-child(3) { width: 5%; }   /* Channel */
+        .queue-table th:nth-child(4), .queue-table td:nth-child(4) { width: 4%; }   /* Tier */
+        .queue-table th:nth-child(5), .queue-table td:nth-child(5) { width: 28%; }  /* Address */
+        .queue-table th:nth-child(6), .queue-table td:nth-child(6) { width: 10%; }  /* County */
+        .queue-table th:nth-child(7), .queue-table td:nth-child(7) { width: 6%; }   /* Contacts */
+        .queue-table th:nth-child(8), .queue-table td:nth-child(8) { width: 12%; }  /* Phone */
+        .queue-table th:nth-child(9), .queue-table td:nth-child(9) { width: 10%; }  /* Relationship */
 
         .queue-table th {
             border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -851,7 +853,9 @@
                         <th>Est. Send</th>
                         <th>Channel</th>
                         <th>Tier</th>
-                        <th>Name</th>
+                        <th>Address</th>
+                        <th>County</th>
+                        <th>Contacts</th>
                         <th>Phone</th>
                         <th>Relationship</th>
                     </tr>
@@ -865,6 +869,11 @@
                     </tr>
                 </tbody>
             </table>
+            <div id="loadMoreContainer" style="text-align: center; margin-top: 15px; display: none;">
+                <button id="loadMoreBtn" class="refresh-btn" onclick="loadMoreItems()" style="padding: 10px 30px;">
+                    Load More (<span id="loadMoreCount">0</span> remaining)
+                </button>
+            </div>
         </div>
     </div>
 
@@ -882,6 +891,12 @@
         let hourlyChart;
         let allQueueData = [];
         let rawQueueItems = [];
+
+        // Pagination settings
+        const PAGE_SIZE = 500;
+        let currentPage = 0;
+        let totalLoadedItems = 0;
+        let hasMoreData = true;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -1016,39 +1031,53 @@
             console.log('Raw queue data:', rawData.length, 'items');
 
             // Fetch contact details from v_agent_contact_context
-            // Need to fetch by phone_digits since same raw_row_id can have multiple contacts
+            // OPTIMIZED: Use larger batches (500 instead of 100) and parallel fetching
             const phoneDigits = [...new Set(rawData.map(r => r.phone_digits).filter(Boolean))];
             let contactMap = {};
 
             if (phoneDigits.length > 0) {
-                for (let i = 0; i < phoneDigits.length; i += 100) {
-                    const batch = phoneDigits.slice(i, i + 100);
-                    const contactUrl = `${SUPABASE_URL}/rest/v1/v_agent_contact_context?phone_digits=in.(${batch.join(',')})&select=raw_row_id,full_name,phone_digits,likely_relationship,county,property_address`;
+                // Use larger batches (500) and fetch in parallel
+                const CONTACT_BATCH_SIZE = 500;
+                const batches = [];
+                for (let i = 0; i < phoneDigits.length; i += CONTACT_BATCH_SIZE) {
+                    batches.push(phoneDigits.slice(i, i + CONTACT_BATCH_SIZE));
+                }
 
-                    const contactResponse = await fetch(contactUrl, {
+                console.log(`Fetching ${phoneDigits.length} contacts in ${batches.length} batches...`);
+
+                // Fetch all batches in parallel
+                const fetchPromises = batches.map(batch => {
+                    const contactUrl = `${SUPABASE_URL}/rest/v1/v_agent_contact_context?phone_digits=in.(${batch.join(',')})&select=raw_row_id,full_name,phone_digits,likely_relationship,county,property_address`;
+                    return fetch(contactUrl, {
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
                             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
                             'Content-Type': 'application/json'
                         }
-                    });
+                    }).then(r => r.ok ? r.json() : []);
+                });
 
-                    if (contactResponse.ok) {
-                        const contactData = await contactResponse.json();
-                        contactData.forEach(c => {
-                            // Key by phone_digits for accurate matching
-                            contactMap[c.phone_digits] = {
-                                full_name: c.full_name,
-                                phone_digits: c.phone_digits,
-                                likely_relationship: c.likely_relationship,
-                                county: c.county,
-                                property_address: c.property_address
-                            };
-                        });
-                    }
-                }
+                const results = await Promise.all(fetchPromises);
+                results.flat().forEach(c => {
+                    contactMap[c.phone_digits] = {
+                        raw_row_id: c.raw_row_id,
+                        full_name: c.full_name,
+                        phone_digits: c.phone_digits,
+                        likely_relationship: c.likely_relationship,
+                        county: c.county,
+                        property_address: c.property_address
+                    };
+                });
                 console.log('Contact data loaded:', Object.keys(contactMap).length, 'contacts');
             }
+
+            // Calculate contacts_per_property (count by raw_row_id)
+            const contactsPerProperty = {};
+            rawData.forEach(item => {
+                if (item.raw_row_id) {
+                    contactsPerProperty[item.raw_row_id] = (contactsPerProperty[item.raw_row_id] || 0) + 1;
+                }
+            });
 
             // Enrich queue data with contact info (match by phone_digits)
             rawData.forEach(item => {
@@ -1059,6 +1088,8 @@
                     item.county = contact.county;
                     item.property_address = contact.property_address;
                 }
+                // Add contacts per property count
+                item.contacts_per_property = contactsPerProperty[item.raw_row_id] || 1;
             });
 
             rawQueueItems = rawData;
@@ -1300,6 +1331,9 @@
             });
         }
 
+        // Store sorted items for pagination
+        let sortedQueueItems = [];
+
         function updateQueueTable(data) {
             const tbody = document.getElementById('queueTableBody');
 
@@ -1309,34 +1343,50 @@
             if (!items || items.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="empty-state">
+                        <td colspan="9" class="empty-state">
                             <div class="empty-state-icon">📭</div>
                             <div>No messages scheduled for today</div>
                         </td>
                     </tr>
                 `;
+                document.getElementById('loadMoreContainer').style.display = 'none';
                 return;
             }
+
+            // Sort items by send order (same as aggregateForOrderSheet logic)
+            sortedQueueItems = [...items].sort((a, b) => {
+                const priorityA = a.meta?.priority_rank || 999999;
+                const priorityB = b.meta?.priority_rank || 999999;
+                if (priorityA !== priorityB) return priorityA - priorityB;
+                return new Date(a.next_action_at) - new Date(b.next_action_at);
+            });
+
+            // Reset pagination
+            totalLoadedItems = 0;
+
+            // Render first batch
+            renderQueueRows(PAGE_SIZE, false);
+        }
+
+        function renderQueueRows(count, append = false) {
+            const tbody = document.getElementById('queueTableBody');
+
+            // Helper to truncate long addresses
+            const truncate = (str, len) => {
+                if (!str) return '-';
+                return str.length > len ? str.substring(0, len) + '...' : str;
+            };
 
             // Find which batch is currently being processed
             const now = new Date();
             const currentHour = now.getHours();
             let currentBatchStart = 0;
             if (currentHour >= START_HOUR && currentHour < END_HOUR) {
-                // Estimate current position based on time elapsed
                 const startTime = new Date();
                 startTime.setHours(START_HOUR, 0, 0, 0);
                 const minutesElapsed = Math.floor((now - startTime) / 60000);
                 currentBatchStart = minutesElapsed * MESSAGES_PER_MINUTE;
             }
-
-            // Sort items by send order (same as aggregateForOrderSheet logic)
-            const sortedItems = [...items].sort((a, b) => {
-                const priorityA = a.meta?.priority_rank || 999999;
-                const priorityB = b.meta?.priority_rank || 999999;
-                if (priorityA !== priorityB) return priorityA - priorityB;
-                return new Date(a.next_action_at) - new Date(b.next_action_at);
-            });
 
             // Format phone for display
             const formatPhone = (digits) => {
@@ -1348,30 +1398,21 @@
                 return digits;
             };
 
-            // Helper to convert "Last, First" to "First Last"
-            const formatName = (name) => {
-                if (!name) return '-';
-                // Check if name contains comma (Last, First format)
-                if (name.includes(',')) {
-                    const parts = name.split(',').map(p => p.trim());
-                    if (parts.length === 2) {
-                        return `${parts[1]} ${parts[0]}`;
-                    }
-                }
-                return name;
-            };
+            const formatTime = (t) => t.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
 
-            tbody.innerHTML = sortedItems.map((row, index) => {
-                const position = index + 1;
+            // Get items to render
+            const startIdx = totalLoadedItems;
+            const endIdx = Math.min(startIdx + count, sortedQueueItems.length);
+            const itemsToRender = sortedQueueItems.slice(startIdx, endIdx);
+
+            const rowsHtml = itemsToRender.map((row, idx) => {
+                const position = startIdx + idx + 1;
                 const estTime = calculateEstSendTime(position);
 
-                const formatTime = (t) => t.toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true
-                });
-
-                // Highlight current batch
                 const isCurrentBatch = position >= currentBatchStart &&
                                        position <= currentBatchStart + 3 &&
                                        row.status === 'queued';
@@ -1379,22 +1420,41 @@
                 const tier = row.meta?.urgency_tier || '-';
                 const channel = row.channel || 'unknown';
 
-                // Build conversations link with phone filter
-                const conversationsLink = row.phone_digits
-                    ? `communications.html?phone=${row.phone_digits}`
-                    : '#';
-
                 return `
                 <tr data-channel="${channel}" data-status="${row.status}" class="${isCurrentBatch ? 'current-batch' : ''}">
                     <td><span class="batch-number">#${position}</span></td>
                     <td><span class="est-time">${row.status === 'sent' ? 'Sent' : formatTime(estTime)}</span></td>
                     <td><span class="badge ${channel}">${channel.toUpperCase()}</span></td>
                     <td><span class="badge ${tier.toLowerCase()}">${tier}</span></td>
-                    <td>${formatName(row.full_name)}</td>
+                    <td title="${row.property_address || '-'}">${truncate(row.property_address, 35)}</td>
+                    <td>${row.county || '-'}</td>
+                    <td><span class="badge v1">${row.contacts_per_property || 1}</span></td>
                     <td>${formatPhone(row.phone_digits)}</td>
                     <td>${row.likely_relationship || 'Owner'}</td>
                 </tr>
             `}).join('');
+
+            if (append) {
+                tbody.insertAdjacentHTML('beforeend', rowsHtml);
+            } else {
+                tbody.innerHTML = rowsHtml;
+            }
+
+            totalLoadedItems = endIdx;
+
+            // Update Load More button
+            const remaining = sortedQueueItems.length - totalLoadedItems;
+            const loadMoreContainer = document.getElementById('loadMoreContainer');
+            if (remaining > 0) {
+                loadMoreContainer.style.display = 'block';
+                document.getElementById('loadMoreCount').textContent = remaining.toLocaleString();
+            } else {
+                loadMoreContainer.style.display = 'none';
+            }
+        }
+
+        function loadMoreItems() {
+            renderQueueRows(PAGE_SIZE, true);
         }
 
         function getTierLabel(tier) {
