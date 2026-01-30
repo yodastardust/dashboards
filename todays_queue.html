@@ -961,24 +961,34 @@
             };
 
             // Get total queued count (using limit=1 to minimize data transfer)
-            const [queuedCountResp, sentTodayResp] = await Promise.all([
-                fetch(`${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.queued&select=queue_id&limit=1`, {
-                    headers: countHeaders
-                }),
-                // Get sent today count - items with status=sent and updated_at >= today start
-                fetch(`${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.sent&updated_at=gte.${new Date().toISOString().split('T')[0]}&select=queue_id&limit=1`, {
-                    headers: countHeaders
-                })
-            ]);
-
+            const queuedCountResp = await fetch(`${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.queued&select=queue_id&limit=1`, {
+                headers: countHeaders
+            });
             const totalQueuedCount = parseCount(queuedCountResp);
-            const sentTodayCount = parseCount(sentTodayResp);
 
-            console.log('Accurate counts - Total Queued:', totalQueuedCount, 'Sent Today:', sentTodayCount);
-
-            // Calculate today's remaining capacity based on 3/min rate and time left
+            // Calculate "Sent Today" - ONLY count items sent during TODAY's operating hours (8am-8pm)
             const now = new Date();
             const currentHour = now.getHours();
+            let sentTodayCount = 0;
+
+            // Only show sent count if we're during or after operating hours
+            if (currentHour >= START_HOUR) {
+                // Get today's 8am as the start of "today" for sending purposes
+                const todayStart = new Date();
+                todayStart.setHours(START_HOUR, 0, 0, 0);
+                const todayStartISO = todayStart.toISOString();
+
+                const sentTodayResp = await fetch(`${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.sent&updated_at=gte.${todayStartISO}&select=queue_id&limit=1`, {
+                    headers: countHeaders
+                });
+                sentTodayCount = parseCount(sentTodayResp);
+            }
+            // If before 8am, sentTodayCount stays 0 (operating hours haven't started)
+
+            console.log('Accurate counts - Total Queued:', totalQueuedCount, 'Sent Today:', sentTodayCount, '(hour:', currentHour, ')');
+
+            // Calculate today's remaining capacity based on 3/min rate and time left
+            // (now and currentHour already defined above)
             const currentMinute = now.getMinutes();
             let remainingCapacity = 0;
 
