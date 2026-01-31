@@ -833,6 +833,16 @@
         let conversationChannel = null;
         let twilioFromNumber = null; // The Twilio number they messaged
 
+        // Valid Twilio numbers we own (used for sending)
+        const VALID_TWILIO_NUMBERS = [
+            '+15617867541',  // Primary outbound
+            '+15613725205',  // Secondary
+            '+15618285062',
+            '+15617776609',
+            '+15618295314'
+        ];
+        const DEFAULT_TWILIO_NUMBER = '+15617867541'; // Fallback when detected number is invalid
+
         // n8n webhooks
         const SMS_REPLY_WEBHOOK = 'https://n8n.stopmyauctionnow.com/webhook/sms-reply';
         const DISPO_WEBHOOK = 'https://n8n.stopmyauctionnow.com/webhook/dashboard-dispo-v3';
@@ -1102,7 +1112,19 @@
                 // Find the Twilio number they messaged (to_number of an inbound message)
                 const inboundMsg = messages.find(m => m.direction === 'inbound');
                 if (inboundMsg && inboundMsg.to_number) {
-                    twilioFromNumber = inboundMsg.to_number;
+                    const detectedNumber = inboundMsg.to_number;
+                    // Validate it's one of our Twilio numbers
+                    if (VALID_TWILIO_NUMBERS.includes(detectedNumber)) {
+                        twilioFromNumber = detectedNumber;
+                    } else {
+                        // Use fallback - the detected number isn't ours
+                        console.warn(`Detected to_number ${detectedNumber} is not a valid Twilio number, using fallback`);
+                        twilioFromNumber = DEFAULT_TWILIO_NUMBER;
+                    }
+                    document.getElementById('from-number').textContent = formatPhone(twilioFromNumber.replace('+1', ''));
+                } else {
+                    // No inbound message found, use default
+                    twilioFromNumber = DEFAULT_TWILIO_NUMBER;
                     document.getElementById('from-number').textContent = formatPhone(twilioFromNumber.replace('+1', ''));
                 }
 
