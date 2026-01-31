@@ -594,7 +594,7 @@
             try {
                 // Query conversations that need response
                 // Note: resolution column may not exist yet, so we handle that gracefully
-                let query = supabase
+                let query = supabaseClient
                     .from('conversations')
                     .select('*')
                     .gt('inbound_sms_count', 0)
@@ -610,7 +610,7 @@
 
                 // Load context for each phone
                 const contextPromises = queueData.map(async (conv) => {
-                    const { data: ctx } = await supabase
+                    const { data: ctx } = await supabaseClient
                         .from('v_agent_contact_context')
                         .select('full_name, property_address, city, county, auction_date, dec, llc, likely_relationship, role, raw_row_id')
                         .eq('phone_digits', conv.phone_digits)
@@ -623,7 +623,7 @@
 
                 // Load last message for each
                 const messagePromises = queueData.map(async (conv) => {
-                    const { data: msgs } = await supabase
+                    const { data: msgs } = await supabaseClient
                         .from('messages')
                         .select('body, direction, created_at')
                         .eq('phone_digits', conv.phone_digits)
@@ -743,7 +743,7 @@
             container.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
 
             try {
-                const { data: messages, error } = await supabase
+                const { data: messages, error } = await supabaseClient
                     .from('messages')
                     .select('*')
                     .eq('phone_digits', phoneDigits)
@@ -780,7 +780,7 @@
 
             try {
                 // Update conversation with resolution
-                const { error: convError } = await supabase
+                const { error: convError } = await supabaseClient
                     .from('conversations')
                     .update({
                         resolution: action,
@@ -825,7 +825,7 @@
         }
 
         async function createSuppression(rawRowId, personId, reason, expiresAt) {
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('contact_channel_suppressions')
                 .insert({
                     raw_row_id: rawRowId,
@@ -846,7 +846,7 @@
 
         function setupRealtimeSubscription() {
             // Subscribe to conversation changes
-            conversationChannel = supabase
+            conversationChannel = supabaseClient
                 .channel('conversations-changes')
                 .on('postgres_changes',
                     { event: '*', schema: 'public', table: 'conversations' },
