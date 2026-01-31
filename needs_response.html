@@ -593,20 +593,20 @@
 
             try {
                 // Query conversations that need response
-                // Note: resolution column may not exist yet, so we handle that gracefully
+                // Filter for resolution IS NULL directly in the query
                 let query = supabaseClient
                     .from('conversations')
                     .select('*')
                     .gt('inbound_sms_count', 0)
                     .neq('status', 'stopped')
+                    .is('resolution', null)
                     .order('last_inbound_at', { ascending: true });
 
                 const { data: conversations, error } = await query;
 
                 if (error) throw error;
 
-                // Filter out those with resolution (if column exists)
-                queueData = conversations.filter(c => !c.resolution);
+                queueData = conversations;
 
                 // DON'T load context/messages for all items - load lazily on selection
                 // This prevents ERR_INSUFFICIENT_RESOURCES from too many parallel requests
