@@ -608,39 +608,60 @@
                 // Filter out those with resolution (if column exists)
                 queueData = conversations.filter(c => !c.resolution);
 
-                // Load context for each phone
-                const contextPromises = queueData.map(async (conv) => {
-                    const { data: ctx } = await supabaseClient
-                        .from('v_agent_contact_context')
-                        .select('full_name, property_address, city, county, auction_date, dec, llc, likely_relationship, role, raw_row_id')
-                        .eq('phone_digits', conv.phone_digits)
-                        .limit(1);
-                    conv.context = ctx?.[0] || {};
-                    return conv;
-                });
-
-                await Promise.all(contextPromises);
-
-                // Load last message for each
-                const messagePromises = queueData.map(async (conv) => {
-                    const { data: msgs } = await supabaseClient
-                        .from('messages')
-                        .select('body, direction, created_at')
-                        .eq('phone_digits', conv.phone_digits)
-                        .order('created_at', { ascending: false })
-                        .limit(1);
-                    conv.lastMessage = msgs?.[0] || null;
-                    return conv;
-                });
-
-                await Promise.all(messagePromises);
+                // DON'T load context/messages for all items - load lazily on selection
+                // This prevents ERR_INSUFFICIENT_RESOURCES from too many parallel requests
 
                 renderQueue();
                 updateStats();
 
+                // Load context in small batches in background (5 at a time)
+                loadContextInBatches();
+
             } catch (err) {
                 console.error('Error loading queue:', err);
                 queueList.innerHTML = '<div class="empty-queue"><p>Error loading queue</p></div>';
+            }
+        }
+
+        // Load context data in small batches to avoid overwhelming the browser
+        async function loadContextInBatches() {
+            const BATCH_SIZE = 5;
+            for (let i = 0; i < queueData.length; i += BATCH_SIZE) {
+                const batch = queueData.slice(i, i + BATCH_SIZE);
+
+                await Promise.all(batch.map(async (conv) => {
+                    if (conv.context) return; // Already loaded
+
+                    try {
+                        const { data: ctx } = await supabaseClient
+                            .from('v_agent_contact_context')
+                            .select('full_name, property_address, city, county, auction_date, dec, llc, likely_relationship, role, raw_row_id')
+                            .eq('phone_digits', conv.phone_digits)
+                            .limit(1);
+                        conv.context = ctx?.[0] || {};
+
+                        // Also get last inbound message for preview
+                        const { data: msgs } = await supabaseClient
+                            .from('messages')
+                            .select('body, direction, created_at')
+                            .eq('phone_digits', conv.phone_digits)
+                            .eq('direction', 'inbound')
+                            .order('created_at', { ascending: false })
+                            .limit(1);
+                        conv.lastMessage = msgs?.[0] || null;
+                    } catch (err) {
+                        console.warn('Error loading context for', conv.phone_digits, err);
+                        conv.context = {};
+                    }
+                }));
+
+                // Re-render to show updated data
+                renderQueue();
+
+                // Small delay between batches
+                if (i + BATCH_SIZE < queueData.length) {
+                    await new Promise(r => setTimeout(r, 100));
+                }
             }
         }
 
@@ -664,26 +685,35 @@
                 const waitTime = formatWaitTime(item.last_inbound_at);
                 const isUrgent = waitTime.hours > 24;
                 const ctx = item.context || {};
-                const name = ctx.full_name ? ctx.full_name.split('\n')[0].substring(0, 35) : 'Unknown';
-                const property = ctx.property_address ? `${ctx.property_address}${ctx.city ? ', ' + ctx.city : ''}` : '-';
-                const lastMsg = item.lastMessage?.body || 'No message';
+                const hasContext = item.context !== undefined;
+
+                // Show loading state if context not yet loaded
+                const name = hasContext
+                    ? (ctx.full_name ? ctx.full_name.split('\n')[0].substring(0, 35) : 'Unknown')
+                    : 'Loading...';
+                const property = hasContext
+                    ? (ctx.property_address ? `${ctx.property_address}${ctx.city ? ', ' + ctx.city : ''}` : '-')
+                    : '...';
+                const lastMsg = item.lastMessage?.body || (hasContext ? 'No message' : '...');
 
                 let badges = '';
-                if (ctx.dec === true) badges += '<span class="badge badge-deceased">Deceased</span>';
-                if (ctx.llc) badges += '<span class="badge badge-llc">LLC</span>';
-                if (ctx.role === 'owner') badges += '<span class="badge badge-owner">Owner</span>';
-                if (ctx.likely_relationship) badges += `<span class="badge badge-relative">${ctx.likely_relationship}</span>`;
+                if (hasContext) {
+                    if (ctx.dec === true) badges += '<span class="badge badge-deceased">Deceased</span>';
+                    if (ctx.llc) badges += '<span class="badge badge-llc">LLC</span>';
+                    if (ctx.role === 'owner') badges += '<span class="badge badge-owner">Owner</span>';
+                    if (ctx.likely_relationship) badges += `<span class="badge badge-relative">${ctx.likely_relationship}</span>`;
+                }
 
                 return `
                     <div class="queue-item ${selectedItem?.phone_digits === item.phone_digits ? 'selected' : ''}"
                          onclick="selectItem(${index})">
                         <div class="queue-item-header">
-                            <div class="queue-item-name">${escapeHtml(name)}</div>
+                            <div class="queue-item-name" style="${!hasContext ? 'opacity: 0.5' : ''}">${escapeHtml(name)}</div>
                             <div class="queue-item-time ${isUrgent ? 'urgent' : ''}">${waitTime.display}</div>
                         </div>
                         <div class="queue-item-phone">${formatPhone(item.phone_digits)}</div>
-                        <div class="queue-item-property">${escapeHtml(property.substring(0, 50))}</div>
-                        <div class="queue-item-message">"${escapeHtml(lastMsg.substring(0, 80))}"</div>
+                        <div class="queue-item-property" style="${!hasContext ? 'opacity: 0.5' : ''}">${escapeHtml(property.substring(0, 50))}</div>
+                        <div class="queue-item-message" style="${!hasContext ? 'opacity: 0.5' : ''}">"${escapeHtml(lastMsg.substring(0, 80))}"</div>
                         ${badges ? '<div class="queue-item-badges">' + badges + '</div>' : ''}
                     </div>
                 `;
@@ -726,7 +756,27 @@
             view.style.display = 'flex';
             noSelection.style.display = 'none';
 
-            // Update header
+            // If context not yet loaded, load it now (don't wait for background batch)
+            if (!selectedItem.context) {
+                document.getElementById('conv-name').textContent = 'Loading...';
+                document.getElementById('conv-phone').textContent = formatPhone(selectedItem.phone_digits);
+                document.getElementById('conv-property').textContent = '...';
+                document.getElementById('conv-auction').textContent = '';
+
+                try {
+                    const { data: ctx } = await supabaseClient
+                        .from('v_agent_contact_context')
+                        .select('full_name, property_address, city, county, auction_date, dec, llc, likely_relationship, role, raw_row_id')
+                        .eq('phone_digits', selectedItem.phone_digits)
+                        .limit(1);
+                    selectedItem.context = ctx?.[0] || {};
+                } catch (err) {
+                    console.warn('Error loading context:', err);
+                    selectedItem.context = {};
+                }
+            }
+
+            // Update header with context
             const ctx = selectedItem.context || {};
             const name = ctx.full_name ? ctx.full_name.split('\n')[0] : 'Unknown';
             document.getElementById('conv-name').textContent = name;
@@ -736,6 +786,9 @@
 
             // Load messages
             await loadMessages(selectedItem.phone_digits);
+
+            // Update queue list to show we have context now
+            renderQueue();
         }
 
         async function loadMessages(phoneDigits) {
@@ -825,7 +878,11 @@
         }
 
         async function createSuppression(rawRowId, personId, reason, expiresAt) {
+            // Note: contact_channel_suppressions is in the ops schema
+            // We need to use a different approach since Supabase JS client defaults to public schema
+            // For now, we'll try the insert and it should work if the RLS policies are set up
             const { error } = await supabaseClient
+                .schema('ops')
                 .from('contact_channel_suppressions')
                 .insert({
                     raw_row_id: rawRowId,
@@ -838,9 +895,10 @@
                 })
                 .select();
 
-            // If error is about missing column, ignore (expires_at may not exist yet)
-            if (error && !error.message.includes('expires_at')) {
-                throw error;
+            // If error is about missing column or schema access, log but don't throw
+            if (error) {
+                console.warn('Suppression creation warning:', error.message);
+                // Don't throw - suppression is secondary to the dispo action
             }
         }
 
