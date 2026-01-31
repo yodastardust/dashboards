@@ -337,6 +337,68 @@
             color: rgba(255,255,255,0.6);
         }
 
+        .reply-panel {
+            padding: 12px 24px;
+            background: var(--bg-panel);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .reply-input-container {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .reply-input-container textarea {
+            flex: 1;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: none;
+            outline: none;
+        }
+
+        .reply-input-container textarea:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .reply-input-container button {
+            background: var(--accent-blue);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .reply-input-container button:hover {
+            background: #0066aa;
+        }
+
+        .reply-input-container button:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        .reply-info {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .reply-info span {
+            color: var(--accent-cyan);
+            font-family: 'Roboto Mono', monospace;
+        }
+
         .dispo-panel {
             padding: 16px 24px;
             background: var(--bg-secondary);
@@ -523,6 +585,20 @@
                     <!-- Messages loaded dynamically -->
                 </div>
 
+                <div class="reply-panel">
+                    <div class="reply-input-container">
+                        <textarea id="reply-input" placeholder="Type your reply..." rows="2"></textarea>
+                        <button id="send-btn" onclick="sendReply()">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="reply-info" id="reply-info">
+                        Replying from: <span id="from-number">-</span>
+                    </div>
+                </div>
+
                 <div class="dispo-panel">
                     <div class="dispo-title">Disposition Actions</div>
                     <div class="dispo-buttons">
@@ -560,6 +636,10 @@
         let queueData = [];
         let selectedItem = null;
         let conversationChannel = null;
+        let twilioFromNumber = null; // The Twilio number they messaged
+
+        // n8n webhook for sending SMS replies
+        const SMS_REPLY_WEBHOOK = 'https://n8n.stopmyauctionnow.com/webhook/sms-reply';
 
         // Initialize
         async function init() {
@@ -795,6 +875,11 @@
             const container = document.getElementById('messages-container');
             container.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
 
+            // Reset reply state
+            twilioFromNumber = null;
+            document.getElementById('from-number').textContent = '-';
+            document.getElementById('reply-input').value = '';
+
             try {
                 const { data: messages, error } = await supabaseClient
                     .from('messages')
@@ -807,6 +892,13 @@
                 if (messages.length === 0) {
                     container.innerHTML = '<div class="empty-queue"><p>No messages found</p></div>';
                     return;
+                }
+
+                // Find the Twilio number they messaged (to_number of an inbound message)
+                const inboundMsg = messages.find(m => m.direction === 'inbound');
+                if (inboundMsg && inboundMsg.to_number) {
+                    twilioFromNumber = inboundMsg.to_number;
+                    document.getElementById('from-number').textContent = formatPhone(twilioFromNumber.replace('+1', ''));
                 }
 
                 container.innerHTML = messages.map(msg => `
@@ -822,6 +914,54 @@
             } catch (err) {
                 console.error('Error loading messages:', err);
                 container.innerHTML = '<div class="empty-queue"><p>Error loading messages</p></div>';
+            }
+        }
+
+        async function sendReply() {
+            if (!selectedItem || !twilioFromNumber) {
+                showToast('Cannot send - no conversation selected or missing from number', true);
+                return;
+            }
+
+            const body = document.getElementById('reply-input').value.trim();
+            if (!body) {
+                showToast('Please enter a message', true);
+                return;
+            }
+
+            const toNumber = '+1' + selectedItem.phone_digits;
+            const btn = document.getElementById('send-btn');
+            btn.disabled = true;
+
+            try {
+                // Call n8n webhook to send SMS
+                const response = await fetch(SMS_REPLY_WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: toNumber,
+                        from: twilioFromNumber,
+                        body: body,
+                        phone_digits: selectedItem.phone_digits
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to send message');
+                }
+
+                // Clear input and show success
+                document.getElementById('reply-input').value = '';
+                showToast('Message sent!');
+
+                // Reload messages to show the new one
+                await loadMessages(selectedItem.phone_digits);
+
+            } catch (err) {
+                console.error('Error sending reply:', err);
+                showToast('Failed to send: ' + err.message, true);
+            } finally {
+                btn.disabled = false;
             }
         }
 
