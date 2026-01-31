@@ -638,8 +638,9 @@
         let conversationChannel = null;
         let twilioFromNumber = null; // The Twilio number they messaged
 
-        // n8n webhook for sending SMS replies
+        // n8n webhooks
         const SMS_REPLY_WEBHOOK = 'https://n8n.stopmyauctionnow.com/webhook/sms-reply';
+        const DISPO_WEBHOOK = 'https://n8n.stopmyauctionnow.com/webhook/dispo-action';
 
         // Initialize
         async function init() {
@@ -972,27 +973,34 @@
             const ctx = selectedItem.context || {};
 
             try {
-                // Update conversation with resolution
-                const { error: convError } = await supabaseClient
-                    .from('conversations')
-                    .update({
-                        resolution: action,
-                        updated_at: new Date().toISOString()
+                // Use n8n webhook to update conversation (bypasses RLS)
+                const response = await fetch(DISPO_WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone_digits: phoneDigits,
+                        action: action,
+                        raw_row_id: ctx.raw_row_id || null,
+                        auction_date: ctx.auction_date || null
                     })
-                    .eq('phone_digits', phoneDigits);
+                });
 
-                if (convError) throw convError;
+                if (!response.ok) {
+                    throw new Error('Failed to update conversation');
+                }
 
-                // Handle suppression actions
+                const result = await response.json();
+                if (!result.success) {
+                    throw new Error(result.error || 'Unknown error');
+                }
+
+                // Handle suppression actions (still try via Supabase, non-blocking)
                 if (action === 'bankruptcy' || action === 'suppress_property') {
-                    // Create property-level suppression with expiration at auction date
                     if (ctx.raw_row_id) {
                         const expiresAt = ctx.auction_date ? new Date(ctx.auction_date).toISOString() : null;
                         await createSuppression(ctx.raw_row_id, null, action === 'bankruptcy' ? 'bankruptcy' : 'manual_property', expiresAt);
                     }
                 } else if (action === 'wrong_number' || action === 'not_interested' || action === 'suppress_person') {
-                    // Create person-level suppression (no expiration)
-                    // Note: We'd need person_id from the contact, for now use raw_row_id
                     if (ctx.raw_row_id) {
                         const reason = action === 'wrong_number' ? 'wrong_person' : (action === 'not_interested' ? 'not_interested' : 'manual_person');
                         await createSuppression(ctx.raw_row_id, null, reason, null);
@@ -1094,6 +1102,14 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // Enter key to send
+        document.getElementById('reply-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendReply();
+            }
+        });
 
         // Start
         init();
