@@ -3,31 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Needs Response - Mission Control</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Dashboards | Stop My Auction Now</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0b0b0f;
-            --bg-secondary: #1a1a1e;
-            --bg-panel: #141418;
-            --bg-hover: #252529;
-            --accent-blue: #005288;
-            --accent-cyan: #00bcd4;
-            --alert-red: #c41e3a;
-            --success-green: #00c853;
-            --warning-yellow: #ffc107;
-            --warning-orange: #ff8800;
-            --text-primary: #ffffff;
-            --text-secondary: #9e9e9e;
-            --text-muted: #666666;
-            --border-color: #2a2a2e;
+            --bg-primary: #0a0f1a;
+            --bg-secondary: #111827;
+            --bg-panel: #1a2234;
+            --border-color: #2a3548;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-cyan: #22d3ee;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-purple: #a855f7;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
@@ -36,1067 +40,246 @@
         .header {
             background: var(--bg-secondary);
             border-bottom: 1px solid var(--border-color);
-            padding: 12px 24px;
+            padding: 20px 32px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            gap: 16px;
         }
 
         .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--warning-orange), var(--alert-red));
-            border-radius: 8px;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            font-size: 18px;
+            font-size: 1.2rem;
         }
 
-        .logo-text {
-            font-weight: 500;
-            font-size: 18px;
-        }
-
-        .logo-text span {
-            color: var(--text-secondary);
-            font-weight: 300;
-        }
-
-        .header-stats {
-            display: flex;
-            gap: 24px;
-            align-items: center;
-        }
-
-        .header-stat {
-            text-align: center;
-        }
-
-        .header-stat-value {
+        .header-text h1 {
             font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--warning-orange);
-            font-family: 'Roboto Mono', monospace;
+            font-weight: 600;
         }
 
-        .header-stat-label {
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-        }
-
-        .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
-            background: var(--bg-panel);
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-family: 'Roboto Mono', monospace;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success-green);
-        }
-
-        .status-dot.offline { background: var(--alert-red); }
-        .status-dot.syncing { background: var(--warning-orange); animation: pulse 1s infinite; }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .header-text p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
         }
 
         .container {
-            display: flex;
-            height: calc(100vh - 65px);
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 32px;
         }
 
-        .queue-panel {
-            width: 450px;
-            border-right: 1px solid var(--border-color);
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+
+        .dashboard-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s ease;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            gap: 16px;
         }
 
-        .queue-header {
-            padding: 16px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
+        .dashboard-card:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(34, 211, 238, 0.1);
         }
 
-        .queue-title {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 4px;
-        }
-
-        .queue-subtitle {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        .queue-list {
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .queue-item {
-            padding: 16px;
-            border-bottom: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .queue-item:hover {
-            background: var(--bg-hover);
-        }
-
-        .queue-item.selected {
-            background: var(--bg-secondary);
-            border-left: 3px solid var(--accent-cyan);
-        }
-
-        .queue-item-header {
+        .card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
             display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 8px;
+            align-items: center;
+            justify-content: center;
         }
 
-        .queue-item-name {
-            font-weight: 500;
-            color: var(--text-primary);
-            font-size: 0.95rem;
+        .card-icon svg {
+            width: 28px;
+            height: 28px;
         }
 
-        .queue-item-time {
-            font-size: 0.75rem;
-            color: var(--warning-orange);
-            font-family: 'Roboto Mono', monospace;
-            white-space: nowrap;
-        }
+        .card-icon.cyan { background: rgba(34, 211, 238, 0.15); color: var(--accent-cyan); }
+        .card-icon.blue { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+        .card-icon.green { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+        .card-icon.yellow { background: rgba(245, 158, 11, 0.15); color: var(--accent-yellow); }
+        .card-icon.red { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+        .card-icon.purple { background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); }
 
-        .queue-item-time.urgent {
-            color: var(--alert-red);
-            font-weight: 700;
-        }
-
-        .queue-item-phone {
-            font-size: 0.8rem;
-            color: var(--accent-cyan);
-            font-family: 'Roboto Mono', monospace;
+        .card-content h2 {
+            font-size: 1.125rem;
+            font-weight: 600;
             margin-bottom: 6px;
         }
 
-        .queue-item-property {
-            font-size: 0.75rem;
+        .card-content p {
+            font-size: 0.875rem;
             color: var(--text-secondary);
-            margin-bottom: 8px;
-        }
-
-        .queue-item-message {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            background: var(--bg-panel);
-            padding: 8px 10px;
-            border-radius: 6px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .queue-item-badges {
-            display: flex;
-            gap: 6px;
-            margin-top: 8px;
-        }
-
-        .badge {
-            font-size: 0.65rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            text-transform: uppercase;
-        }
-
-        .badge-deceased { background: var(--alert-red); color: white; }
-        .badge-llc { background: var(--accent-blue); color: white; }
-        .badge-owner { background: var(--success-green); color: black; }
-        .badge-relative { background: var(--warning-yellow); color: black; }
-
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .no-selection {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-muted);
-        }
-
-        .no-selection svg {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 16px;
-            opacity: 0.3;
-        }
-
-        .conversation-view {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .conversation-header {
-            padding: 16px 24px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .conversation-header h2 {
-            font-size: 1.1rem;
-            font-weight: 500;
-            margin-bottom: 4px;
-        }
-
-        .conversation-details {
-            display: flex;
-            gap: 16px;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-        }
-
-        .conversation-details span {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .messages-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .message {
-            max-width: 70%;
-            padding: 12px 16px;
-            border-radius: 12px;
-            font-size: 0.9rem;
             line-height: 1.5;
         }
 
-        .message.inbound {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            align-self: flex-start;
-            border-bottom-left-radius: 4px;
-        }
-
-        .message.outbound {
-            background: var(--accent-blue);
-            align-self: flex-end;
-            border-bottom-right-radius: 4px;
-        }
-
-        .message-time {
-            font-size: 0.65rem;
-            color: var(--text-muted);
-            margin-top: 6px;
-        }
-
-        .message.outbound .message-time {
-            color: rgba(255,255,255,0.6);
-        }
-
-        .reply-panel {
-            padding: 12px 24px;
-            background: var(--bg-panel);
-            border-top: 1px solid var(--border-color);
-        }
-
-        .reply-input-container {
-            display: flex;
-            gap: 12px;
-            align-items: flex-end;
-        }
-
-        .reply-input-container textarea {
-            flex: 1;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px 14px;
-            color: var(--text-primary);
-            font-family: inherit;
-            font-size: 0.9rem;
-            resize: none;
-            outline: none;
-        }
-
-        .reply-input-container textarea:focus {
-            border-color: var(--accent-cyan);
-        }
-
-        .reply-input-container button {
-            background: var(--accent-blue);
-            border: none;
-            border-radius: 8px;
-            padding: 10px 16px;
-            color: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-        }
-
-        .reply-input-container button:hover {
-            background: #0066aa;
-        }
-
-        .reply-input-container button:disabled {
-            background: var(--text-muted);
-            cursor: not-allowed;
-        }
-
-        .reply-info {
+        .card-badge {
+            display: inline-block;
             font-size: 0.7rem;
-            color: var(--text-muted);
-            margin-top: 6px;
-        }
-
-        .reply-info span {
-            color: var(--accent-cyan);
-            font-family: 'Roboto Mono', monospace;
-        }
-
-        .dispo-panel {
-            padding: 16px 24px;
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-        }
-
-        .dispo-title {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
-        }
-
-        .dispo-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .dispo-btn {
-            padding: 10px 16px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-panel);
-            color: var(--text-primary);
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .dispo-btn:hover {
-            background: var(--bg-hover);
-            border-color: var(--text-muted);
-        }
-
-        .dispo-btn.responded {
-            border-color: var(--success-green);
-            color: var(--success-green);
-        }
-
-        .dispo-btn.responded:hover {
-            background: rgba(0, 200, 83, 0.1);
-        }
-
-        .dispo-btn.suppress {
-            border-color: var(--alert-red);
-            color: var(--alert-red);
-        }
-
-        .dispo-btn.suppress:hover {
-            background: rgba(196, 30, 58, 0.1);
-        }
-
-        .dispo-btn.bankruptcy {
-            border-color: var(--warning-orange);
-            color: var(--warning-orange);
-        }
-
-        .dispo-btn.bankruptcy:hover {
-            background: rgba(255, 136, 0, 0.1);
-        }
-
-        .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-        }
-
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--border-color);
-            border-top-color: var(--accent-cyan);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .empty-queue {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: var(--text-muted);
-            padding: 24px;
-            text-align: center;
-        }
-
-        .empty-queue svg {
-            width: 60px;
-            height: 60px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-            color: var(--success-green);
-        }
-
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            padding: 12px 20px;
-            background: var(--success-green);
-            color: var(--bg-primary);
-            border-radius: 8px;
             font-weight: 500;
-            z-index: 1000;
-            animation: slideIn 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-top: auto;
         }
 
-        .toast.error {
-            background: var(--alert-red);
-            color: white;
-        }
+        .badge-primary { background: rgba(34, 211, 238, 0.15); color: var(--accent-cyan); }
+        .badge-analytics { background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); }
+        .badge-operations { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
 
-        @keyframes slideIn {
-            from { transform: translateY(100px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+        .divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 16px 0 32px;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="logo">
-            <div class="logo-icon">NR</div>
-            <div class="logo-text">Needs Response <span>Queue</span></div>
+    <header class="header">
+        <div class="logo">SM</div>
+        <div class="header-text">
+            <h1>Stop My Auction Now</h1>
+            <p>Operations & Analytics Dashboards</p>
         </div>
-        <div class="header-stats">
-            <div class="header-stat">
-                <div class="header-stat-value" id="queue-count">-</div>
-                <div class="header-stat-label">Waiting</div>
-            </div>
-            <div class="header-stat">
-                <div class="header-stat-value" id="oldest-wait">-</div>
-                <div class="header-stat-label">Oldest Wait</div>
-            </div>
-            <div class="connection-status">
-                <div class="status-dot" id="status-dot"></div>
-                <span id="connection-text">Loading...</span>
-            </div>
-        </div>
-    </div>
+    </header>
 
     <div class="container">
-        <div class="queue-panel">
-            <div class="queue-header">
-                <div class="queue-title">Response Queue</div>
-                <div class="queue-subtitle">Oldest first - longest wait at top</div>
-            </div>
-            <div class="queue-list" id="queue-list">
-                <div class="loading">
-                    <div class="loading-spinner"></div>
+        <h3 class="section-title">Operations</h3>
+        <div class="dashboard-grid">
+            <a href="needs_response.html" class="dashboard-card">
+                <div class="card-icon cyan">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
                 </div>
-            </div>
+                <div class="card-content">
+                    <h2>Needs Response</h2>
+                    <p>Queue of inbound messages awaiting response. Sorted oldest first - work through the waiting line.</p>
+                </div>
+                <span class="card-badge badge-primary">Priority Queue</span>
+            </a>
+
+            <a href="todays_queue.html" class="dashboard-card">
+                <div class="card-icon blue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <h2>Today's Queue</h2>
+                    <p>View and manage today's outreach queue. See scheduled touches and their status.</p>
+                </div>
+                <span class="card-badge badge-operations">Outreach</span>
+            </a>
+
+            <a href="deal_oversight.html" class="dashboard-card">
+                <div class="card-icon green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <h2>Deal Oversight</h2>
+                    <p>Track active deals through the pipeline. Monitor progress and identify blockers.</p>
+                </div>
+                <span class="card-badge badge-operations">Pipeline</span>
+            </a>
+
+            <a href="activity_monitor.html" class="dashboard-card">
+                <div class="card-icon yellow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <h2>Activity Monitor</h2>
+                    <p>Real-time view of system activity. Track messages, calls, and workflow executions.</p>
+                </div>
+                <span class="card-badge badge-operations">Live</span>
+            </a>
         </div>
 
-        <div class="main-content">
-            <div id="no-selection" class="no-selection">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                <p>Select a conversation to view and dispo</p>
-            </div>
+        <div class="divider"></div>
 
-            <div id="conversation-view" class="conversation-view" style="display: none;">
-                <div class="conversation-header">
-                    <h2 id="conv-name">-</h2>
-                    <div class="conversation-details">
-                        <span id="conv-phone">-</span>
-                        <span id="conv-property">-</span>
-                        <span id="conv-auction">-</span>
-                    </div>
+        <h3 class="section-title">Analytics & Reporting</h3>
+        <div class="dashboard-grid">
+            <a href="kpi_dashboard.html" class="dashboard-card">
+                <div class="card-icon purple">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
                 </div>
+                <div class="card-content">
+                    <h2>KPI Dashboard</h2>
+                    <p>Business metrics and performance indicators. Track costs, conversions, and response rates.</p>
+                </div>
+                <span class="card-badge badge-analytics">Metrics</span>
+            </a>
 
-                <div class="messages-container" id="messages-container">
-                    <!-- Messages loaded dynamically -->
+            <a href="conversations.html" class="dashboard-card">
+                <div class="card-icon cyan">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                    </svg>
                 </div>
+                <div class="card-content">
+                    <h2>Conversations</h2>
+                    <p>Full conversation history with search. View all SMS exchanges and call transcripts.</p>
+                </div>
+                <span class="card-badge badge-analytics">History</span>
+            </a>
 
-                <div class="reply-panel">
-                    <div class="reply-input-container">
-                        <textarea id="reply-input" placeholder="Type your reply..." rows="2"></textarea>
-                        <button id="send-btn" onclick="sendReply()">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="reply-info" id="reply-info">
-                        Replying from: <span id="from-number">-</span>
-                    </div>
+            <a href="marketing_presentation.html" class="dashboard-card">
+                <div class="card-icon red">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                        <polyline points="2 17 12 22 22 17"></polyline>
+                        <polyline points="2 12 12 17 22 12"></polyline>
+                    </svg>
                 </div>
-
-                <div class="dispo-panel">
-                    <div class="dispo-title">Disposition Actions</div>
-                    <div class="dispo-buttons">
-                        <button class="dispo-btn responded" onclick="dispo('responded')">
-                            <span>✓</span> Responded
-                        </button>
-                        <button class="dispo-btn bankruptcy" onclick="dispo('bankruptcy')">
-                            <span>⚖</span> Bankruptcy (Suppress Property)
-                        </button>
-                        <button class="dispo-btn" onclick="dispo('wrong_number')">
-                            <span>✕</span> Wrong Number
-                        </button>
-                        <button class="dispo-btn" onclick="dispo('not_interested')">
-                            <span>⊘</span> Not Interested
-                        </button>
-                        <button class="dispo-btn suppress" onclick="dispo('suppress_property')">
-                            <span>🏠</span> Suppress Property
-                        </button>
-                        <button class="dispo-btn suppress" onclick="dispo('suppress_person')">
-                            <span>👤</span> Suppress Person
-                        </button>
-                    </div>
+                <div class="card-content">
+                    <h2>Marketing Analysis</h2>
+                    <p>Touches-to-appointment analysis. Understand what drives conversions.</p>
                 </div>
-            </div>
+                <span class="card-badge badge-analytics">Insights</span>
+            </a>
         </div>
     </div>
-
-    <script>
-        // Configuration
-        const SUPABASE_URL = 'https://saksbjogtkagedmlsrsv.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNTUxMDMsImV4cCI6MjA4NDYxNTEwM30.FvfTxotEWZlkmQNiekbt4KyxvDk_7GBqfWn55pKTjho';
-
-        // State
-        let supabaseClient = null;
-        let queueData = [];
-        let selectedItem = null;
-        let conversationChannel = null;
-        let twilioFromNumber = null; // The Twilio number they messaged
-
-        // n8n webhook for sending SMS replies
-        const SMS_REPLY_WEBHOOK = 'https://n8n.stopmyauctionnow.com/webhook/sms-reply';
-
-        // Initialize
-        async function init() {
-            updateConnectionStatus('syncing', 'Connecting...');
-
-            try {
-                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-                // Test connection
-                const { data, error } = await supabaseClient.from('conversations').select('conversation_id').limit(1);
-                if (error) throw error;
-
-                updateConnectionStatus('online', 'Connected');
-                await loadQueue();
-                setupRealtimeSubscription();
-
-            } catch (err) {
-                console.error('Connection error:', err);
-                updateConnectionStatus('offline', 'Disconnected');
-            }
-        }
-
-        function updateConnectionStatus(status, text) {
-            document.getElementById('status-dot').className = 'status-dot ' + (status === 'online' ? '' : status);
-            document.getElementById('connection-text').textContent = text;
-        }
-
-        async function loadQueue() {
-            const queueList = document.getElementById('queue-list');
-            queueList.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
-
-            try {
-                // Query conversations that need response
-                // Filter for resolution IS NULL directly in the query
-                let query = supabaseClient
-                    .from('conversations')
-                    .select('*')
-                    .gt('inbound_sms_count', 0)
-                    .neq('status', 'stopped')
-                    .is('resolution', null)
-                    .order('last_inbound_at', { ascending: true });
-
-                const { data: conversations, error } = await query;
-
-                if (error) throw error;
-
-                queueData = conversations;
-
-                // DON'T load context/messages for all items - load lazily on selection
-                // This prevents ERR_INSUFFICIENT_RESOURCES from too many parallel requests
-
-                renderQueue();
-                updateStats();
-
-                // Load context in small batches in background (5 at a time)
-                loadContextInBatches();
-
-            } catch (err) {
-                console.error('Error loading queue:', err);
-                queueList.innerHTML = '<div class="empty-queue"><p>Error loading queue</p></div>';
-            }
-        }
-
-        // Load context data in small batches to avoid overwhelming the browser
-        async function loadContextInBatches() {
-            const BATCH_SIZE = 5;
-            for (let i = 0; i < queueData.length; i += BATCH_SIZE) {
-                const batch = queueData.slice(i, i + BATCH_SIZE);
-
-                await Promise.all(batch.map(async (conv) => {
-                    if (conv.context) return; // Already loaded
-
-                    try {
-                        const { data: ctx } = await supabaseClient
-                            .from('v_agent_contact_context')
-                            .select('full_name, property_address, city, county, auction_date, dec, llc, likely_relationship, role, raw_row_id')
-                            .eq('phone_digits', conv.phone_digits)
-                            .limit(1);
-                        conv.context = ctx?.[0] || {};
-
-                        // Also get last inbound message for preview
-                        const { data: msgs } = await supabaseClient
-                            .from('messages')
-                            .select('body, direction, created_at')
-                            .eq('phone_digits', conv.phone_digits)
-                            .eq('direction', 'inbound')
-                            .order('created_at', { ascending: false })
-                            .limit(1);
-                        conv.lastMessage = msgs?.[0] || null;
-                    } catch (err) {
-                        console.warn('Error loading context for', conv.phone_digits, err);
-                        conv.context = {};
-                    }
-                }));
-
-                // Re-render to show updated data
-                renderQueue();
-
-                // Small delay between batches
-                if (i + BATCH_SIZE < queueData.length) {
-                    await new Promise(r => setTimeout(r, 100));
-                }
-            }
-        }
-
-        function renderQueue() {
-            const queueList = document.getElementById('queue-list');
-
-            if (queueData.length === 0) {
-                queueList.innerHTML = `
-                    <div class="empty-queue">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        <p>All caught up!</p>
-                        <p style="font-size: 0.8rem; margin-top: 8px;">No conversations need response</p>
-                    </div>
-                `;
-                return;
-            }
-
-            queueList.innerHTML = queueData.map((item, index) => {
-                const waitTime = formatWaitTime(item.last_inbound_at);
-                const isUrgent = waitTime.hours > 24;
-                const ctx = item.context || {};
-                const hasContext = item.context !== undefined;
-
-                // Show loading state if context not yet loaded
-                const name = hasContext
-                    ? (ctx.full_name ? ctx.full_name.split('\n')[0].substring(0, 35) : 'Unknown')
-                    : 'Loading...';
-                const property = hasContext
-                    ? (ctx.property_address ? `${ctx.property_address}${ctx.city ? ', ' + ctx.city : ''}` : '-')
-                    : '...';
-                const lastMsg = item.lastMessage?.body || (hasContext ? 'No message' : '...');
-
-                let badges = '';
-                if (hasContext) {
-                    if (ctx.dec === true) badges += '<span class="badge badge-deceased">Deceased</span>';
-                    if (ctx.llc) badges += '<span class="badge badge-llc">LLC</span>';
-                    if (ctx.role === 'owner') badges += '<span class="badge badge-owner">Owner</span>';
-                    if (ctx.likely_relationship) badges += `<span class="badge badge-relative">${ctx.likely_relationship}</span>`;
-                }
-
-                return `
-                    <div class="queue-item ${selectedItem?.phone_digits === item.phone_digits ? 'selected' : ''}"
-                         onclick="selectItem(${index})">
-                        <div class="queue-item-header">
-                            <div class="queue-item-name" style="${!hasContext ? 'opacity: 0.5' : ''}">${escapeHtml(name)}</div>
-                            <div class="queue-item-time ${isUrgent ? 'urgent' : ''}">${waitTime.display}</div>
-                        </div>
-                        <div class="queue-item-phone">${formatPhone(item.phone_digits)}</div>
-                        <div class="queue-item-property" style="${!hasContext ? 'opacity: 0.5' : ''}">${escapeHtml(property.substring(0, 50))}</div>
-                        <div class="queue-item-message" style="${!hasContext ? 'opacity: 0.5' : ''}">"${escapeHtml(lastMsg.substring(0, 80))}"</div>
-                        ${badges ? '<div class="queue-item-badges">' + badges + '</div>' : ''}
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function updateStats() {
-            document.getElementById('queue-count').textContent = queueData.length;
-
-            if (queueData.length > 0) {
-                const oldest = formatWaitTime(queueData[0].last_inbound_at);
-                document.getElementById('oldest-wait').textContent = oldest.display;
-            } else {
-                document.getElementById('oldest-wait').textContent = '-';
-            }
-        }
-
-        function formatWaitTime(timestamp) {
-            if (!timestamp) return { display: '-', hours: 0 };
-            const diff = Date.now() - new Date(timestamp).getTime();
-            const hours = Math.floor(diff / (1000 * 60 * 60));
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-            if (hours >= 24) {
-                const days = Math.floor(hours / 24);
-                return { display: `${days}d ${hours % 24}h`, hours };
-            } else if (hours > 0) {
-                return { display: `${hours}h ${minutes}m`, hours };
-            } else {
-                return { display: `${minutes}m`, hours };
-            }
-        }
-
-        async function selectItem(index) {
-            selectedItem = queueData[index];
-            renderQueue();
-
-            const view = document.getElementById('conversation-view');
-            const noSelection = document.getElementById('no-selection');
-            view.style.display = 'flex';
-            noSelection.style.display = 'none';
-
-            // If context not yet loaded, load it now (don't wait for background batch)
-            if (!selectedItem.context) {
-                document.getElementById('conv-name').textContent = 'Loading...';
-                document.getElementById('conv-phone').textContent = formatPhone(selectedItem.phone_digits);
-                document.getElementById('conv-property').textContent = '...';
-                document.getElementById('conv-auction').textContent = '';
-
-                try {
-                    const { data: ctx } = await supabaseClient
-                        .from('v_agent_contact_context')
-                        .select('full_name, property_address, city, county, auction_date, dec, llc, likely_relationship, role, raw_row_id')
-                        .eq('phone_digits', selectedItem.phone_digits)
-                        .limit(1);
-                    selectedItem.context = ctx?.[0] || {};
-                } catch (err) {
-                    console.warn('Error loading context:', err);
-                    selectedItem.context = {};
-                }
-            }
-
-            // Update header with context
-            const ctx = selectedItem.context || {};
-            const name = ctx.full_name ? ctx.full_name.split('\n')[0] : 'Unknown';
-            document.getElementById('conv-name').textContent = name;
-            document.getElementById('conv-phone').textContent = formatPhone(selectedItem.phone_digits);
-            document.getElementById('conv-property').textContent = ctx.property_address || '-';
-            document.getElementById('conv-auction').textContent = ctx.auction_date ? `Auction: ${formatDate(ctx.auction_date)}` : '';
-
-            // Load messages
-            await loadMessages(selectedItem.phone_digits);
-
-            // Update queue list to show we have context now
-            renderQueue();
-        }
-
-        async function loadMessages(phoneDigits) {
-            const container = document.getElementById('messages-container');
-            container.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
-
-            // Reset reply state
-            twilioFromNumber = null;
-            document.getElementById('from-number').textContent = '-';
-            document.getElementById('reply-input').value = '';
-
-            try {
-                const { data: messages, error } = await supabaseClient
-                    .from('messages')
-                    .select('*')
-                    .eq('phone_digits', phoneDigits)
-                    .order('created_at', { ascending: true });
-
-                if (error) throw error;
-
-                if (messages.length === 0) {
-                    container.innerHTML = '<div class="empty-queue"><p>No messages found</p></div>';
-                    return;
-                }
-
-                // Find the Twilio number they messaged (to_number of an inbound message)
-                const inboundMsg = messages.find(m => m.direction === 'inbound');
-                if (inboundMsg && inboundMsg.to_number) {
-                    twilioFromNumber = inboundMsg.to_number;
-                    document.getElementById('from-number').textContent = formatPhone(twilioFromNumber.replace('+1', ''));
-                }
-
-                container.innerHTML = messages.map(msg => `
-                    <div class="message ${msg.direction}">
-                        <div class="message-body">${escapeHtml(msg.body || '')}</div>
-                        <div class="message-time">${formatDateTime(msg.created_at)}</div>
-                    </div>
-                `).join('');
-
-                // Scroll to bottom
-                container.scrollTop = container.scrollHeight;
-
-            } catch (err) {
-                console.error('Error loading messages:', err);
-                container.innerHTML = '<div class="empty-queue"><p>Error loading messages</p></div>';
-            }
-        }
-
-        async function sendReply() {
-            if (!selectedItem || !twilioFromNumber) {
-                showToast('Cannot send - no conversation selected or missing from number', true);
-                return;
-            }
-
-            const body = document.getElementById('reply-input').value.trim();
-            if (!body) {
-                showToast('Please enter a message', true);
-                return;
-            }
-
-            const toNumber = '+1' + selectedItem.phone_digits;
-            const btn = document.getElementById('send-btn');
-            btn.disabled = true;
-
-            try {
-                // Call n8n webhook to send SMS
-                const response = await fetch(SMS_REPLY_WEBHOOK, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        to: toNumber,
-                        from: twilioFromNumber,
-                        body: body,
-                        phone_digits: selectedItem.phone_digits
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to send message');
-                }
-
-                // Clear input and show success
-                document.getElementById('reply-input').value = '';
-                showToast('Message sent!');
-
-                // Reload messages to show the new one
-                await loadMessages(selectedItem.phone_digits);
-
-            } catch (err) {
-                console.error('Error sending reply:', err);
-                showToast('Failed to send: ' + err.message, true);
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        async function dispo(action) {
-            if (!selectedItem) return;
-
-            const phoneDigits = selectedItem.phone_digits;
-            const ctx = selectedItem.context || {};
-
-            try {
-                // Update conversation with resolution
-                const { error: convError } = await supabaseClient
-                    .from('conversations')
-                    .update({
-                        resolution: action,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('phone_digits', phoneDigits);
-
-                if (convError) throw convError;
-
-                // Handle suppression actions
-                if (action === 'bankruptcy' || action === 'suppress_property') {
-                    // Create property-level suppression with expiration at auction date
-                    if (ctx.raw_row_id) {
-                        const expiresAt = ctx.auction_date ? new Date(ctx.auction_date).toISOString() : null;
-                        await createSuppression(ctx.raw_row_id, null, action === 'bankruptcy' ? 'bankruptcy' : 'manual_property', expiresAt);
-                    }
-                } else if (action === 'wrong_number' || action === 'not_interested' || action === 'suppress_person') {
-                    // Create person-level suppression (no expiration)
-                    // Note: We'd need person_id from the contact, for now use raw_row_id
-                    if (ctx.raw_row_id) {
-                        const reason = action === 'wrong_number' ? 'wrong_person' : (action === 'not_interested' ? 'not_interested' : 'manual_person');
-                        await createSuppression(ctx.raw_row_id, null, reason, null);
-                    }
-                }
-
-                showToast(`Marked as ${action.replace('_', ' ')}`);
-
-                // Remove from queue and refresh
-                queueData = queueData.filter(q => q.phone_digits !== phoneDigits);
-                selectedItem = null;
-
-                document.getElementById('conversation-view').style.display = 'none';
-                document.getElementById('no-selection').style.display = 'flex';
-
-                renderQueue();
-                updateStats();
-
-            } catch (err) {
-                console.error('Error processing dispo:', err);
-                showToast('Error: ' + err.message, true);
-            }
-        }
-
-        async function createSuppression(rawRowId, personId, reason, expiresAt) {
-            // Note: contact_channel_suppressions is in the ops schema
-            // We need to use a different approach since Supabase JS client defaults to public schema
-            // For now, we'll try the insert and it should work if the RLS policies are set up
-            const { error } = await supabaseClient
-                .schema('ops')
-                .from('contact_channel_suppressions')
-                .insert({
-                    raw_row_id: rawRowId,
-                    person_id: personId,
-                    channel: 'sms',
-                    reason: reason,
-                    source: 'needs_response_dashboard',
-                    expires_at: expiresAt,
-                    created_at: new Date().toISOString()
-                })
-                .select();
-
-            // If error is about missing column or schema access, log but don't throw
-            if (error) {
-                console.warn('Suppression creation warning:', error.message);
-                // Don't throw - suppression is secondary to the dispo action
-            }
-        }
-
-        function setupRealtimeSubscription() {
-            // Subscribe to conversation changes
-            conversationChannel = supabaseClient
-                .channel('conversations-changes')
-                .on('postgres_changes',
-                    { event: '*', schema: 'public', table: 'conversations' },
-                    (payload) => {
-                        console.log('Conversation change:', payload);
-                        // Reload queue on changes
-                        loadQueue();
-                    }
-                )
-                .subscribe();
-        }
-
-        function showToast(message, isError = false) {
-            const existing = document.querySelector('.toast');
-            if (existing) existing.remove();
-
-            const toast = document.createElement('div');
-            toast.className = 'toast' + (isError ? ' error' : '');
-            toast.textContent = message;
-            document.body.appendChild(toast);
-
-            setTimeout(() => toast.remove(), 3000);
-        }
-
-        // Helpers
-        function formatPhone(digits) {
-            if (!digits || digits.length !== 10) return digits;
-            return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
-        }
-
-        function formatDate(date) {
-            if (!date) return '-';
-            return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        }
-
-        function formatDateTime(date) {
-            if (!date) return '-';
-            return new Date(date).toLocaleString('en-US', {
-                month: 'short', day: 'numeric',
-                hour: 'numeric', minute: '2-digit'
-            });
-        }
-
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // Start
-        init();
-    </script>
 </body>
 </html>
