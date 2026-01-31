@@ -973,7 +973,10 @@
             const ctx = selectedItem.context || {};
 
             try {
-                // Use n8n webhook to update conversation (bypasses RLS)
+                // Use n8n webhook to handle everything:
+                // - Update conversation resolution
+                // - Cancel outreach queue (based on action type)
+                // - Create suppression records (based on action type)
                 const response = await fetch(DISPO_WEBHOOK, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -989,22 +992,10 @@
                     throw new Error('Failed to update conversation');
                 }
 
+                // Webhook returns { success: true, message: "..." }
                 const result = await response.json();
                 if (!result.success) {
                     throw new Error(result.error || 'Unknown error');
-                }
-
-                // Handle suppression actions (still try via Supabase, non-blocking)
-                if (action === 'bankruptcy' || action === 'suppress_property') {
-                    if (ctx.raw_row_id) {
-                        const expiresAt = ctx.auction_date ? new Date(ctx.auction_date).toISOString() : null;
-                        await createSuppression(ctx.raw_row_id, null, action === 'bankruptcy' ? 'bankruptcy' : 'manual_property', expiresAt);
-                    }
-                } else if (action === 'wrong_number' || action === 'not_interested' || action === 'suppress_person') {
-                    if (ctx.raw_row_id) {
-                        const reason = action === 'wrong_number' ? 'wrong_person' : (action === 'not_interested' ? 'not_interested' : 'manual_person');
-                        await createSuppression(ctx.raw_row_id, null, reason, null);
-                    }
                 }
 
                 showToast(`Marked as ${action.replace('_', ' ')}`);
