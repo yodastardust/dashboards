@@ -552,11 +552,11 @@
 
     <script>
         // Configuration
-        const SUPABASE_URL = 'https://saksbjogtkagedmlsrsv.supabase.co';
+        const SUPABASE_URL = 'https://saksbjogtkagedmlsrsv.supabaseClient.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNTUxMDMsImV4cCI6MjA4NDYxNTEwM30.FvfTxotEWZlkmQNiekbt4KyxvDk_7GBqfWn55pKTjho';
 
         // State
-        let supabase = null;
+        let supabaseClient = null;
         let queueData = [];
         let selectedItem = null;
         let conversationChannel = null;
@@ -566,10 +566,10 @@
             updateConnectionStatus('syncing', 'Connecting...');
 
             try {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                supabaseClient = window.supabaseClient.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
                 // Test connection
-                const { data, error } = await supabase.from('conversations').select('conversation_id').limit(1);
+                const { data, error } = await supabaseClient.from('conversations').select('conversation_id').limit(1);
                 if (error) throw error;
 
                 updateConnectionStatus('online', 'Connected');
