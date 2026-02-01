@@ -465,6 +465,148 @@
             background: rgba(255, 136, 0, 0.1);
         }
 
+        .dispo-btn.book-appt {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        .dispo-btn.book-appt:hover {
+            background: rgba(0, 188, 212, 0.1);
+        }
+
+        /* Booking Modal */
+        .booking-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .booking-modal-overlay.show {
+            display: flex;
+        }
+
+        .booking-modal {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .booking-modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .booking-modal-header h3 {
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+
+        .booking-modal-header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .booking-modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 24px;
+        }
+
+        .booking-day {
+            margin-bottom: 20px;
+        }
+
+        .booking-day-title {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .booking-slots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .booking-slot {
+            padding: 10px 16px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-family: 'Roboto Mono', monospace;
+            transition: all 0.2s;
+        }
+
+        .booking-slot:hover {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            border-color: var(--accent-cyan);
+        }
+
+        .booking-slot.selected {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            border-color: var(--accent-cyan);
+        }
+
+        .booking-slot:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .booking-no-slots {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-style: italic;
+        }
+
+        .booking-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .booking-modal-footer button {
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .booking-cancel-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .booking-cancel-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .booking-loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
         .loading {
             display: flex;
             align-items: center;
@@ -797,6 +939,9 @@
                 <div class="dispo-panel">
                     <div class="dispo-title">Disposition Actions</div>
                     <div class="dispo-buttons">
+                        <button class="dispo-btn book-appt" onclick="showBookingModal()">
+                            <span>📅</span> Book Appt
+                        </button>
                         <button class="dispo-btn responded" onclick="dispo('responded')">
                             <span>✓</span> Responded
                         </button>
@@ -817,6 +962,22 @@
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div class="booking-modal-overlay" id="booking-modal">
+        <div class="booking-modal">
+            <div class="booking-modal-header">
+                <h3>Book Appointment</h3>
+                <p id="booking-contact-info">Loading...</p>
+            </div>
+            <div class="booking-modal-body" id="booking-slots-container">
+                <div class="booking-loading">Loading available slots...</div>
+            </div>
+            <div class="booking-modal-footer">
+                <button class="booking-cancel-btn" onclick="hideBookingModal()">Cancel</button>
             </div>
         </div>
     </div>
@@ -846,6 +1007,8 @@
         // n8n webhooks
         const SMS_REPLY_WEBHOOK = 'https://n8n.stopmyauctionnow.com/webhook/sms-reply';
         const DISPO_WEBHOOK = 'https://n8n.stopmyauctionnow.com/webhook/dashboard-dispo-v3';
+        const GET_SLOTS_WEBHOOK = 'https://n8n.stopmyauctionnow.com/webhook/get-free-slots';
+        const BOOK_APPT_WEBHOOK = 'https://n8n.stopmyauctionnow.com/webhook/3b38f1ea-cae4-4593-9995-5a4e4611dbf0';
 
         // Initialize
         async function init() {
@@ -1249,6 +1412,172 @@
                 showToast('Error: ' + err.message, true);
             }
         }
+
+        // ==================== BOOKING FUNCTIONS ====================
+
+        async function showBookingModal() {
+            if (!selectedItem) {
+                showToast('Please select a conversation first', true);
+                return;
+            }
+
+            const modal = document.getElementById('booking-modal');
+            const contactInfo = document.getElementById('booking-contact-info');
+            const slotsContainer = document.getElementById('booking-slots-container');
+
+            // Show modal with loading state
+            modal.classList.add('show');
+            const ctx = selectedItem.context || {};
+            const name = ctx.full_name ? ctx.full_name.split('\n')[0] : 'Unknown';
+            contactInfo.textContent = `${name} - ${ctx.property_address || selectedItem.phone_digits}`;
+            slotsContainer.innerHTML = '<div class="booking-loading">Loading available slots...</div>';
+
+            try {
+                // Fetch available slots from GHL
+                const response = await fetch(GET_SLOTS_WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch slots');
+                }
+
+                const data = await response.json();
+                // The webhook returns { body: { ... slots data } } or directly the slots
+                const slots = data.body || data;
+
+                renderSlots(slots);
+
+            } catch (err) {
+                console.error('Error fetching slots:', err);
+                slotsContainer.innerHTML = '<div class="booking-loading">Error loading slots. Please try again.</div>';
+            }
+        }
+
+        function hideBookingModal() {
+            document.getElementById('booking-modal').classList.remove('show');
+        }
+
+        function renderSlots(slotsData) {
+            const container = document.getElementById('booking-slots-container');
+
+            // Parse slots - they come as an object with date keys
+            // e.g., { "2026-01-31": ["2026-01-31T14:00:00-05:00", ...], ... }
+            const slotsByDate = slotsData || {};
+            const dates = Object.keys(slotsByDate).sort();
+
+            if (dates.length === 0) {
+                container.innerHTML = '<div class="booking-no-slots">No available slots in the next few days.</div>';
+                return;
+            }
+
+            let html = '';
+            const today = new Date().toDateString();
+            const tomorrow = new Date(Date.now() + 86400000).toDateString();
+
+            for (const dateKey of dates) {
+                const slots = slotsByDate[dateKey];
+                if (!slots || slots.length === 0) continue;
+
+                // Format the day header
+                const dateObj = new Date(dateKey + 'T00:00:00');
+                let dayLabel = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+                if (dateObj.toDateString() === today) dayLabel = 'Today - ' + dayLabel;
+                else if (dateObj.toDateString() === tomorrow) dayLabel = 'Tomorrow - ' + dayLabel;
+
+                html += `<div class="booking-day">
+                    <div class="booking-day-title">${dayLabel}</div>
+                    <div class="booking-slots">`;
+
+                for (const slot of slots) {
+                    const slotTime = new Date(slot);
+                    const timeStr = slotTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                    html += `<button class="booking-slot" onclick="bookSlot('${slot}')">${timeStr}</button>`;
+                }
+
+                html += `</div></div>`;
+            }
+
+            container.innerHTML = html || '<div class="booking-no-slots">No available slots.</div>';
+        }
+
+        async function bookSlot(slotStart) {
+            if (!selectedItem) return;
+
+            // Disable all slot buttons
+            document.querySelectorAll('.booking-slot').forEach(btn => btn.disabled = true);
+
+            const ctx = selectedItem.context || {};
+
+            try {
+                const response = await fetch(BOOK_APPT_WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone_digits: selectedItem.phone_digits,
+                        from_number: '+1' + selectedItem.phone_digits,
+                        conversation_id: selectedItem.conversation_id,
+                        raw_row_id: ctx.raw_row_id || null,
+                        slot_start: slotStart,
+                        source: 'dashboard'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || result.ok === false) {
+                    throw new Error(result.error || 'Booking failed');
+                }
+
+                // Success! Now update conversation and cancel property outreach
+                hideBookingModal();
+                showToast('Appointment booked successfully!');
+
+                // Call dispo webhook to set resolution and cancel property outreach
+                await fetch(DISPO_WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone_digits: selectedItem.phone_digits,
+                        action: 'appointment_booked',
+                        raw_row_id: ctx.raw_row_id || null,
+                        auction_date: ctx.auction_date || null
+                    })
+                });
+
+                // Remove from queue
+                queueData = queueData.filter(q => q.phone_digits !== selectedItem.phone_digits);
+                selectedItem = null;
+
+                // Mobile: slide back to queue
+                const queuePanel = document.querySelector('.queue-panel');
+                const mainContent = document.querySelector('.main-content');
+                if (window.innerWidth <= 768) {
+                    queuePanel.classList.remove('hidden-mobile');
+                    mainContent.classList.remove('show-mobile');
+                }
+
+                document.getElementById('conversation-view').style.display = 'none';
+                document.getElementById('no-selection').style.display = 'flex';
+
+                renderQueue();
+                updateStats();
+
+            } catch (err) {
+                console.error('Error booking appointment:', err);
+                showToast('Booking failed: ' + err.message, true);
+                // Re-enable buttons
+                document.querySelectorAll('.booking-slot').forEach(btn => btn.disabled = false);
+            }
+        }
+
+        // Close modal on overlay click
+        document.getElementById('booking-modal').addEventListener('click', function(e) {
+            if (e.target === this) hideBookingModal();
+        });
+
+        // ==================== END BOOKING FUNCTIONS ====================
 
         async function createSuppression(rawRowId, personId, reason, expiresAt) {
             // Note: contact_channel_suppressions is in the ops schema
