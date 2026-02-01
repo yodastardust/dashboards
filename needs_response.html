@@ -1477,7 +1477,9 @@
             const tomorrow = new Date(Date.now() + 86400000).toDateString();
 
             for (const dateKey of dates) {
-                const slots = slotsByDate[dateKey];
+                // Slots may be nested under .slots property or directly as array
+                const dateData = slotsByDate[dateKey];
+                const slots = Array.isArray(dateData) ? dateData : (dateData?.slots || []);
                 if (!slots || slots.length === 0) continue;
 
                 // Format the day header
