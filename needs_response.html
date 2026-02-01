@@ -1528,9 +1528,20 @@
                     })
                 });
 
-                const result = await response.json();
+                // Try to parse JSON response, but handle empty/invalid responses
+                let result = {};
+                try {
+                    const text = await response.text();
+                    if (text) result = JSON.parse(text);
+                } catch (e) {
+                    // Empty or non-JSON response - that's OK if status is success
+                }
 
-                if (!response.ok || result.ok === false) {
+                // Check for errors - HTTP error or explicit error in response
+                if (!response.ok) {
+                    throw new Error(result.error || `HTTP ${response.status}`);
+                }
+                if (result.ok === false) {
                     throw new Error(result.error || 'Booking failed');
                 }
 
