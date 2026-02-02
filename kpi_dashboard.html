@@ -265,6 +265,25 @@
             margin-top: 5px;
         }
 
+        .metric-compare {
+            font-size: 0.7rem;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .compare-avg {
+            color: var(--text-muted);
+        }
+
+        .compare-change {
+            margin-left: 8px;
+            font-weight: 600;
+        }
+
+        .compare-change.up { color: var(--success-green); }
+        .compare-change.down { color: var(--error-red); }
+
         .metric-box-split {
             display: flex;
             gap: 8px;
@@ -680,14 +699,17 @@
                     <div class="metric-box">
                         <div class="metric-value outbound" id="smsOutbound">--</div>
                         <div class="metric-label">Outbound</div>
+                        <div class="metric-compare"><span class="compare-avg">90d: <span id="smsOutbound90">--</span></span> <span class="compare-change" id="smsOutboundChange">--%</span></div>
                     </div>
                     <div class="metric-box">
                         <div class="metric-value inbound" id="smsInbound">--</div>
                         <div class="metric-label">Inbound</div>
+                        <div class="metric-compare"><span class="compare-avg">90d: <span id="smsInbound90">--</span></span> <span class="compare-change" id="smsInboundChange">--%</span></div>
                     </div>
                     <div class="metric-box">
                         <div class="metric-value" id="smsResponseRate">--.--%</div>
                         <div class="metric-label">Response Rate</div>
+                        <div class="metric-compare"><span class="compare-avg">90d: <span id="smsResponseRate90">--%</span></span> <span class="compare-change" id="smsResponseRateChange">--%</span></div>
                     </div>
                 </div>
             </div>
@@ -705,20 +727,17 @@
                     <div class="metric-box">
                         <div class="metric-value outbound" id="voiceOutbound">--</div>
                         <div class="metric-label">Outbound</div>
+                        <div class="metric-compare"><span class="compare-avg">90d: <span id="voiceOutbound90">--</span></span> <span class="compare-change" id="voiceOutboundChange">--%</span></div>
                     </div>
                     <div class="metric-box">
                         <div class="metric-value inbound" id="voiceInbound">--</div>
                         <div class="metric-label">Inbound</div>
+                        <div class="metric-compare"><span class="compare-avg">90d: <span id="voiceInbound90">--</span></span> <span class="compare-change" id="voiceInboundChange">--%</span></div>
                     </div>
-                    <div class="metric-box-split">
-                        <div class="metric-half">
-                            <div class="metric-value" id="voiceResponseRate">--.--%</div>
-                            <div class="metric-label">Response Rate</div>
-                        </div>
-                        <div class="metric-half">
-                            <div class="metric-value" id="voiceAnswerRate">--.--%</div>
-                            <div class="metric-label">Answer Rate</div>
-                        </div>
+                    <div class="metric-box">
+                        <div class="metric-value" id="voiceAnswerRate">--.--%</div>
+                        <div class="metric-label">Answer Rate</div>
+                        <div class="metric-compare"><span class="compare-avg">90d: <span id="voiceAnswerRate90">--%</span></span> <span class="compare-change" id="voiceAnswerRateChange">--%</span></div>
                     </div>
                 </div>
             </div>
@@ -1028,25 +1047,54 @@
         // Fetch SMS data from public.messages
         async function fetchSMSData() {
             const range = getDateRange();
-            const url = `${SUPABASE_URL}/rest/v1/messages?channel=eq.sms&created_at=gte.${range.startDateISO}&select=direction,created_at`;
-            const response = await fetch(url, {
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'Content-Type': 'application/json'
-                }
-            });
+            const now = new Date();
+            const d90 = new Date(now - 90 * 24 * 60 * 60 * 1000);
+            const d90ISO = d90.toISOString();
 
-            if (!response.ok) throw new Error('Failed to fetch SMS data');
+            const headers = {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Content-Type': 'application/json'
+            };
 
-            const messages = await response.json();
+            // Fetch current range and 90-day data in parallel
+            const [respRange, resp90] = await Promise.all([
+                fetch(`${SUPABASE_URL}/rest/v1/messages?channel=eq.sms&created_at=gte.${range.startDateISO}&select=direction`, { headers }),
+                fetch(`${SUPABASE_URL}/rest/v1/messages?channel=eq.sms&created_at=gte.${d90ISO}&select=direction`, { headers })
+            ]);
+
+            if (!respRange.ok || !resp90.ok) throw new Error('Failed to fetch SMS data');
+
+            const messages = await respRange.json();
+            const messages90 = await resp90.json();
+
+            // Current range metrics
             const outbound = messages.filter(m => m.direction === 'outbound').length;
             const inbound = messages.filter(m => m.direction === 'inbound').length;
             const responseRate = outbound > 0 ? (inbound / outbound * 100) : 0;
 
+            // 90-day metrics (scaled to selected range)
+            const scaleFactor = 90 / range.daysBack;
+            const outbound90 = messages90.filter(m => m.direction === 'outbound').length;
+            const inbound90 = messages90.filter(m => m.direction === 'inbound').length;
+            const outbound90Avg = Math.round(outbound90 / scaleFactor);
+            const inbound90Avg = Math.round(inbound90 / scaleFactor);
+            const responseRate90 = outbound90 > 0 ? (inbound90 / outbound90 * 100) : 0;
+
+            // Update current values
             document.getElementById('smsOutbound').textContent = outbound.toLocaleString();
             document.getElementById('smsInbound').textContent = inbound.toLocaleString();
             document.getElementById('smsResponseRate').textContent = responseRate.toFixed(1) + '%';
+
+            // Update 90-day comparisons
+            document.getElementById('smsOutbound90').textContent = outbound90Avg.toLocaleString();
+            document.getElementById('smsInbound90').textContent = inbound90Avg.toLocaleString();
+            document.getElementById('smsResponseRate90').textContent = responseRate90.toFixed(1) + '%';
+
+            // Update change indicators
+            updateChangeIndicator('smsOutboundChange', outbound, outbound90Avg);
+            updateChangeIndicator('smsInboundChange', inbound, inbound90Avg);
+            updateChangeIndicatorPct('smsResponseRateChange', responseRate, responseRate90);
 
             const smsBadge = document.getElementById('smsResponseBadge');
             smsBadge.textContent = responseRate.toFixed(1) + '%';
@@ -1056,23 +1104,32 @@
         // Fetch Voice data from ops.retell_call_outcomes
         async function fetchVoiceData() {
             const range = getDateRange();
-            const url = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&select=call_type,disconnection_reason,call_status`;
-            const response = await fetch(url, {
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'Accept-Profile': 'ops',
-                    'Content-Type': 'application/json'
-                }
-            });
+            const now = new Date();
+            const d90 = new Date(now - 90 * 24 * 60 * 60 * 1000);
+            const d90ISO = d90.toISOString();
 
-            if (!response.ok) throw new Error('Failed to fetch voice data');
+            const headers = {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Accept-Profile': 'ops',
+                'Content-Type': 'application/json'
+            };
 
-            const calls = await response.json();
+            // Fetch current range and 90-day data in parallel
+            const [respRange, resp90] = await Promise.all([
+                fetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&select=call_type,disconnection_reason,call_status`, { headers }),
+                fetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${d90ISO}&select=call_type,disconnection_reason,call_status`, { headers })
+            ]);
+
+            if (!respRange.ok || !resp90.ok) throw new Error('Failed to fetch voice data');
+
+            const calls = await respRange.json();
+            const calls90 = await resp90.json();
+
+            // Process current range
             const outbound = calls.filter(c => c.call_type !== 'inbound').length;
             const inbound = calls.filter(c => c.call_type === 'inbound').length;
 
-            // Count by disconnection_reason
             let completed = 0, noAnswer = 0, failed = 0, busy = 0;
             calls.forEach(c => {
                 const reason = (c.disconnection_reason || '').toLowerCase();
@@ -1085,12 +1142,35 @@
 
             const total = calls.length;
             const answerRate = total > 0 ? (completed / total * 100) : 0;
-            const responseRate = outbound > 0 ? (inbound / outbound * 100) : 0;
 
+            // Process 90-day data
+            const scaleFactor = 90 / range.daysBack;
+            const outbound90 = calls90.filter(c => c.call_type !== 'inbound').length;
+            const inbound90 = calls90.filter(c => c.call_type === 'inbound').length;
+            const outbound90Avg = Math.round(outbound90 / scaleFactor);
+            const inbound90Avg = Math.round(inbound90 / scaleFactor);
+
+            let completed90 = 0;
+            calls90.forEach(c => {
+                const reason = (c.disconnection_reason || '').toLowerCase();
+                if (reason === 'hangup' || reason === 'user_hangup' || c.call_status === 'ended') completed90++;
+            });
+            const answerRate90 = calls90.length > 0 ? (completed90 / calls90.length * 100) : 0;
+
+            // Update current values
             document.getElementById('voiceOutbound').textContent = outbound.toLocaleString();
             document.getElementById('voiceInbound').textContent = inbound.toLocaleString();
-            document.getElementById('voiceResponseRate').textContent = responseRate.toFixed(1) + '%';
             document.getElementById('voiceAnswerRate').textContent = answerRate.toFixed(1) + '%';
+
+            // Update 90-day comparisons
+            document.getElementById('voiceOutbound90').textContent = outbound90Avg.toLocaleString();
+            document.getElementById('voiceInbound90').textContent = inbound90Avg.toLocaleString();
+            document.getElementById('voiceAnswerRate90').textContent = answerRate90.toFixed(1) + '%';
+
+            // Update change indicators
+            updateChangeIndicator('voiceOutboundChange', outbound, outbound90Avg);
+            updateChangeIndicator('voiceInboundChange', inbound, inbound90Avg);
+            updateChangeIndicatorPct('voiceAnswerRateChange', answerRate, answerRate90);
 
             const voiceBadge = document.getElementById('voiceAnswerBadge');
             voiceBadge.textContent = answerRate.toFixed(1) + '%';
@@ -1286,6 +1366,29 @@
                     indicatorEl.className = 'benchmark-indicator warning';
                 }
             }
+        }
+
+        // Helper to update change indicators for counts
+        function updateChangeIndicator(elementId, current, avg90) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            if (avg90 > 0) {
+                const pctChange = ((current - avg90) / avg90 * 100);
+                el.textContent = (pctChange >= 0 ? '+' : '') + pctChange.toFixed(0) + '%';
+                el.className = 'compare-change ' + (pctChange >= 0 ? 'up' : 'down');
+            } else {
+                el.textContent = '--';
+                el.className = 'compare-change';
+            }
+        }
+
+        // Helper to update change indicators for percentages
+        function updateChangeIndicatorPct(elementId, current, avg90) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const diff = current - avg90;
+            el.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
+            el.className = 'compare-change ' + (diff >= 0 ? 'up' : 'down');
         }
 
         // Fetch cost data
