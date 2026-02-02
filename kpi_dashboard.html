@@ -585,25 +585,63 @@
     </div>
 
     <div class="main-content">
-        <!-- Benchmark Section: 90-Day Avg vs Last 30 Days -->
-        <div class="section-header">Performance Benchmarks (30-Day vs 90-Day Avg)</div>
+        <!-- Benchmark Section: Dynamic based on dropdown -->
+        <div class="section-header" id="benchmarkHeader">Performance Benchmarks (30-Day vs 90-Day Avg)</div>
         <div class="benchmark-grid">
+            <!-- Row 1: 1st Appointments metrics + 2nd Booked -->
             <div class="benchmark-card">
-                <div class="benchmark-indicator" id="firstApptIndicator"></div>
-                <div class="benchmark-label">1st Appointments Booked</div>
-                <div class="benchmark-current" id="firstAppt30">--</div>
+                <div class="benchmark-indicator" id="firstBookedIndicator"></div>
+                <div class="benchmark-label">1st Appts Booked</div>
+                <div class="benchmark-current" id="firstBooked">--</div>
                 <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="firstAppt90Avg">--</span></span>
-                    <span class="benchmark-change" id="firstApptChange">--%</span>
+                    <span class="benchmark-avg">90d avg: <span id="firstBooked90Avg">--</span></span>
+                    <span class="benchmark-change" id="firstBookedChange">--%</span>
                 </div>
             </div>
             <div class="benchmark-card">
-                <div class="benchmark-indicator" id="secondApptIndicator"></div>
-                <div class="benchmark-label">2nd Appointments Completed</div>
-                <div class="benchmark-current" id="secondAppt30">--</div>
+                <div class="benchmark-indicator" id="firstCompletedIndicator"></div>
+                <div class="benchmark-label">1st Appts Completed</div>
+                <div class="benchmark-current" id="firstCompleted">--</div>
                 <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="secondAppt90Avg">--</span></span>
-                    <span class="benchmark-change" id="secondApptChange">--%</span>
+                    <span class="benchmark-avg">90d avg: <span id="firstCompleted90Avg">--</span></span>
+                    <span class="benchmark-change" id="firstCompletedChange">--%</span>
+                </div>
+            </div>
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="firstShowRateIndicator"></div>
+                <div class="benchmark-label">1st Show Rate</div>
+                <div class="benchmark-current" id="firstShowRate">--%</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="firstShowRate90Avg">--%</span></span>
+                    <span class="benchmark-change" id="firstShowRateChange">--%</span>
+                </div>
+            </div>
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="secondBookedIndicator"></div>
+                <div class="benchmark-label">2nd Appts Booked</div>
+                <div class="benchmark-current" id="secondBooked">--</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="secondBooked90Avg">--</span></span>
+                    <span class="benchmark-change" id="secondBookedChange">--%</span>
+                </div>
+            </div>
+            <!-- Row 2: 2nd Appointments metrics + Signed + Conversion -->
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="secondCompletedIndicator"></div>
+                <div class="benchmark-label">2nd Appts Completed</div>
+                <div class="benchmark-current" id="secondCompleted">--</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="secondCompleted90Avg">--</span></span>
+                    <span class="benchmark-change" id="secondCompletedChange">--%</span>
+                </div>
+            </div>
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="secondShowRateIndicator"></div>
+                <div class="benchmark-label">2nd Show Rate</div>
+                <div class="benchmark-current" id="secondShowRate">--%</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="secondShowRate90Avg">--%</span></span>
+                    <span class="benchmark-change" id="secondShowRateChange">--%</span>
                 </div>
             </div>
             <div class="benchmark-card">
@@ -616,12 +654,12 @@
                 </div>
             </div>
             <div class="benchmark-card">
-                <div class="benchmark-indicator" id="showRateIndicator"></div>
-                <div class="benchmark-label">Show Rate</div>
-                <div class="benchmark-current" id="showRate30">--%</div>
+                <div class="benchmark-indicator" id="conversionRateIndicator"></div>
+                <div class="benchmark-label">Conversion Rate</div>
+                <div class="benchmark-current" id="conversionRateBenchmark">--%</div>
                 <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="showRate90Avg">--%</span></span>
-                    <span class="benchmark-change" id="showRateChange">--%</span>
+                    <span class="benchmark-avg">90d avg: <span id="conversionRate90Avg">--%</span></span>
+                    <span class="benchmark-change" id="conversionRateChange">--%</span>
                 </div>
             </div>
         </div>
@@ -713,28 +751,33 @@
             </div>
         </div>
 
-        <!-- Queue Summary -->
-        <div class="section-header">Queue & Conversions</div>
-        <div class="summary-grid">
+        <!-- Outreach Queue -->
+        <div class="section-header">Outreach Queue</div>
+        <div class="summary-grid" style="grid-template-columns: repeat(5, 1fr);">
             <div class="summary-card">
-                <div class="summary-label">Queue Remaining</div>
-                <div class="summary-value" id="queueRemaining">--</div>
-                <div class="summary-subtext" id="queueBreakdown">-- SMS / -- Voice</div>
+                <div class="summary-label">Total Queued</div>
+                <div class="summary-value" style="color: var(--accent-cyan);" id="totalQueued">--</div>
+                <div class="summary-subtext">messages scheduled</div>
             </div>
             <div class="summary-card">
-                <div class="summary-label">1st Appt Show Rate</div>
-                <div class="summary-value" id="firstShowRate">--%</div>
-                <div class="summary-subtext" id="firstShowBreakdown">-- showed / -- total</div>
+                <div class="summary-label">SMS</div>
+                <div class="summary-value" style="color: var(--success-green);" id="queueSMS">--</div>
+                <div class="summary-subtext">text messages</div>
             </div>
             <div class="summary-card">
-                <div class="summary-label">2nd Appt Show Rate</div>
-                <div class="summary-value" id="secondShowRate">--%</div>
-                <div class="summary-subtext" id="secondShowBreakdown">-- showed / -- total</div>
+                <div class="summary-label">Voice</div>
+                <div class="summary-value" style="color: #9c27b0;" id="queueVoice">--</div>
+                <div class="summary-subtext">phone calls</div>
             </div>
             <div class="summary-card">
-                <div class="summary-label">Conversion Rate</div>
-                <div class="summary-value" id="conversionRate">--.--%</div>
-                <div class="summary-subtext">showed appointments to signed</div>
+                <div class="summary-label">Pending</div>
+                <div class="summary-value" style="color: var(--warning-yellow);" id="queuePending">--</div>
+                <div class="summary-subtext">in queue</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Sent Today</div>
+                <div class="summary-value" style="color: var(--success-green);" id="sentToday">--</div>
+                <div class="summary-subtext">delivered</div>
             </div>
         </div>
 
@@ -854,8 +897,14 @@
 
             switch (filter) {
                 case 'today':
-                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    daysBack = 0;
+                    // Use Eastern Time (America/New_York) for "Today"
+                    const easternStr = now.toLocaleString("en-US", {timeZone: "America/New_York"});
+                    const easternNow = new Date(easternStr);
+                    // Start of day in Eastern time
+                    const startOfDayEastern = new Date(easternNow.getFullYear(), easternNow.getMonth(), easternNow.getDate());
+                    // Convert to ISO format for API calls (this preserves the correct UTC offset)
+                    startDate = new Date(startOfDayEastern.toLocaleString("en-US", {timeZone: "America/New_York"}));
+                    daysBack = 1;
                     break;
                 case '7d':
                     startDate = new Date(now - 7 * 24 * 60 * 60 * 1000);
@@ -949,6 +998,8 @@
 
             // Update section headers based on selected filter
             const range = getDateRange();
+            const benchmarkLabel = range.daysBack === 1 ? '1-Day' : `${range.daysBack}-Day`;
+            document.getElementById('benchmarkHeader').textContent = `Performance Benchmarks (${benchmarkLabel} vs 90-Day Avg)`;
             document.getElementById('outreachHeader').textContent = `Outreach Performance (${range.label})`;
             document.getElementById('costsHeader').textContent = `Costs (${range.label})`;
             document.getElementById('appointmentChartTitle').textContent = `Appointment Outcomes (${range.label})`;
@@ -1063,47 +1114,53 @@
 
         // Fetch Queue data
         async function fetchQueueData() {
+            // Fetch all queue items to get status breakdown
             const { data: queueData, error } = await sbClient
                 .from('outreach_queue')
-                .select('channel, status')
-                .eq('status', 'queued');
+                .select('channel, status, sent_at');
 
             if (error) {
                 console.log('Queue error:', error.message);
                 return;
             }
 
+            // Calculate totals
             const smsQueue = queueData?.filter(q => q.channel === 'sms').length || 0;
             const voiceQueue = queueData?.filter(q => q.channel === 'voice').length || 0;
-            const total = smsQueue + voiceQueue;
+            const totalQueued = smsQueue + voiceQueue;
 
-            document.getElementById('queueRemaining').textContent = total.toLocaleString();
-            document.getElementById('queueBreakdown').textContent = `${smsQueue.toLocaleString()} SMS / ${voiceQueue.toLocaleString()} Voice`;
+            // Pending = status is 'queued'
+            const pending = queueData?.filter(q => q.status === 'queued').length || 0;
+
+            // Sent today = has sent_at timestamp from today (Eastern time)
+            const easternStr = new Date().toLocaleString("en-US", {timeZone: "America/New_York"});
+            const easternNow = new Date(easternStr);
+            const todayStart = new Date(easternNow.getFullYear(), easternNow.getMonth(), easternNow.getDate()).toISOString();
+            const sentToday = queueData?.filter(q => {
+                if (!q.sent_at) return false;
+                return q.sent_at >= todayStart;
+            }).length || 0;
+
+            // Update UI elements
+            document.getElementById('totalQueued').textContent = totalQueued.toLocaleString();
+            document.getElementById('queueSMS').textContent = smsQueue.toLocaleString();
+            document.getElementById('queueVoice').textContent = voiceQueue.toLocaleString();
+            document.getElementById('queuePending').textContent = pending.toLocaleString();
+            document.getElementById('sentToday').textContent = sentToday.toLocaleString();
         }
 
         // Fetch GHL appointment & opportunity data
         async function fetchGHLData() {
             const now = new Date();
             const range = getDateRange();
-            const d30 = new Date(now - 30 * 24 * 60 * 60 * 1000);
             const d90 = new Date(now - 90 * 24 * 60 * 60 * 1000);
 
-            // Fetch data for selected range (for charts and current display)
+            // Fetch data for selected range (current display)
             const respRange = await fetch(GHL_STATS_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     startDate: range.startDateStr,
-                    endDate: now.toISOString().split('T')[0]
-                })
-            });
-
-            // Fetch 30-day data (for benchmark comparison)
-            const resp30 = await fetch(GHL_STATS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    startDate: d30.toISOString().split('T')[0],
                     endDate: now.toISOString().split('T')[0]
                 })
             });
@@ -1118,54 +1175,62 @@
                 })
             });
 
-            if (!respRange.ok || !resp30.ok || !resp90.ok) {
+            if (!respRange.ok || !resp90.ok) {
                 console.error('GHL fetch failed');
                 return;
             }
 
             const dataRange = await respRange.json();
-            const data30 = await resp30.json();
             const data90 = await resp90.json();
 
-            // Calculate daily averages for 90-day period (divide by 3 to get 30-day equivalent)
-            const first30 = data30.appointments?.first?.total || 0;
-            const first90Avg = Math.round((data90.appointments?.first?.total || 0) / 3);
-            const second30 = data30.appointments?.second?.showed || 0;
-            const second90Avg = Math.round((data90.appointments?.second?.showed || 0) / 3);
-            const signed30 = data30.opportunities?.signedContract || 0;
-            const signed90Avg = Math.round((data90.opportunities?.signedContract || 0) / 3);
+            // Calculate scaling factor for 90-day avg (to get equivalent for selected range)
+            // If we selected 7 days, divide 90-day data by ~12.86 to get 7-day equivalent
+            const scaleFactor = 90 / range.daysBack;
 
-            // Calculate show rates
-            const first30Showed = data30.appointments?.first?.showed || 0;
-            const first30Total = data30.appointments?.first?.total || 1;
-            const showRate30 = (first30Showed / first30Total * 100);
-            const first90Showed = data90.appointments?.first?.showed || 0;
+            // ======== 1st APPOINTMENTS ========
+            const firstBookedCurrent = dataRange.appointments?.first?.total || 0;
+            const firstBooked90Avg = Math.round((data90.appointments?.first?.total || 0) / scaleFactor);
+            const firstCompletedCurrent = dataRange.appointments?.first?.showed || 0;
+            const firstCompleted90Avg = Math.round((data90.appointments?.first?.showed || 0) / scaleFactor);
+
+            // 1st Show Rate
+            const firstShowRateCurrent = firstBookedCurrent > 0 ? (firstCompletedCurrent / firstBookedCurrent * 100) : 0;
             const first90Total = data90.appointments?.first?.total || 1;
-            const showRate90 = (first90Showed / first90Total * 100);
+            const first90Showed = data90.appointments?.first?.showed || 0;
+            const firstShowRate90Avg = (first90Showed / first90Total * 100);
 
-            // Update benchmark cards
-            updateBenchmark('firstAppt', first30, first90Avg);
-            updateBenchmark('secondAppt', second30, second90Avg);
-            updateBenchmark('signed', signed30, signed90Avg);
-            updateBenchmarkPct('showRate', showRate30, showRate90);
+            // ======== 2nd APPOINTMENTS ========
+            const secondBookedCurrent = dataRange.appointments?.second?.total || 0;
+            const secondBooked90Avg = Math.round((data90.appointments?.second?.total || 0) / scaleFactor);
+            const secondCompletedCurrent = dataRange.appointments?.second?.showed || 0;
+            const secondCompleted90Avg = Math.round((data90.appointments?.second?.showed || 0) / scaleFactor);
 
-            // Update show rates
-            document.getElementById('firstShowRate').textContent = showRate30.toFixed(1) + '%';
-            document.getElementById('firstShowBreakdown').textContent = `${first30Showed} showed / ${first30Total} total`;
+            // 2nd Show Rate
+            const secondShowRateCurrent = secondBookedCurrent > 0 ? (secondCompletedCurrent / secondBookedCurrent * 100) : 0;
+            const second90Total = data90.appointments?.second?.total || 1;
+            const second90Showed = data90.appointments?.second?.showed || 0;
+            const secondShowRate90Avg = (second90Showed / second90Total * 100);
 
-            const second30Showed = data30.appointments?.second?.showed || 0;
-            const second30Total = data30.appointments?.second?.total || 1;
-            const secondShowRate = (second30Showed / second30Total * 100);
-            document.getElementById('secondShowRate').textContent = secondShowRate.toFixed(1) + '%';
-            document.getElementById('secondShowBreakdown').textContent = `${second30Showed} showed / ${second30Total} total`;
+            // ======== SIGNED CONTRACTS ========
+            const signedCurrent = dataRange.opportunities?.signedContract || 0;
+            const signed90Avg = Math.round((data90.opportunities?.signedContract || 0) / scaleFactor);
 
-            // Update conversion rate (showed to signed)
-            const totalShowed = first30Showed + second30Showed;
-            if (totalShowed > 0 && signed30 > 0) {
-                document.getElementById('conversionRate').textContent = (signed30 / totalShowed * 100).toFixed(1) + '%';
-            } else {
-                document.getElementById('conversionRate').textContent = '--.--%';
-            }
+            // ======== CONVERSION RATE (2nd completed → signed) ========
+            const conversionRateCurrent = secondCompletedCurrent > 0 ? (signedCurrent / secondCompletedCurrent * 100) : 0;
+            const conversionRate90Avg = second90Showed > 0 ? ((data90.opportunities?.signedContract || 0) / second90Showed * 100) : 0;
+
+            // ======== UPDATE BENCHMARK CARDS ========
+            // Row 1
+            updateBenchmarkCard('firstBooked', firstBookedCurrent, firstBooked90Avg, false);
+            updateBenchmarkCard('firstCompleted', firstCompletedCurrent, firstCompleted90Avg, false);
+            updateBenchmarkCard('firstShowRate', firstShowRateCurrent, firstShowRate90Avg, true);
+            updateBenchmarkCard('secondBooked', secondBookedCurrent, secondBooked90Avg, false);
+
+            // Row 2
+            updateBenchmarkCard('secondCompleted', secondCompletedCurrent, secondCompleted90Avg, false);
+            updateBenchmarkCard('secondShowRate', secondShowRateCurrent, secondShowRate90Avg, true);
+            updateBenchmarkCard('signed', signedCurrent, signed90Avg, false);
+            updateBenchmarkCard('conversionRate', conversionRateCurrent, conversionRate90Avg, true);
 
             // Update appointment chart with data from selected range
             const first = dataRange.appointments?.first || {};
@@ -1182,38 +1247,45 @@
             document.getElementById('pipeSentContract').textContent = oppsRange.sentContract || 0;
             document.getElementById('pipeSignedContract').textContent = oppsRange.signedContract || 0;
             document.getElementById('pipeTotal').textContent = oppsRange.total || 0;
+
+            // Store firstBookedCurrent for cost per appointment calculation
+            window.firstBookedCurrent = firstBookedCurrent;
         }
 
-        function updateBenchmark(prefix, current, avg90) {
-            document.getElementById(`${prefix}30`).textContent = current.toLocaleString();
-            document.getElementById(`${prefix}90Avg`).textContent = avg90.toLocaleString();
+        // Unified benchmark card update function
+        function updateBenchmarkCard(prefix, current, avg90, isPercentage) {
+            // Handle special case for signed which uses 'signed30' as the main ID
+            const currentElId = prefix === 'signed' ? 'signed30' :
+                                prefix === 'conversionRate' ? 'conversionRateBenchmark' : prefix;
 
+            const currentEl = document.getElementById(currentElId);
+            const avgEl = document.getElementById(`${prefix}90Avg`);
             const changeEl = document.getElementById(`${prefix}Change`);
             const indicatorEl = document.getElementById(`${prefix}Indicator`);
 
-            if (avg90 > 0) {
-                const pctChange = ((current - avg90) / avg90 * 100);
-                changeEl.textContent = (pctChange >= 0 ? '+' : '') + pctChange.toFixed(0) + '%';
-                changeEl.className = 'benchmark-change ' + (pctChange >= 0 ? 'up' : 'down');
-                indicatorEl.className = 'benchmark-indicator ' + (pctChange >= -10 ? 'good' : pctChange >= -25 ? 'warning' : 'alert');
+            if (isPercentage) {
+                currentEl.textContent = current.toFixed(1) + '%';
+                avgEl.textContent = avg90.toFixed(1) + '%';
+
+                const diff = current - avg90;
+                changeEl.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
+                changeEl.className = 'benchmark-change ' + (diff >= 0 ? 'up' : 'down');
+                indicatorEl.className = 'benchmark-indicator ' + (diff >= -5 ? 'good' : diff >= -15 ? 'warning' : 'alert');
             } else {
-                changeEl.textContent = '--';
-                changeEl.className = 'benchmark-change neutral';
-                indicatorEl.className = 'benchmark-indicator warning';
+                currentEl.textContent = current.toLocaleString();
+                avgEl.textContent = avg90.toLocaleString();
+
+                if (avg90 > 0) {
+                    const pctChange = ((current - avg90) / avg90 * 100);
+                    changeEl.textContent = (pctChange >= 0 ? '+' : '') + pctChange.toFixed(0) + '%';
+                    changeEl.className = 'benchmark-change ' + (pctChange >= 0 ? 'up' : 'down');
+                    indicatorEl.className = 'benchmark-indicator ' + (pctChange >= -10 ? 'good' : pctChange >= -25 ? 'warning' : 'alert');
+                } else {
+                    changeEl.textContent = '--';
+                    changeEl.className = 'benchmark-change neutral';
+                    indicatorEl.className = 'benchmark-indicator warning';
+                }
             }
-        }
-
-        function updateBenchmarkPct(prefix, current, avg90) {
-            document.getElementById(`${prefix}30`).textContent = current.toFixed(1) + '%';
-            document.getElementById(`${prefix}90Avg`).textContent = avg90.toFixed(1) + '%';
-
-            const changeEl = document.getElementById(`${prefix}Change`);
-            const indicatorEl = document.getElementById(`${prefix}Indicator`);
-
-            const diff = current - avg90;
-            changeEl.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
-            changeEl.className = 'benchmark-change ' + (diff >= 0 ? 'up' : 'down');
-            indicatorEl.className = 'benchmark-indicator ' + (diff >= -5 ? 'good' : diff >= -15 ? 'warning' : 'alert');
         }
 
         // Fetch cost data
@@ -1277,8 +1349,8 @@
 
             document.getElementById('totalCost').textContent = '$' + totalCost.toFixed(2);
 
-            // Cost per 1st appointment
-            const firstAppt = parseInt(document.getElementById('firstAppt30').textContent.replace(/,/g, '')) || 1;
+            // Cost per 1st appointment (use stored value from fetchGHLData)
+            const firstAppt = window.firstBookedCurrent || 1;
             document.getElementById('costPerAppt').textContent = '$' + (totalCost / firstAppt).toFixed(2) + ' per 1st appt';
         }
     </script>
