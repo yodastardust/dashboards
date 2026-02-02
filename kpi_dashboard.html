@@ -29,11 +29,7 @@
             --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -67,36 +63,19 @@
             align-items: center;
         }
 
-        .nav-links {
-            display: flex;
-            gap: 10px;
-        }
-
-        .nav-link {
+        .date-filter {
             padding: 8px 15px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
             background: var(--bg-panel);
-            color: var(--text-secondary);
-            text-decoration: none;
+            color: var(--text-primary);
             font-size: 0.85rem;
-            transition: all 0.2s;
-        }
-
-        .nav-link:hover, .nav-link.active {
-            background: var(--accent-cyan);
-            color: var(--text-primary);
-            border-color: var(--accent-cyan);
-        }
-
-        .date-selector {
-            padding: 8px 15px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background: var(--bg-panel);
-            color: var(--text-primary);
             cursor: pointer;
-            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .date-filter:hover, .date-filter:focus {
+            border-color: var(--accent-cyan);
         }
 
         .refresh-btn {
@@ -119,7 +98,6 @@
             padding: 20px 24px;
         }
 
-        /* Section Headers */
         .section-header {
             font-size: 0.85rem;
             color: var(--text-muted);
@@ -130,11 +108,72 @@
             border-bottom: 1px solid var(--border-color);
         }
 
-        .section-header:first-of-type {
-            margin-top: 0;
+        .section-header:first-of-type { margin-top: 0; }
+
+        /* Benchmark Cards */
+        .benchmark-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
         }
 
-        /* Channel Stats Grid - Main Metrics */
+        .benchmark-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .benchmark-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .benchmark-current {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--text-primary);
+        }
+
+        .benchmark-compare {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            font-size: 0.8rem;
+        }
+
+        .benchmark-avg {
+            color: var(--text-muted);
+        }
+
+        .benchmark-change {
+            font-weight: 500;
+        }
+
+        .benchmark-change.up { color: var(--success-green); }
+        .benchmark-change.down { color: var(--alert-red); }
+        .benchmark-change.neutral { color: var(--warning-yellow); }
+
+        .benchmark-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .benchmark-indicator.good { background: var(--success-green); }
+        .benchmark-indicator.warning { background: var(--warning-yellow); }
+        .benchmark-indicator.alert { background: var(--alert-red); }
+
+        /* Channel Stats Grid */
         .channel-stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -192,20 +231,9 @@
             font-family: 'Roboto Mono', monospace;
         }
 
-        .response-rate-badge.good {
-            background: rgba(0, 200, 83, 0.2);
-            color: var(--success-green);
-        }
-
-        .response-rate-badge.medium {
-            background: rgba(255, 193, 7, 0.2);
-            color: var(--warning-yellow);
-        }
-
-        .response-rate-badge.low {
-            background: rgba(196, 30, 58, 0.2);
-            color: var(--alert-red);
-        }
+        .response-rate-badge.good { background: rgba(0, 200, 83, 0.2); color: var(--success-green); }
+        .response-rate-badge.medium { background: rgba(255, 193, 7, 0.2); color: var(--warning-yellow); }
+        .response-rate-badge.low { background: rgba(196, 30, 58, 0.2); color: var(--alert-red); }
 
         .channel-metrics {
             display: grid;
@@ -227,13 +255,8 @@
             color: var(--text-primary);
         }
 
-        .metric-value.outbound {
-            color: var(--accent-cyan);
-        }
-
-        .metric-value.inbound {
-            color: var(--success-green);
-        }
+        .metric-value.outbound { color: var(--accent-cyan); }
+        .metric-value.inbound { color: var(--success-green); }
 
         .metric-label {
             font-size: 0.75rem;
@@ -242,7 +265,7 @@
             margin-top: 5px;
         }
 
-        /* Voice Outcomes Section */
+        /* Voice Outcomes */
         .voice-outcomes {
             background: var(--bg-panel);
             border: 1px solid var(--border-color);
@@ -271,21 +294,10 @@
             border-left: 3px solid transparent;
         }
 
-        .outcome-box.completed {
-            border-left-color: var(--success-green);
-        }
-
-        .outcome-box.no-answer {
-            border-left-color: var(--warning-yellow);
-        }
-
-        .outcome-box.failed {
-            border-left-color: var(--alert-red);
-        }
-
-        .outcome-box.busy {
-            border-left-color: var(--warning-orange);
-        }
+        .outcome-box.completed { border-left-color: var(--success-green); }
+        .outcome-box.no-answer { border-left-color: var(--warning-yellow); }
+        .outcome-box.failed { border-left-color: var(--alert-red); }
+        .outcome-box.busy { border-left-color: var(--warning-orange); }
 
         .outcome-value {
             font-size: 1.5rem;
@@ -311,7 +323,7 @@
             margin-top: 3px;
         }
 
-        /* Queue & Appointments Row */
+        /* Queue Summary */
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -347,6 +359,62 @@
             margin-top: 5px;
         }
 
+        /* Pipeline Funnel */
+        .pipeline-section {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .pipeline-title {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+        }
+
+        .pipeline-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+
+        .pipeline-stage {
+            text-align: center;
+            padding: 15px 10px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            position: relative;
+        }
+
+        .pipeline-stage::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-left: 8px solid var(--bg-secondary);
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+        }
+
+        .pipeline-stage:last-child::after { display: none; }
+
+        .pipeline-count {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--accent-cyan);
+        }
+
+        .pipeline-name {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
         /* Charts Grid */
         .charts-grid {
             display: grid;
@@ -374,10 +442,10 @@
             position: relative;
         }
 
-        /* Costs Section */
+        /* Costs */
         .costs-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 20px;
             margin-bottom: 25px;
         }
@@ -437,13 +505,10 @@
             border-top: 1px solid var(--border-color);
         }
 
-        /* Loading State */
+        /* Loading */
         .loading-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.7);
             display: flex;
             align-items: center;
@@ -451,9 +516,7 @@
             z-index: 1000;
         }
 
-        .loading-overlay.hidden {
-            display: none;
-        }
+        .loading-overlay.hidden { display: none; }
 
         .spinner {
             width: 50px;
@@ -470,30 +533,19 @@
 
         /* Responsive */
         @media (max-width: 1200px) {
-            .channel-stats-grid {
-                grid-template-columns: 1fr;
-            }
-            .summary-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .outcomes-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
+            .channel-stats-grid { grid-template-columns: 1fr; }
+            .summary-grid { grid-template-columns: repeat(2, 1fr); }
+            .benchmark-grid { grid-template-columns: repeat(2, 1fr); }
+            .outcomes-grid { grid-template-columns: repeat(2, 1fr); }
+            .pipeline-grid { grid-template-columns: repeat(3, 1fr); }
         }
 
         @media (max-width: 768px) {
-            .summary-grid {
-                grid-template-columns: 1fr;
-            }
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
-            .costs-grid {
-                grid-template-columns: 1fr;
-            }
-            .channel-metrics {
-                grid-template-columns: 1fr;
-            }
+            .summary-grid { grid-template-columns: 1fr; }
+            .benchmark-grid { grid-template-columns: 1fr; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .costs-grid { grid-template-columns: 1fr; }
+            .pipeline-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -503,26 +555,62 @@
     </div>
 
     <div class="header">
-        <h1><span class="status-dot live"></span>KPI Dashboard <span style="color: var(--text-muted); font-weight: 300;">| Real-Time Twilio Metrics</span></h1>
+        <h1><span class="status-dot live"></span>KPI Dashboard <span style="color: var(--text-muted); font-weight: 300;">| Real-Time Metrics</span></h1>
         <div class="header-controls">
-            <div class="nav-links">
-                <a href="index.html" class="nav-link active">KPI Dashboard</a>
-                <a href="communications.html" class="nav-link">Communications</a>
-                <a href="todays_queue.html" class="nav-link">Outreach Schedule</a>
-            </div>
-            <select class="date-selector" id="dateRange">
+            <select id="dateFilter" class="date-filter" onchange="refreshData()">
                 <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="all">All Time</option>
+                <option value="7d">Last 7 Days</option>
+                <option value="30d" selected>Last 30 Days</option>
+                <option value="90d">Last 90 Days</option>
             </select>
             <button class="refresh-btn" onclick="refreshData()">Refresh</button>
         </div>
     </div>
 
     <div class="main-content">
+        <!-- Benchmark Section: 90-Day Avg vs Last 30 Days -->
+        <div class="section-header">Performance Benchmarks (30-Day vs 90-Day Avg)</div>
+        <div class="benchmark-grid">
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="firstApptIndicator"></div>
+                <div class="benchmark-label">1st Appointments Booked</div>
+                <div class="benchmark-current" id="firstAppt30">--</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="firstAppt90Avg">--</span></span>
+                    <span class="benchmark-change" id="firstApptChange">--%</span>
+                </div>
+            </div>
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="secondApptIndicator"></div>
+                <div class="benchmark-label">2nd Appointments Completed</div>
+                <div class="benchmark-current" id="secondAppt30">--</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="secondAppt90Avg">--</span></span>
+                    <span class="benchmark-change" id="secondApptChange">--%</span>
+                </div>
+            </div>
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="signedIndicator"></div>
+                <div class="benchmark-label">Signed Contracts</div>
+                <div class="benchmark-current" id="signed30">--</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="signed90Avg">--</span></span>
+                    <span class="benchmark-change" id="signedChange">--%</span>
+                </div>
+            </div>
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="showRateIndicator"></div>
+                <div class="benchmark-label">Show Rate</div>
+                <div class="benchmark-current" id="showRate30">--%</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="showRate90Avg">--%</span></span>
+                    <span class="benchmark-change" id="showRateChange">--%</span>
+                </div>
+            </div>
+        </div>
+
         <!-- SMS & Voice Channel Stats -->
-        <div class="section-header">Outreach Performance</div>
+        <div class="section-header" id="outreachHeader">Outreach Performance (Last 30 Days)</div>
         <div class="channel-stats-grid">
             <!-- SMS Channel -->
             <div class="channel-card">
@@ -554,7 +642,7 @@
                 <div class="channel-header">
                     <div class="channel-title">
                         <div class="channel-icon voice">TEL</div>
-                        Voice Channel
+                        Voice Channel (Retell AI)
                     </div>
                     <div class="response-rate-badge good" id="voiceAnswerBadge">--.--%</div>
                 </div>
@@ -577,7 +665,7 @@
 
         <!-- Voice Call Outcomes -->
         <div class="voice-outcomes">
-            <div class="outcomes-title">Voice Call Outcomes</div>
+            <div class="outcomes-title">Voice Call Outcomes (from Retell AI)</div>
             <div class="outcomes-grid">
                 <div class="outcome-box completed">
                     <div class="outcome-value completed" id="voiceCompleted">--</div>
@@ -586,7 +674,7 @@
                 </div>
                 <div class="outcome-box no-answer">
                     <div class="outcome-value no-answer" id="voiceNoAnswer">--</div>
-                    <div class="outcome-label">No Answer</div>
+                    <div class="outcome-label">Voicemail/No Answer</div>
                     <div class="outcome-percent" id="voiceNoAnswerPct">--%</div>
                 </div>
                 <div class="outcome-box failed">
@@ -602,7 +690,7 @@
             </div>
         </div>
 
-        <!-- Queue & Appointments Summary -->
+        <!-- Queue Summary -->
         <div class="section-header">Queue & Conversions</div>
         <div class="summary-grid">
             <div class="summary-card">
@@ -611,19 +699,47 @@
                 <div class="summary-subtext" id="queueBreakdown">-- SMS / -- Voice</div>
             </div>
             <div class="summary-card">
-                <div class="summary-label">Sent Today</div>
-                <div class="summary-value" id="sentToday">--</div>
-                <div class="summary-subtext" id="sentBreakdown">-- SMS / -- Voice</div>
+                <div class="summary-label">1st Appt Show Rate</div>
+                <div class="summary-value" id="firstShowRate">--%</div>
+                <div class="summary-subtext" id="firstShowBreakdown">-- showed / -- total</div>
             </div>
             <div class="summary-card">
-                <div class="summary-label">Appointments Booked</div>
-                <div class="summary-value" id="apptsBooked">--</div>
-                <div class="summary-subtext" id="apptsSource">-- SMS / -- Voice</div>
+                <div class="summary-label">2nd Appt Show Rate</div>
+                <div class="summary-value" id="secondShowRate">--%</div>
+                <div class="summary-subtext" id="secondShowBreakdown">-- showed / -- total</div>
             </div>
             <div class="summary-card">
                 <div class="summary-label">Conversion Rate</div>
                 <div class="summary-value" id="conversionRate">--.--%</div>
-                <div class="summary-subtext">responses to appointments</div>
+                <div class="summary-subtext">showed appointments to signed</div>
+            </div>
+        </div>
+
+        <!-- Pipeline Funnel -->
+        <div class="section-header">Acquisitions Pipeline</div>
+        <div class="pipeline-section">
+            <div class="pipeline-title">GHL Opportunity Stages</div>
+            <div class="pipeline-grid">
+                <div class="pipeline-stage">
+                    <div class="pipeline-count" id="pipeHotLead">--</div>
+                    <div class="pipeline-name">Hot Lead</div>
+                </div>
+                <div class="pipeline-stage">
+                    <div class="pipeline-count" id="pipeSentOffer">--</div>
+                    <div class="pipeline-name">Sent Offer</div>
+                </div>
+                <div class="pipeline-stage">
+                    <div class="pipeline-count" id="pipeSentContract">--</div>
+                    <div class="pipeline-name">Sent Contract</div>
+                </div>
+                <div class="pipeline-stage">
+                    <div class="pipeline-count" id="pipeSignedContract">--</div>
+                    <div class="pipeline-name">Signed Contract</div>
+                </div>
+                <div class="pipeline-stage">
+                    <div class="pipeline-count" id="pipeTotal">--</div>
+                    <div class="pipeline-name">Total Active</div>
+                </div>
             </div>
         </div>
 
@@ -631,13 +747,13 @@
         <div class="section-header">Distribution</div>
         <div class="charts-grid">
             <div class="chart-card">
-                <div class="chart-title">Hourly Outreach Volume</div>
+                <div class="chart-title" id="appointmentChartTitle">Appointment Outcomes (Last 30 Days)</div>
                 <div class="chart-container">
-                    <canvas id="hourlyChart"></canvas>
+                    <canvas id="appointmentChart"></canvas>
                 </div>
             </div>
             <div class="chart-card">
-                <div class="chart-title">Voice Outcomes Breakdown</div>
+                <div class="chart-title">Voice Call Outcomes</div>
                 <div class="chart-container">
                     <canvas id="outcomesChart"></canvas>
                 </div>
@@ -645,45 +761,47 @@
         </div>
 
         <!-- Costs -->
-        <div class="section-header">Costs</div>
+        <div class="section-header" id="costsHeader">Costs (Last 30 Days)</div>
         <div class="costs-grid">
             <div class="cost-card">
-                <div class="cost-title">SMS Cost</div>
+                <div class="cost-title">SMS Cost (Twilio)</div>
                 <div class="cost-value" id="smsCost">$--</div>
-                <div class="cost-detail" id="smsCostDetail">-- messages @ $--/msg</div>
+                <div class="cost-detail" id="smsCostDetail">-- messages</div>
             </div>
             <div class="cost-card">
-                <div class="cost-title">Voice Cost</div>
-                <div class="cost-value" id="voiceCost">$--</div>
-                <div class="cost-detail" id="voiceCostDetail">-- minutes @ $--/min</div>
+                <div class="cost-title">Voice Cost (Twilio)</div>
+                <div class="cost-value" id="twilioCost">$--</div>
+                <div class="cost-detail" id="twilioCostDetail">-- minutes</div>
+            </div>
+            <div class="cost-card">
+                <div class="cost-title">AI Voice Cost (Retell)</div>
+                <div class="cost-value" id="retellCost">$--</div>
+                <div class="cost-detail" id="retellCostDetail">-- calls</div>
             </div>
             <div class="cost-card">
                 <div class="cost-title">Total Cost</div>
                 <div class="cost-value" id="totalCost">$--</div>
-                <div class="cost-detail" id="costPerAppt">$-- per appointment</div>
+                <div class="cost-detail" id="costPerAppt">$-- per 1st appt</div>
             </div>
         </div>
     </div>
 
     <div class="footer">
-        KPI Dashboard v2.1 | Real-Time Twilio + Historical Data | Last updated: <span id="lastUpdated">--</span>
+        KPI Dashboard v3.0 | Data: Supabase + GHL + Retell | Last updated: <span id="lastUpdated">--</span>
     </div>
 
     <script>
         // Configuration
         const SUPABASE_URL = 'https://saksbjogtkagedmlsrsv.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTI1NTEwMywiZXhwIjoyMDg0NjE1MTAzfQ.X7fHo2v_7HZBYZzggydteFbMh_y_pgQN78yynby5sI4';
-
-        // Twilio credentials for direct API access (loaded from Supabase secrets or env)
-        // For security, we'll use a serverless function or n8n webhook instead
-        const TWILIO_WEBHOOK_URL = 'https://n8n.stopmyauctionnow.com/webhook/twilio-stats';
+        const GHL_STATS_URL = 'https://n8n.stopmyauctionnow.com/webhook/ghl-appointment-stats';
 
         let sbClient;
-        let hourlyChart, outcomesChart;
+        let appointmentChart, outcomesChart;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('KPI Dashboard v2 initializing...');
+            console.log('KPI Dashboard v3 initializing...');
             try {
                 sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 initCharts();
@@ -705,24 +823,64 @@
             document.getElementById('loadingOverlay').classList.add('hidden');
         }
 
+        function getDateRange() {
+            const filter = document.getElementById('dateFilter').value;
+            const now = new Date();
+            let startDate;
+            let daysBack;
+
+            switch (filter) {
+                case 'today':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    daysBack = 0;
+                    break;
+                case '7d':
+                    startDate = new Date(now - 7 * 24 * 60 * 60 * 1000);
+                    daysBack = 7;
+                    break;
+                case '90d':
+                    startDate = new Date(now - 90 * 24 * 60 * 60 * 1000);
+                    daysBack = 90;
+                    break;
+                case '30d':
+                default:
+                    startDate = new Date(now - 30 * 24 * 60 * 60 * 1000);
+                    daysBack = 30;
+            }
+
+            return {
+                startDate: startDate,
+                startDateISO: startDate.toISOString(),
+                startDateStr: startDate.toISOString().split('T')[0],
+                daysBack: daysBack,
+                label: filter === 'today' ? 'Today' : `Last ${daysBack} Days`
+            };
+        }
+
         function initCharts() {
-            // Hourly volume chart
-            const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
-            hourlyChart = new Chart(hourlyCtx, {
+            // Appointment outcomes chart
+            const apptCtx = document.getElementById('appointmentChart').getContext('2d');
+            appointmentChart = new Chart(apptCtx, {
                 type: 'bar',
                 data: {
-                    labels: ['8am', '9am', '10am', '11am', '12pm', '1pm', '2pm', '3pm', '4pm', '5pm', '6pm', '7pm'],
+                    labels: ['1st Appts', '2nd Appts'],
                     datasets: [
                         {
-                            label: 'SMS',
-                            data: Array(12).fill(0),
-                            backgroundColor: 'rgba(0, 188, 212, 0.7)',
+                            label: 'Showed',
+                            data: [0, 0],
+                            backgroundColor: 'rgba(0, 200, 83, 0.7)',
                             borderRadius: 4
                         },
                         {
-                            label: 'Voice',
-                            data: Array(12).fill(0),
-                            backgroundColor: 'rgba(0, 200, 83, 0.7)',
+                            label: 'No Show',
+                            data: [0, 0],
+                            backgroundColor: 'rgba(196, 30, 58, 0.7)',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Pending',
+                            data: [0, 0],
+                            backgroundColor: 'rgba(255, 193, 7, 0.7)',
                             borderRadius: 4
                         }
                     ]
@@ -731,31 +889,21 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: { color: '#888', font: { size: 11 } }
-                        }
+                        legend: { position: 'top', labels: { color: '#888', font: { size: 11 } } }
                     },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: 'rgba(255,255,255,0.05)' },
-                            ticks: { color: '#666' }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: '#888' }
-                        }
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666' } },
+                        x: { grid: { display: false }, ticks: { color: '#888' } }
                     }
                 }
             });
 
-            // Outcomes doughnut chart
+            // Voice outcomes chart
             const outcomesCtx = document.getElementById('outcomesChart').getContext('2d');
             outcomesChart = new Chart(outcomesCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Completed', 'No Answer', 'Failed', 'Busy'],
+                    labels: ['Completed', 'Voicemail', 'Failed', 'Busy'],
                     datasets: [{
                         data: [0, 0, 0, 0],
                         backgroundColor: ['#00c853', '#ffc107', '#c41e3a', '#ff8800'],
@@ -766,10 +914,7 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: { color: '#888', font: { size: 11 } }
-                        }
+                        legend: { position: 'right', labels: { color: '#888', font: { size: 11 } } }
                     }
                 }
             });
@@ -779,18 +924,21 @@
             showLoading();
             const startTime = Date.now();
 
+            // Update section headers based on selected filter
+            const range = getDateRange();
+            document.getElementById('outreachHeader').textContent = `Outreach Performance (${range.label})`;
+            document.getElementById('costsHeader').textContent = `Costs (${range.label})`;
+            document.getElementById('appointmentChartTitle').textContent = `Appointment Outcomes (${range.label})`;
+
             try {
-                // Try to fetch from n8n webhook first (real-time Twilio data)
-                const dateRange = document.getElementById('dateRange').value;
-
-                // Fetch Twilio stats via n8n webhook
-                await fetchTwilioStats(dateRange);
-
-                // Fetch queue data from Supabase
-                await fetchQueueData();
-
-                // Fetch appointment data
-                await fetchAppointmentData(dateRange);
+                // Fetch data in parallel
+                await Promise.all([
+                    fetchSMSData(),
+                    fetchVoiceData(),
+                    fetchQueueData(),
+                    fetchGHLData(),
+                    fetchCostData()
+                ]);
 
                 const elapsed = Date.now() - startTime;
                 document.getElementById('lastUpdated').textContent =
@@ -803,53 +951,39 @@
             hideLoading();
         }
 
-        async function fetchTwilioStats(dateRange) {
-            // First try the n8n webhook for real-time data
-            try {
-                const response = await fetch(`${TWILIO_WEBHOOK_URL}?range=${dateRange}`, {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    updateTwilioDisplay(data);
-                    return;
+        // Fetch SMS data from public.messages
+        async function fetchSMSData() {
+            const range = getDateRange();
+            const url = `${SUPABASE_URL}/rest/v1/messages?channel=eq.sms&created_at=gte.${range.startDateISO}&select=direction,created_at`;
+            const response = await fetch(url, {
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Content-Type': 'application/json'
                 }
-            } catch (e) {
-                console.log('n8n webhook not available, falling back to Supabase cache');
-            }
+            });
 
-            // Fallback: Load from Supabase cache (ops.twilio_daily_costs)
-            await fetchTwilioFromSupabase(dateRange);
+            if (!response.ok) throw new Error('Failed to fetch SMS data');
+
+            const messages = await response.json();
+            const outbound = messages.filter(m => m.direction === 'outbound').length;
+            const inbound = messages.filter(m => m.direction === 'inbound').length;
+            const responseRate = outbound > 0 ? (inbound / outbound * 100) : 0;
+
+            document.getElementById('smsOutbound').textContent = outbound.toLocaleString();
+            document.getElementById('smsInbound').textContent = inbound.toLocaleString();
+            document.getElementById('smsResponseRate').textContent = responseRate.toFixed(1) + '%';
+
+            const smsBadge = document.getElementById('smsResponseBadge');
+            smsBadge.textContent = responseRate.toFixed(1) + '%';
+            smsBadge.className = 'response-rate-badge ' + (responseRate >= 15 ? 'good' : responseRate >= 10 ? 'medium' : 'low');
         }
 
-        async function fetchTwilioFromSupabase(dateRange) {
-            const now = new Date();
-            const today = now.toISOString().split('T')[0];
-
-            let startDate;
-            switch(dateRange) {
-                case 'today':
-                    startDate = today;
-                    break;
-                case 'week':
-                    const weekAgo = new Date(now);
-                    weekAgo.setDate(weekAgo.getDate() - 7);
-                    startDate = weekAgo.toISOString().split('T')[0];
-                    break;
-                case 'month':
-                    startDate = now.toISOString().slice(0, 7) + '-01';
-                    break;
-                case 'all':
-                default:
-                    startDate = '2024-01-01'; // All historical data
-                    break;
-            }
-
-            const url = `${SUPABASE_URL}/rest/v1/twilio_daily_costs?date=gte.${startDate}&date=lte.${today}&order=date.desc`;
+        // Fetch Voice data from ops.retell_call_outcomes
+        async function fetchVoiceData() {
+            const range = getDateRange();
+            const url = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&select=call_type,disconnection_reason,call_status`;
             const response = await fetch(url, {
-                method: 'GET',
                 headers: {
                     'apikey': SUPABASE_KEY,
                     'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -858,248 +992,270 @@
                 }
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to fetch Twilio data from Supabase');
-            }
+            if (!response.ok) throw new Error('Failed to fetch voice data');
 
-            const days = await response.json();
+            const calls = await response.json();
+            const outbound = calls.filter(c => c.call_type !== 'inbound').length;
+            const inbound = calls.filter(c => c.call_type === 'inbound').length;
 
-            // Aggregate the data
-            const totals = days.reduce((acc, day) => {
-                acc.sms_outbound += day.sms_outbound_count || 0;
-                acc.sms_inbound += day.sms_inbound_count || 0;
-                acc.sms_cost += parseFloat(day.sms_cost) || 0;
-                acc.call_outbound += day.call_outbound_count || 0;
-                acc.call_inbound += day.call_inbound_count || 0;
-                acc.call_cost += parseFloat(day.call_cost) || 0;
-                acc.call_minutes += day.call_minutes || 0;
-                acc.total_cost += parseFloat(day.total_cost) || 0;
-
-                // Aggregate voice outcomes if available
-                acc.voice_completed += day.voice_completed || 0;
-                acc.voice_no_answer += day.voice_no_answer || 0;
-                acc.voice_failed += day.voice_failed || 0;
-                acc.voice_busy += day.voice_busy || 0;
-
-                return acc;
-            }, {
-                sms_outbound: 0, sms_inbound: 0, sms_cost: 0,
-                call_outbound: 0, call_inbound: 0, call_cost: 0, call_minutes: 0,
-                total_cost: 0,
-                voice_completed: 0, voice_no_answer: 0, voice_failed: 0, voice_busy: 0
+            // Count by disconnection_reason
+            let completed = 0, noAnswer = 0, failed = 0, busy = 0;
+            calls.forEach(c => {
+                const reason = (c.disconnection_reason || '').toLowerCase();
+                if (reason === 'hangup' || reason === 'user_hangup') completed++;
+                else if (reason === 'voicemail_reached' || reason === 'no_valid_path' || reason === 'agent_hangup') noAnswer++;
+                else if (reason === 'dial_failed') failed++;
+                else if (reason === 'dial_busy') busy++;
+                else if (c.call_status === 'ended') completed++;
             });
 
-            updateTwilioDisplay(totals);
-        }
+            const total = calls.length;
+            const answerRate = total > 0 ? (completed / total * 100) : 0;
 
-        function updateTwilioDisplay(data) {
-            // SMS metrics
-            const smsOut = data.sms_outbound || 0;
-            const smsIn = data.sms_inbound || 0;
-            const smsRate = smsOut > 0 ? ((smsIn / smsOut) * 100) : 0;
-
-            document.getElementById('smsOutbound').textContent = smsOut.toLocaleString();
-            document.getElementById('smsInbound').textContent = smsIn.toLocaleString();
-            document.getElementById('smsResponseRate').textContent = smsRate.toFixed(1) + '%';
-
-            const smsBadge = document.getElementById('smsResponseBadge');
-            smsBadge.textContent = smsRate.toFixed(1) + '%';
-            smsBadge.className = 'response-rate-badge ' + (smsRate >= 15 ? 'good' : smsRate >= 10 ? 'medium' : 'low');
-
-            // Voice metrics
-            const voiceOut = data.call_outbound || 0;
-            const voiceIn = data.call_inbound || 0;
-            const completed = data.voice_completed || 0;
-            const noAnswer = data.voice_no_answer || 0;
-            const failed = data.voice_failed || 0;
-            const busy = data.voice_busy || 0;
-
-            // Calculate answer rate from completed calls
-            const answerRate = voiceOut > 0 ? ((completed / voiceOut) * 100) : 0;
-
-            document.getElementById('voiceOutbound').textContent = voiceOut.toLocaleString();
-            document.getElementById('voiceInbound').textContent = voiceIn.toLocaleString();
+            document.getElementById('voiceOutbound').textContent = outbound.toLocaleString();
+            document.getElementById('voiceInbound').textContent = inbound.toLocaleString();
             document.getElementById('voiceAnswerRate').textContent = answerRate.toFixed(1) + '%';
 
             const voiceBadge = document.getElementById('voiceAnswerBadge');
             voiceBadge.textContent = answerRate.toFixed(1) + '%';
-            voiceBadge.className = 'response-rate-badge ' + (answerRate >= 70 ? 'good' : answerRate >= 50 ? 'medium' : 'low');
+            voiceBadge.className = 'response-rate-badge ' + (answerRate >= 40 ? 'good' : answerRate >= 25 ? 'medium' : 'low');
 
-            // Voice outcomes
             document.getElementById('voiceCompleted').textContent = completed.toLocaleString();
             document.getElementById('voiceNoAnswer').textContent = noAnswer.toLocaleString();
             document.getElementById('voiceFailed').textContent = failed.toLocaleString();
             document.getElementById('voiceBusy').textContent = busy.toLocaleString();
 
-            if (voiceOut > 0) {
-                document.getElementById('voiceCompletedPct').textContent = ((completed / voiceOut) * 100).toFixed(1) + '%';
-                document.getElementById('voiceNoAnswerPct').textContent = ((noAnswer / voiceOut) * 100).toFixed(1) + '%';
-                document.getElementById('voiceFailedPct').textContent = ((failed / voiceOut) * 100).toFixed(1) + '%';
-                document.getElementById('voiceBusyPct').textContent = ((busy / voiceOut) * 100).toFixed(1) + '%';
+            if (total > 0) {
+                document.getElementById('voiceCompletedPct').textContent = (completed / total * 100).toFixed(1) + '%';
+                document.getElementById('voiceNoAnswerPct').textContent = (noAnswer / total * 100).toFixed(1) + '%';
+                document.getElementById('voiceFailedPct').textContent = (failed / total * 100).toFixed(1) + '%';
+                document.getElementById('voiceBusyPct').textContent = (busy / total * 100).toFixed(1) + '%';
             }
 
-            // Update outcomes chart
             outcomesChart.data.datasets[0].data = [completed, noAnswer, failed, busy];
             outcomesChart.update();
-
-            // Costs
-            const smsCost = data.sms_cost || 0;
-            const voiceCost = data.call_cost || 0;
-            const totalCost = data.total_cost || smsCost + voiceCost;
-            const callMinutes = data.call_minutes || 0;
-
-            document.getElementById('smsCost').textContent = '$' + smsCost.toFixed(2);
-            document.getElementById('smsCostDetail').textContent =
-                `${(smsOut + smsIn).toLocaleString()} messages @ $${(smsOut + smsIn > 0 ? smsCost / (smsOut + smsIn) : 0).toFixed(4)}/msg`;
-
-            document.getElementById('voiceCost').textContent = '$' + voiceCost.toFixed(2);
-            document.getElementById('voiceCostDetail').textContent =
-                `${callMinutes.toLocaleString()} minutes @ $${(callMinutes > 0 ? voiceCost / callMinutes : 0).toFixed(4)}/min`;
-
-            document.getElementById('totalCost').textContent = '$' + totalCost.toFixed(2);
-
-            // Sent today
-            document.getElementById('sentToday').textContent = (smsOut + voiceOut).toLocaleString();
-            document.getElementById('sentBreakdown').textContent = `${smsOut.toLocaleString()} SMS / ${voiceOut.toLocaleString()} Voice`;
-
-            // Update hourly chart if we have hourly data
-            if (data.hourly_sms && data.hourly_voice) {
-                hourlyChart.data.datasets[0].data = data.hourly_sms;
-                hourlyChart.data.datasets[1].data = data.hourly_voice;
-                hourlyChart.update();
-            }
         }
 
+        // Fetch Queue data
         async function fetchQueueData() {
-            try {
-                const { data: queueData, error } = await sbClient
-                    .from('outreach_queue')
-                    .select('queue_id, channel, status')
-                    .eq('status', 'queued');
+            const { data: queueData, error } = await sbClient
+                .from('outreach_queue')
+                .select('channel, status')
+                .eq('status', 'queued');
 
-                if (error) {
-                    console.log('Queue error:', error.message);
-                    return;
-                }
+            if (error) {
+                console.log('Queue error:', error.message);
+                return;
+            }
 
-                const smsQueue = queueData?.filter(q => q.channel === 'sms').length || 0;
-                const voiceQueue = queueData?.filter(q => q.channel === 'voice').length || 0;
-                const total = smsQueue + voiceQueue;
+            const smsQueue = queueData?.filter(q => q.channel === 'sms').length || 0;
+            const voiceQueue = queueData?.filter(q => q.channel === 'voice').length || 0;
+            const total = smsQueue + voiceQueue;
 
-                document.getElementById('queueRemaining').textContent = total.toLocaleString();
-                document.getElementById('queueBreakdown').textContent = `${smsQueue.toLocaleString()} SMS / ${voiceQueue.toLocaleString()} Voice`;
-            } catch (e) {
-                console.error('Queue fetch error:', e);
+            document.getElementById('queueRemaining').textContent = total.toLocaleString();
+            document.getElementById('queueBreakdown').textContent = `${smsQueue.toLocaleString()} SMS / ${voiceQueue.toLocaleString()} Voice`;
+        }
+
+        // Fetch GHL appointment & opportunity data
+        async function fetchGHLData() {
+            const now = new Date();
+            const range = getDateRange();
+            const d30 = new Date(now - 30 * 24 * 60 * 60 * 1000);
+            const d90 = new Date(now - 90 * 24 * 60 * 60 * 1000);
+
+            // Fetch data for selected range (for charts and current display)
+            const respRange = await fetch(GHL_STATS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    startDate: range.startDateStr,
+                    endDate: now.toISOString().split('T')[0]
+                })
+            });
+
+            // Fetch 30-day data (for benchmark comparison)
+            const resp30 = await fetch(GHL_STATS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    startDate: d30.toISOString().split('T')[0],
+                    endDate: now.toISOString().split('T')[0]
+                })
+            });
+
+            // Fetch 90-day data (for benchmark comparison)
+            const resp90 = await fetch(GHL_STATS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    startDate: d90.toISOString().split('T')[0],
+                    endDate: now.toISOString().split('T')[0]
+                })
+            });
+
+            if (!respRange.ok || !resp30.ok || !resp90.ok) {
+                console.error('GHL fetch failed');
+                return;
+            }
+
+            const dataRange = await respRange.json();
+            const data30 = await resp30.json();
+            const data90 = await resp90.json();
+
+            // Calculate daily averages for 90-day period (divide by 3 to get 30-day equivalent)
+            const first30 = data30.appointments?.first?.total || 0;
+            const first90Avg = Math.round((data90.appointments?.first?.total || 0) / 3);
+            const second30 = data30.appointments?.second?.showed || 0;
+            const second90Avg = Math.round((data90.appointments?.second?.showed || 0) / 3);
+            const signed30 = data30.opportunities?.signedContract || 0;
+            const signed90Avg = Math.round((data90.opportunities?.signedContract || 0) / 3);
+
+            // Calculate show rates
+            const first30Showed = data30.appointments?.first?.showed || 0;
+            const first30Total = data30.appointments?.first?.total || 1;
+            const showRate30 = (first30Showed / first30Total * 100);
+            const first90Showed = data90.appointments?.first?.showed || 0;
+            const first90Total = data90.appointments?.first?.total || 1;
+            const showRate90 = (first90Showed / first90Total * 100);
+
+            // Update benchmark cards
+            updateBenchmark('firstAppt', first30, first90Avg);
+            updateBenchmark('secondAppt', second30, second90Avg);
+            updateBenchmark('signed', signed30, signed90Avg);
+            updateBenchmarkPct('showRate', showRate30, showRate90);
+
+            // Update show rates
+            document.getElementById('firstShowRate').textContent = showRate30.toFixed(1) + '%';
+            document.getElementById('firstShowBreakdown').textContent = `${first30Showed} showed / ${first30Total} total`;
+
+            const second30Showed = data30.appointments?.second?.showed || 0;
+            const second30Total = data30.appointments?.second?.total || 1;
+            const secondShowRate = (second30Showed / second30Total * 100);
+            document.getElementById('secondShowRate').textContent = secondShowRate.toFixed(1) + '%';
+            document.getElementById('secondShowBreakdown').textContent = `${second30Showed} showed / ${second30Total} total`;
+
+            // Update conversion rate (showed to signed)
+            const totalShowed = first30Showed + second30Showed;
+            if (totalShowed > 0 && signed30 > 0) {
+                document.getElementById('conversionRate').textContent = (signed30 / totalShowed * 100).toFixed(1) + '%';
+            } else {
+                document.getElementById('conversionRate').textContent = '--.--%';
+            }
+
+            // Update appointment chart with data from selected range
+            const first = dataRange.appointments?.first || {};
+            const second = dataRange.appointments?.second || {};
+            appointmentChart.data.datasets[0].data = [first.showed || 0, second.showed || 0];
+            appointmentChart.data.datasets[1].data = [first.noshow || 0, second.noshow || 0];
+            appointmentChart.data.datasets[2].data = [first.confirmed || 0, second.confirmed || 0];
+            appointmentChart.update();
+
+            // Update pipeline with data from selected range
+            const oppsRange = dataRange.opportunities || {};
+            document.getElementById('pipeHotLead').textContent = oppsRange.hotLead || 0;
+            document.getElementById('pipeSentOffer').textContent = oppsRange.sentOffer || 0;
+            document.getElementById('pipeSentContract').textContent = oppsRange.sentContract || 0;
+            document.getElementById('pipeSignedContract').textContent = oppsRange.signedContract || 0;
+            document.getElementById('pipeTotal').textContent = oppsRange.total || 0;
+        }
+
+        function updateBenchmark(prefix, current, avg90) {
+            document.getElementById(`${prefix}30`).textContent = current.toLocaleString();
+            document.getElementById(`${prefix}90Avg`).textContent = avg90.toLocaleString();
+
+            const changeEl = document.getElementById(`${prefix}Change`);
+            const indicatorEl = document.getElementById(`${prefix}Indicator`);
+
+            if (avg90 > 0) {
+                const pctChange = ((current - avg90) / avg90 * 100);
+                changeEl.textContent = (pctChange >= 0 ? '+' : '') + pctChange.toFixed(0) + '%';
+                changeEl.className = 'benchmark-change ' + (pctChange >= 0 ? 'up' : 'down');
+                indicatorEl.className = 'benchmark-indicator ' + (pctChange >= -10 ? 'good' : pctChange >= -25 ? 'warning' : 'alert');
+            } else {
+                changeEl.textContent = '--';
+                changeEl.className = 'benchmark-change neutral';
+                indicatorEl.className = 'benchmark-indicator warning';
             }
         }
 
-        async function fetchAppointmentData(dateRange) {
+        function updateBenchmarkPct(prefix, current, avg90) {
+            document.getElementById(`${prefix}30`).textContent = current.toFixed(1) + '%';
+            document.getElementById(`${prefix}90Avg`).textContent = avg90.toFixed(1) + '%';
+
+            const changeEl = document.getElementById(`${prefix}Change`);
+            const indicatorEl = document.getElementById(`${prefix}Indicator`);
+
+            const diff = current - avg90;
+            changeEl.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
+            changeEl.className = 'benchmark-change ' + (diff >= 0 ? 'up' : 'down');
+            indicatorEl.className = 'benchmark-indicator ' + (diff >= -5 ? 'good' : diff >= -15 ? 'warning' : 'alert');
+        }
+
+        // Fetch cost data
+        async function fetchCostData() {
+            const range = getDateRange();
             const now = new Date();
             const today = now.toISOString().split('T')[0];
 
-            let startDate;
-            switch(dateRange) {
-                case 'today':
-                    startDate = today;
-                    break;
-                case 'week':
-                    const weekAgo = new Date(now);
-                    weekAgo.setDate(weekAgo.getDate() - 7);
-                    startDate = weekAgo.toISOString().split('T')[0];
-                    break;
-                case 'month':
-                    startDate = now.toISOString().slice(0, 7) + '-01';
-                    break;
-                case 'all':
-                default:
-                    startDate = '2024-01-01'; // All historical data
-                    break;
-            }
+            // Twilio costs
+            const twilioUrl = `${SUPABASE_URL}/rest/v1/twilio_daily_costs?date=gte.${range.startDateStr}&date=lte.${today}`;
+            const twilioResp = await fetch(twilioUrl, {
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Accept-Profile': 'ops',
+                    'Content-Type': 'application/json'
+                }
+            });
 
-            try {
-                let totalAppointments = 0;
-                let smsAppointments = 0;
-                let voiceAppointments = 0;
-
-                // Fetch current appointments from lead_appointments
-                const currentUrl = `${SUPABASE_URL}/rest/v1/lead_appointments?updated_at=gte.${startDate}T00:00:00`;
-                const currentResponse = await fetch(currentUrl, {
-                    method: 'GET',
-                    headers: {
-                        'apikey': SUPABASE_KEY,
-                        'Authorization': `Bearer ${SUPABASE_KEY}`,
-                        'Accept-Profile': 'ops',
-                        'Content-Type': 'application/json'
-                    }
+            let smsCost = 0, twilioCost = 0, smsCount = 0, callMinutes = 0;
+            if (twilioResp.ok) {
+                const twilioData = await twilioResp.json();
+                twilioData.forEach(d => {
+                    smsCost += parseFloat(d.sms_cost) || 0;
+                    twilioCost += parseFloat(d.call_cost) || 0;
+                    smsCount += (d.sms_outbound_count || 0) + (d.sms_inbound_count || 0);
+                    callMinutes += d.call_minutes || 0;
                 });
-
-                if (currentResponse.ok) {
-                    const appointments = await currentResponse.json();
-                    totalAppointments += appointments.length;
-                    smsAppointments += appointments.filter(a =>
-                        a.last_source === 'sms' || a.last_source === 'sms_inbound_agent'
-                    ).length;
-                    voiceAppointments += appointments.length - smsAppointments;
-                }
-
-                // Also fetch historical appointments if looking at historical data
-                if (dateRange === 'all' || dateRange === 'month' || dateRange === 'week') {
-                    const histUrl = `${SUPABASE_URL}/rest/v1/historical_appointments?appointment_date=gte.${startDate}&appointment_date=lte.${today}`;
-                    const histResponse = await fetch(histUrl, {
-                        method: 'GET',
-                        headers: {
-                            'apikey': SUPABASE_KEY,
-                            'Authorization': `Bearer ${SUPABASE_KEY}`,
-                            'Accept-Profile': 'ops',
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (histResponse.ok) {
-                        const histAppts = await histResponse.json();
-                        totalAppointments += histAppts.length;
-                        // Historical data has calls_before and sms_before
-                        // Attribute based on which had more touches
-                        histAppts.forEach(a => {
-                            if ((a.sms_before || 0) > (a.calls_before || 0)) {
-                                smsAppointments++;
-                            } else {
-                                voiceAppointments++;
-                            }
-                        });
-                    }
-                }
-
-                document.getElementById('apptsBooked').textContent = totalAppointments.toLocaleString();
-                document.getElementById('apptsSource').textContent = `${smsAppointments.toLocaleString()} SMS / ${voiceAppointments.toLocaleString()} Voice`;
-
-                // Calculate conversion rate (responses to appointments)
-                const smsIn = parseInt(document.getElementById('smsInbound').textContent.replace(/,/g, '')) || 0;
-                const voiceIn = parseInt(document.getElementById('voiceInbound').textContent.replace(/,/g, '')) || 0;
-                const totalResponses = smsIn + voiceIn;
-
-                if (totalResponses > 0 && totalAppointments > 0) {
-                    const convRate = ((totalAppointments / totalResponses) * 100).toFixed(1);
-                    document.getElementById('conversionRate').textContent = convRate + '%';
-                } else {
-                    document.getElementById('conversionRate').textContent = '--.--%';
-                }
-
-                // Cost per appointment
-                const totalCostText = document.getElementById('totalCost').textContent.replace('$', '').replace(',', '');
-                const totalCost = parseFloat(totalCostText) || 0;
-                if (totalAppointments > 0) {
-                    document.getElementById('costPerAppt').textContent = '$' + (totalCost / totalAppointments).toFixed(2) + ' per appointment';
-                } else {
-                    document.getElementById('costPerAppt').textContent = '$-- per appointment';
-                }
-            } catch (e) {
-                console.error('Appointment fetch error:', e);
             }
-        }
 
-        // Date range change handler
-        document.getElementById('dateRange').addEventListener('change', refreshData);
+            // Retell costs
+            const retellUrl = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&select=call_cost_cents`;
+            const retellResp = await fetch(retellUrl, {
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Accept-Profile': 'ops',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            let retellCost = 0, retellCalls = 0;
+            if (retellResp.ok) {
+                const retellData = await retellResp.json();
+                retellCalls = retellData.length;
+                retellData.forEach(d => {
+                    retellCost += (d.call_cost_cents || 0) / 100;
+                });
+            }
+
+            const totalCost = smsCost + twilioCost + retellCost;
+
+            document.getElementById('smsCost').textContent = '$' + smsCost.toFixed(2);
+            document.getElementById('smsCostDetail').textContent = smsCount.toLocaleString() + ' messages';
+
+            document.getElementById('twilioCost').textContent = '$' + twilioCost.toFixed(2);
+            document.getElementById('twilioCostDetail').textContent = callMinutes.toLocaleString() + ' minutes';
+
+            document.getElementById('retellCost').textContent = '$' + retellCost.toFixed(2);
+            document.getElementById('retellCostDetail').textContent = retellCalls.toLocaleString() + ' calls';
+
+            document.getElementById('totalCost').textContent = '$' + totalCost.toFixed(2);
+
+            // Cost per 1st appointment
+            const firstAppt = parseInt(document.getElementById('firstAppt30').textContent.replace(/,/g, '')) || 1;
+            document.getElementById('costPerAppt').textContent = '$' + (totalCost / firstAppt).toFixed(2) + ' per 1st appt';
+        }
     </script>
 </body>
 </html>
