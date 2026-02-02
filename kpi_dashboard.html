@@ -265,6 +265,23 @@
             margin-top: 5px;
         }
 
+        .metric-box-split {
+            display: flex;
+            gap: 8px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        .metric-half {
+            flex: 1;
+            text-align: center;
+        }
+
+        .metric-half .metric-value {
+            font-size: 1.4rem;
+        }
+
         /* Voice Outcomes */
         .voice-outcomes {
             background: var(--bg-panel);
@@ -655,9 +672,15 @@
                         <div class="metric-value inbound" id="voiceInbound">--</div>
                         <div class="metric-label">Inbound</div>
                     </div>
-                    <div class="metric-box">
-                        <div class="metric-value" id="voiceAnswerRate">--.--%</div>
-                        <div class="metric-label">Answer Rate</div>
+                    <div class="metric-box-split">
+                        <div class="metric-half">
+                            <div class="metric-value" id="voiceResponseRate">--.--%</div>
+                            <div class="metric-label">Response Rate</div>
+                        </div>
+                        <div class="metric-half">
+                            <div class="metric-value" id="voiceAnswerRate">--.--%</div>
+                            <div class="metric-label">Answer Rate</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1011,9 +1034,11 @@
 
             const total = calls.length;
             const answerRate = total > 0 ? (completed / total * 100) : 0;
+            const responseRate = outbound > 0 ? (inbound / outbound * 100) : 0;
 
             document.getElementById('voiceOutbound').textContent = outbound.toLocaleString();
             document.getElementById('voiceInbound').textContent = inbound.toLocaleString();
+            document.getElementById('voiceResponseRate').textContent = responseRate.toFixed(1) + '%';
             document.getElementById('voiceAnswerRate').textContent = answerRate.toFixed(1) + '%';
 
             const voiceBadge = document.getElementById('voiceAnswerBadge');
