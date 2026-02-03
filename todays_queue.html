@@ -116,10 +116,9 @@
 
         /* Status Banner */
         .status-banner {
-            background: var(--bg-panel);
-            border: 1px solid var(--accent-cyan);
-            border-left: 4px solid var(--accent-cyan);
-            border-radius: 6px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
             padding: 12px 20px;
             margin-bottom: 20px;
             display: flex;
@@ -129,12 +128,10 @@
 
         .status-banner.loading {
             border-color: var(--warning-yellow);
-            border-left-color: var(--warning-yellow);
         }
 
         .status-banner.error {
             border-color: var(--alert-red);
-            border-left-color: var(--alert-red);
         }
 
         .status-dot {
@@ -438,55 +435,6 @@
             margin-left: 5px;
         }
 
-        /* Summary Stats */
-        .summary-stats {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 0.85rem;
-        }
-
-        .summary-title {
-            color: #fff;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .summary-items {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .summary-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-        }
-
-        .summary-bullet {
-            color: #00ff88;
-        }
-
-        .summary-label {
-            color: #888;
-        }
-
-        .summary-value {
-            color: #e4e4e4;
-        }
-
-        .summary-value .highlight {
-            color: #00d4ff;
-        }
-
-        .summary-value .pct {
-            color: #ffc107;
-        }
-
         .empty-state {
             text-align: center;
             padding: 40px;
@@ -599,24 +547,6 @@
                 text-align: center;
             }
 
-            .summary-stats {
-                padding: 12px 15px;
-            }
-
-            .summary-items {
-                gap: 8px;
-            }
-
-            .summary-item {
-                flex-wrap: wrap;
-            }
-
-            .summary-value {
-                width: 100%;
-                margin-left: 16px;
-                margin-top: 2px;
-            }
-
             /* Horizontal scroll for table on mobile */
             .queue-section {
                 padding: 15px;
@@ -700,14 +630,6 @@
                 font-size: 0.75rem;
             }
 
-            .summary-stats {
-                font-size: 0.75rem;
-            }
-
-            .summary-title {
-                font-size: 0.85rem;
-            }
-
             .status-banner {
                 padding: 10px 12px;
                 font-size: 0.8rem;
@@ -753,12 +675,13 @@
 </head>
 <body>
     <div class="header">
-        <h1>Today's Outreach Schedule</h1>
+        <h1>Outreach Schedule</h1>
         <div class="header-controls">
             <div class="nav-links">
-                <a href="index.html" class="nav-link">KPI Dashboard</a>
-                <a href="communications.html" class="nav-link">Communications</a>
-                <a href="todays_queue.html" class="nav-link active">Outreach Schedule</a>
+                <button class="nav-link active" data-range="today" onclick="setDateRange('today')">Today</button>
+                <button class="nav-link" data-range="7" onclick="setDateRange('7')">Next 7 Days</button>
+                <button class="nav-link" data-range="30" onclick="setDateRange('30')">Next 30 Days</button>
+                <button class="nav-link" data-range="90" onclick="setDateRange('90')">Next 90 Days</button>
             </div>
             <button class="refresh-btn" onclick="loadAllData()">Refresh</button>
         </div>
@@ -769,28 +692,6 @@
         <div id="statusBanner" class="status-banner loading">
             <div class="status-dot"></div>
             <span id="statusText">Loading queue data...</span>
-        </div>
-
-        <!-- Queue Summary Stats -->
-        <div class="summary-stats" id="summaryStats">
-            <div class="summary-title">Queue Summary (<span id="summaryTotal">--</span> contacts)</div>
-            <div class="summary-items">
-                <div class="summary-item">
-                    <span class="summary-bullet">•</span>
-                    <span class="summary-label">Audience distribution:</span>
-                    <span class="summary-value" id="audienceDistribution">Loading...</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-bullet">•</span>
-                    <span class="summary-label">Urgency tiers:</span>
-                    <span class="summary-value" id="tierDistribution">Loading...</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-bullet">•</span>
-                    <span class="summary-label">Counties:</span>
-                    <span class="summary-value" id="countyDistribution">Loading...</span>
-                </div>
-            </div>
         </div>
 
         <!-- KPI Cards -->
@@ -889,7 +790,6 @@
         const END_HOUR = 20;
 
         let hourlyChart;
-        let allQueueData = [];
         let rawQueueItems = [];
 
         // Pagination settings
@@ -897,6 +797,62 @@
         let currentPage = 0;
         let totalLoadedItems = 0;
         let hasMoreData = true;
+
+        // Date range filter (default: today)
+        let selectedDateRange = 'today';
+
+        // Get date range filter for Supabase query
+        function getDateRangeFilter() {
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            let endDate;
+            switch (selectedDateRange) {
+                case '7':
+                    endDate = new Date(startOfToday);
+                    endDate.setDate(endDate.getDate() + 7);
+                    break;
+                case '30':
+                    endDate = new Date(startOfToday);
+                    endDate.setDate(endDate.getDate() + 30);
+                    break;
+                case '90':
+                    endDate = new Date(startOfToday);
+                    endDate.setDate(endDate.getDate() + 90);
+                    break;
+                case 'today':
+                default:
+                    endDate = new Date(startOfToday);
+                    endDate.setDate(endDate.getDate() + 1);
+                    break;
+            }
+
+            return {
+                startDate: startOfToday.toISOString(),
+                endDate: endDate.toISOString()
+            };
+        }
+
+        // Set date range and reload data
+        function setDateRange(range) {
+            selectedDateRange = range;
+
+            // Update active tab
+            document.querySelectorAll('.nav-link[data-range]').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.range === range) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Reset pagination
+            currentPage = 0;
+            totalLoadedItems = 0;
+            hasMoreData = true;
+
+            // Reload data with new filter
+            loadAllData();
+        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -960,8 +916,11 @@
                 return 0;
             };
 
-            // Get total queued count (using limit=1 to minimize data transfer)
-            const queuedCountResp = await fetch(`${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.queued&select=queue_id&limit=1`, {
+            // Get date range filter
+            const dateFilter = getDateRangeFilter();
+
+            // Get total queued count for selected date range (using limit=1 to minimize data transfer)
+            const queuedCountResp = await fetch(`${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.queued&next_action_at=gte.${dateFilter.startDate}&next_action_at=lt.${dateFilter.endDate}&select=queue_id&limit=1`, {
                 headers: countHeaders
             });
             const totalQueuedCount = parseCount(queuedCountResp);
@@ -1017,8 +976,8 @@
                 remainingCapacity: remainingCapacity
             };
 
-            // Query public.outreach_queue for queued items (for display)
-            const url = `${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.queued&select=queue_id,channel,status,next_action_at,meta,raw_row_id,phone_digits&order=next_action_at.asc&limit=10000`;
+            // Query public.outreach_queue for queued items (for display) - filtered by date range
+            const url = `${SUPABASE_URL}/rest/v1/outreach_queue?status=eq.queued&next_action_at=gte.${dateFilter.startDate}&next_action_at=lt.${dateFilter.endDate}&select=queue_id,channel,status,next_action_at,meta,raw_row_id,phone_digits&order=next_action_at.asc&limit=10000`;
 
             console.log('Fetching queued items from:', url);
 
@@ -1104,86 +1063,8 @@
 
             rawQueueItems = rawData;
 
-            // Aggregate and process for order sheet display
-            allQueueData = aggregateForOrderSheet(rawData);
-            processQueueData(allQueueData);
-        }
-
-        function aggregateForOrderSheet(rawData) {
-            const COUNTY_BATCH_SIZE = 10; // Match dispatcher: 10 per county before cycling
-
-            // Step 1: Sort by priority within each county (matching dispatcher SQL)
-            const sortedData = [...rawData].sort((a, b) => {
-                const priorityA = a.meta?.priority_rank || 999999;
-                const priorityB = b.meta?.priority_rank || 999999;
-                if (priorityA !== priorityB) return priorityA - priorityB;
-                return new Date(a.next_action_at) - new Date(b.next_action_at);
-            });
-
-            // Step 2: Assign county_seq (position within each county)
-            const countySeq = {};
-            sortedData.forEach(item => {
-                const county = item.county || 'Unknown';
-                countySeq[county] = (countySeq[county] || 0) + 1;
-                item._county_seq = countySeq[county];
-            });
-
-            // Step 3: Sort by county rotation order (like dispatcher SQL)
-            // ORDER BY: batch_number, county, county_seq
-            sortedData.sort((a, b) => {
-                const batchA = Math.floor((a._county_seq - 1) / COUNTY_BATCH_SIZE);
-                const batchB = Math.floor((b._county_seq - 1) / COUNTY_BATCH_SIZE);
-                if (batchA !== batchB) return batchA - batchB;
-
-                const countyA = (a.county || 'Unknown').toLowerCase();
-                const countyB = (b.county || 'Unknown').toLowerCase();
-                if (countyA !== countyB) return countyA.localeCompare(countyB);
-
-                return a._county_seq - b._county_seq;
-            });
-
-            // Step 4: Group consecutive items, but cap at COUNTY_BATCH_SIZE per group
-            const groups = [];
-            let currentGroup = null;
-
-            sortedData.forEach((item, index) => {
-                const channel = item.channel || 'unknown';
-                const tier = item.meta?.urgency_tier || 'Unknown';
-                const county = item.county || 'Unknown';
-                const audience = item.meta?.audience_type || 'Unknown';
-                const status = item.status || 'unknown';
-                const batchNum = Math.floor((item._county_seq - 1) / COUNTY_BATCH_SIZE);
-
-                const key = `${channel}|${tier}|${county}|${audience}|${status}|${batchNum}`;
-
-                // Start new group if key changes or we've hit the batch size limit
-                if (!currentGroup || currentGroup._key !== key) {
-                    currentGroup = {
-                        _key: key,
-                        channel,
-                        tier,
-                        county,
-                        audience,
-                        status,
-                        count: 0,
-                        items: []
-                    };
-                    groups.push(currentGroup);
-                }
-
-                currentGroup.count++;
-                currentGroup.items.push(item);
-            });
-
-            // Step 5: Calculate estimated send times based on 3/minute rate
-            let runningTotal = 0;
-            groups.forEach(group => {
-                group.startPosition = runningTotal + 1;
-                group.endPosition = runningTotal + group.count;
-                runningTotal += group.count;
-            });
-
-            return groups;
+            // Process and display queue data (no aggregation - show individual items)
+            processQueueData();
         }
 
         function calculateEstSendTime(position) {
@@ -1208,28 +1089,17 @@
             return estTime;
         }
 
-        function processQueueData(data) {
+        function processQueueData() {
             // Use accurate counts (bypasses 10k limit)
             const accurateCounts = window._accurateCounts || { totalQueued: 0, sentToday: 0, pendingToday: 0 };
 
-            // Calculate channel breakdown from loaded data (may be capped at 10k but good enough for display)
+            // Calculate channel breakdown from raw items (not aggregated data)
             let smsCount = 0;
             let voiceCount = 0;
 
-            const tierCounts = { V1: 0, V2: 0, V3: 0, V4: 0 };
-            const audienceCounts = {};
-
-            data.forEach(row => {
-                const count = parseInt(row.count) || 0;
-
-                if (row.channel === 'sms') smsCount += count;
-                if (row.channel === 'voice') voiceCount += count;
-
-                const tier = row.tier || 'Unknown';
-                if (tierCounts[tier] !== undefined) tierCounts[tier] += count;
-
-                const audience = row.audience || 'Unknown';
-                audienceCounts[audience] = (audienceCounts[audience] || 0) + count;
+            rawQueueItems.forEach(item => {
+                if (item.channel === 'sms') smsCount++;
+                if (item.channel === 'voice') voiceCount++;
             });
 
             // Use accurate counts for totals
@@ -1244,11 +1114,8 @@
             document.getElementById('pendingCount').textContent = pendingCount.toLocaleString();
             document.getElementById('sentCount').textContent = sentCount.toLocaleString();
 
-            // Update summary stats
-            updateSummaryStats(totalQueued, audienceCounts, tierCounts, data);
-
             // Update table
-            updateQueueTable(data);
+            updateQueueTable();
         }
 
         async function loadHourlyData() {
@@ -1344,10 +1211,10 @@
         // Store sorted items for pagination
         let sortedQueueItems = [];
 
-        function updateQueueTable(data) {
+        function updateQueueTable() {
             const tbody = document.getElementById('queueTableBody');
 
-            // Use individual items instead of grouped data
+            // Use individual items directly
             const items = rawQueueItems;
 
             if (!items || items.length === 0) {
@@ -1355,7 +1222,7 @@
                     <tr>
                         <td colspan="9" class="empty-state">
                             <div class="empty-state-icon">📭</div>
-                            <div>No messages scheduled for today</div>
+                            <div>No messages scheduled for selected period</div>
                         </td>
                     </tr>
                 `;
@@ -1363,7 +1230,7 @@
                 return;
             }
 
-            // Sort items by send order (same as aggregateForOrderSheet logic)
+            // Sort items by send order (priority rank, then next_action_at)
             sortedQueueItems = [...items].sort((a, b) => {
                 const priorityA = a.meta?.priority_rank || 999999;
                 const priorityB = b.meta?.priority_rank || 999999;
@@ -1475,45 +1342,6 @@
                 'V4': '1-13 days (urgent)'
             };
             return labels[tier] || '';
-        }
-
-        function updateSummaryStats(total, audienceCounts, tierCounts, data) {
-            // Update total
-            document.getElementById('summaryTotal').textContent = total.toLocaleString();
-
-            // Calculate audience distribution percentages
-            const audienceItems = Object.entries(audienceCounts)
-                .filter(([k, v]) => v > 0)
-                .sort((a, b) => b[1] - a[1])
-                .map(([name, count]) => {
-                    const pct = ((count / total) * 100).toFixed(1);
-                    const displayName = name.replace(/_/g, '_');
-                    return `<span class="pct">${pct}%</span> ${displayName}`;
-                });
-            document.getElementById('audienceDistribution').innerHTML = audienceItems.join(', ');
-
-            // Tier distribution with counts
-            const tierItems = ['V1', 'V2', 'V3', 'V4']
-                .filter(t => tierCounts[t] > 0)
-                .map(t => `<span class="highlight">${t}</span> (${tierCounts[t].toLocaleString()})`);
-            document.getElementById('tierDistribution').innerHTML = tierItems.join(', ');
-
-            // County distribution (top 5)
-            const countyCounts = {};
-            data.forEach(row => {
-                const county = row.county || 'Unknown';
-                countyCounts[county] = (countyCounts[county] || 0) + row.count;
-            });
-
-            const countyItems = Object.entries(countyCounts)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 5)
-                .map(([name, count]) => `${name} (${count.toLocaleString()})`);
-
-            const countyDisplay = countyItems.join(', ');
-            const totalCounties = Object.keys(countyCounts).length;
-            document.getElementById('countyDistribution').innerHTML =
-                countyDisplay + (totalCounties > 5 ? ` <span class="highlight">+${totalCounties - 5} more</span>` : '');
         }
 
         function filterTable(filter) {
