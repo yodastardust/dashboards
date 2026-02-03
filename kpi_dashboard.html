@@ -1045,39 +1045,49 @@
             hideLoading();
         }
 
-        // Fetch SMS data from public.messages
+        // Helper to get count from Supabase using Prefer: count=exact header
+        async function getSupabaseCount(url) {
+            const resp = await fetch(url, {
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Prefer': 'count=exact'
+                }
+            });
+            if (!resp.ok) return 0;
+            // Count is in Content-Range header: "0-X/TOTAL" or "*/TOTAL"
+            const range = resp.headers.get('Content-Range');
+            if (range) {
+                const match = range.match(/\/(\d+)$/);
+                if (match) return parseInt(match[1], 10);
+            }
+            // Fallback: count response array
+            const data = await resp.json();
+            return Array.isArray(data) ? data.length : 0;
+        }
+
+        // Fetch SMS data from public.messages using COUNT queries (avoids 10k row limit)
         async function fetchSMSData() {
             const range = getDateRange();
             const now = new Date();
             const d90 = new Date(now - 90 * 24 * 60 * 60 * 1000);
             const d90ISO = d90.toISOString();
 
-            const headers = {
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
-                'Content-Type': 'application/json'
-            };
+            const baseUrl = `${SUPABASE_URL}/rest/v1/messages`;
 
-            // Fetch current range and 90-day data in parallel (limit=50000 to get all records)
-            const [respRange, resp90] = await Promise.all([
-                fetch(`${SUPABASE_URL}/rest/v1/messages?channel=eq.sms&created_at=gte.${range.startDateISO}&select=direction&limit=50000`, { headers }),
-                fetch(`${SUPABASE_URL}/rest/v1/messages?channel=eq.sms&created_at=gte.${d90ISO}&select=direction&limit=50000`, { headers })
+            // Fetch counts in parallel (4 queries: current outbound/inbound, 90d outbound/inbound)
+            const [outbound, inbound, outbound90, inbound90] = await Promise.all([
+                getSupabaseCount(`${baseUrl}?channel=eq.sms&direction=eq.outbound&created_at=gte.${range.startDateISO}&select=message_id`),
+                getSupabaseCount(`${baseUrl}?channel=eq.sms&direction=eq.inbound&created_at=gte.${range.startDateISO}&select=message_id`),
+                getSupabaseCount(`${baseUrl}?channel=eq.sms&direction=eq.outbound&created_at=gte.${d90ISO}&select=message_id`),
+                getSupabaseCount(`${baseUrl}?channel=eq.sms&direction=eq.inbound&created_at=gte.${d90ISO}&select=message_id`)
             ]);
 
-            if (!respRange.ok || !resp90.ok) throw new Error('Failed to fetch SMS data');
-
-            const messages = await respRange.json();
-            const messages90 = await resp90.json();
-
             // Current range metrics
-            const outbound = messages.filter(m => m.direction === 'outbound').length;
-            const inbound = messages.filter(m => m.direction === 'inbound').length;
             const responseRate = outbound > 0 ? (inbound / outbound * 100) : 0;
 
             // 90-day metrics (scaled to selected range)
             const scaleFactor = 90 / range.daysBack;
-            const outbound90 = messages90.filter(m => m.direction === 'outbound').length;
-            const inbound90 = messages90.filter(m => m.direction === 'inbound').length;
             const outbound90Avg = Math.round(outbound90 / scaleFactor);
             const inbound90Avg = Math.round(inbound90 / scaleFactor);
             const responseRate90 = outbound90 > 0 ? (inbound90 / outbound90 * 100) : 0;
