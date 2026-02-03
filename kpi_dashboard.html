@@ -882,6 +882,17 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTI1NTEwMywiZXhwIjoyMDg0NjE1MTAzfQ.X7fHo2v_7HZBYZzggydteFbMh_y_pgQN78yynby5sI4';
         const GHL_STATS_URL = 'https://n8n.stopmyauctionnow.com/webhook/ghl-appointment-stats';
 
+        // Format date as YYYY-MM-DD in Eastern timezone
+        // Uses 'en-CA' locale which outputs ISO format (YYYY-MM-DD)
+        function formatEasternDate(date) {
+            return new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/New_York',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).format(date);
+        }
+
         let sbClient;
         let appointmentChart, outcomesChart;
 
@@ -914,36 +925,37 @@
             const now = new Date();
             let startDate;
             let daysBack;
+            let startDateStr;
 
             switch (filter) {
                 case 'today':
-                    // Use Eastern Time (America/New_York) for "Today"
-                    const easternStr = now.toLocaleString("en-US", {timeZone: "America/New_York"});
-                    const easternNow = new Date(easternStr);
-                    // Start of day in Eastern time
-                    const startOfDayEastern = new Date(easternNow.getFullYear(), easternNow.getMonth(), easternNow.getDate());
-                    // Convert to ISO format for API calls (this preserves the correct UTC offset)
-                    startDate = new Date(startOfDayEastern.toLocaleString("en-US", {timeZone: "America/New_York"}));
+                    // Get today's date in Eastern time
+                    startDateStr = formatEasternDate(now);
+                    startDate = new Date(now);
+                    startDate.setHours(0, 0, 0, 0);
                     daysBack = 1;
                     break;
                 case '7d':
                     startDate = new Date(now - 7 * 24 * 60 * 60 * 1000);
+                    startDateStr = formatEasternDate(startDate);
                     daysBack = 7;
                     break;
                 case '90d':
                     startDate = new Date(now - 90 * 24 * 60 * 60 * 1000);
+                    startDateStr = formatEasternDate(startDate);
                     daysBack = 90;
                     break;
                 case '30d':
                 default:
                     startDate = new Date(now - 30 * 24 * 60 * 60 * 1000);
+                    startDateStr = formatEasternDate(startDate);
                     daysBack = 30;
             }
 
             return {
                 startDate: startDate,
                 startDateISO: startDate.toISOString(),
-                startDateStr: startDate.toISOString().split('T')[0],
+                startDateStr: startDateStr,  // Now correctly formatted in Eastern timezone
                 daysBack: daysBack,
                 label: filter === 'today' ? 'Today' : `Last ${daysBack} Days`
             };
@@ -1273,6 +1285,7 @@
             const now = new Date();
             const range = getDateRange();
             const d90 = new Date(now - 90 * 24 * 60 * 60 * 1000);
+            const todayStr = formatEasternDate(now);  // Today in Eastern timezone
 
             // Fetch data for selected range (current display)
             const respRange = await fetch(GHL_STATS_URL, {
@@ -1280,7 +1293,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     startDate: range.startDateStr,
-                    endDate: now.toISOString().split('T')[0]
+                    endDate: todayStr
                 })
             });
 
@@ -1289,8 +1302,8 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    startDate: d90.toISOString().split('T')[0],
-                    endDate: now.toISOString().split('T')[0]
+                    startDate: formatEasternDate(d90),
+                    endDate: todayStr
                 })
             });
 
@@ -1438,7 +1451,7 @@
         async function fetchCostData() {
             const range = getDateRange();
             const now = new Date();
-            const today = now.toISOString().split('T')[0];
+            const today = formatEasternDate(now);  // Today in Eastern timezone
 
             // Twilio costs
             const twilioUrl = `${SUPABASE_URL}/rest/v1/twilio_daily_costs?date=gte.${range.startDateStr}&date=lte.${today}`;
