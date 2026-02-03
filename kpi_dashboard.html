@@ -1198,7 +1198,7 @@
             // Fetch all queue items to get status breakdown
             const { data: queueData, error } = await sbClient
                 .from('outreach_queue')
-                .select('channel, status, sent_at');
+                .select('channel, status, last_attempt_at');
 
             if (error) {
                 console.log('Queue error:', error.message);
@@ -1213,13 +1213,13 @@
             // Pending = status is 'queued'
             const pending = queueData?.filter(q => q.status === 'queued').length || 0;
 
-            // Sent today = has sent_at timestamp from today (Eastern time)
+            // Sent today = status is 'sent' AND last_attempt_at is today (Eastern time)
             const easternStr = new Date().toLocaleString("en-US", {timeZone: "America/New_York"});
             const easternNow = new Date(easternStr);
             const todayStart = new Date(easternNow.getFullYear(), easternNow.getMonth(), easternNow.getDate()).toISOString();
             const sentToday = queueData?.filter(q => {
-                if (!q.sent_at) return false;
-                return q.sent_at >= todayStart;
+                if (q.status !== 'sent' || !q.last_attempt_at) return false;
+                return q.last_attempt_at >= todayStart;
             }).length || 0;
 
             // Update UI elements
