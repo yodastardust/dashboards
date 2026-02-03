@@ -1058,10 +1058,10 @@
                 'Content-Type': 'application/json'
             };
 
-            // Fetch current range and 90-day data in parallel
+            // Fetch current range and 90-day data in parallel (limit=50000 to get all records)
             const [respRange, resp90] = await Promise.all([
-                fetch(`${SUPABASE_URL}/rest/v1/messages?channel=eq.sms&created_at=gte.${range.startDateISO}&select=direction`, { headers }),
-                fetch(`${SUPABASE_URL}/rest/v1/messages?channel=eq.sms&created_at=gte.${d90ISO}&select=direction`, { headers })
+                fetch(`${SUPABASE_URL}/rest/v1/messages?channel=eq.sms&created_at=gte.${range.startDateISO}&select=direction&limit=50000`, { headers }),
+                fetch(`${SUPABASE_URL}/rest/v1/messages?channel=eq.sms&created_at=gte.${d90ISO}&select=direction&limit=50000`, { headers })
             ]);
 
             if (!respRange.ok || !resp90.ok) throw new Error('Failed to fetch SMS data');
@@ -1116,10 +1116,10 @@
                 'Content-Type': 'application/json'
             };
 
-            // Fetch current range and 90-day data in parallel
+            // Fetch current range and 90-day data in parallel (limit=10000 to get all records)
             const [respRange, resp90] = await Promise.all([
-                fetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&select=call_type,disconnection_reason,call_status`, { headers }),
-                fetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${d90ISO}&select=call_type,disconnection_reason,call_status`, { headers })
+                fetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&select=call_type,disconnection_reason,call_status&limit=10000`, { headers }),
+                fetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${d90ISO}&select=call_type,disconnection_reason,call_status&limit=10000`, { headers })
             ]);
 
             if (!respRange.ok || !resp90.ok) throw new Error('Failed to fetch voice data');
