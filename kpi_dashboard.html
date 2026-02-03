@@ -772,7 +772,7 @@
         </div>
 
         <!-- Outreach Queue -->
-        <div class="section-header">Outreach Queue</div>
+        <div class="section-header" id="queueHeader">Outreach Queue</div>
         <div class="summary-grid" style="grid-template-columns: repeat(5, 1fr);">
             <div class="summary-card">
                 <div class="summary-label">Total Queued</div>
@@ -1024,6 +1024,15 @@
             document.getElementById('costsHeader').textContent = `Costs (${range.label})`;
             document.getElementById('appointmentChartTitle').textContent = `Appointment Outcomes (${range.label})`;
 
+            // Update queue header with today's date (Eastern time)
+            const easternDate = new Date().toLocaleDateString("en-US", {
+                timeZone: "America/New_York",
+                month: "numeric",
+                day: "numeric",
+                year: "numeric"
+            });
+            document.getElementById('queueHeader').textContent = `Outreach Queue ${easternDate}`;
+
             try {
                 // Fetch data in parallel
                 await Promise.all([
@@ -1197,40 +1206,59 @@
                 document.getElementById('voiceNoAnswerPct').textContent = (noAnswer / total * 100).toFixed(1) + '%';
                 document.getElementById('voiceFailedPct').textContent = (failed / total * 100).toFixed(1) + '%';
                 document.getElementById('voiceBusyPct').textContent = (busy / total * 100).toFixed(1) + '%';
-            }
 
-            outcomesChart.data.datasets[0].data = [completed, noAnswer, failed, busy];
+                // Update chart with actual data
+                outcomesChart.data.labels = ['Completed', 'Voicemail', 'Failed', 'Busy'];
+                outcomesChart.data.datasets[0].data = [completed, noAnswer, failed, busy];
+                outcomesChart.data.datasets[0].backgroundColor = ['#00c853', '#ffc107', '#c41e3a', '#ff8800'];
+            } else {
+                // No calls yet - show placeholder percentages
+                document.getElementById('voiceCompletedPct').textContent = '--';
+                document.getElementById('voiceNoAnswerPct').textContent = '--';
+                document.getElementById('voiceFailedPct').textContent = '--';
+                document.getElementById('voiceBusyPct').textContent = '--';
+
+                // Show "No calls yet" placeholder in chart
+                outcomesChart.data.labels = ['No calls yet'];
+                outcomesChart.data.datasets[0].data = [1];
+                outcomesChart.data.datasets[0].backgroundColor = ['#444'];
+            }
             outcomesChart.update();
         }
 
-        // Fetch Queue data
+        // Fetch Queue data - TODAY's scheduled items only
         async function fetchQueueData() {
-            // Fetch all queue items to get status breakdown
+            // Calculate today's date range in Eastern time
+            const easternStr = new Date().toLocaleString("en-US", {timeZone: "America/New_York"});
+            const easternNow = new Date(easternStr);
+            const todayStart = new Date(easternNow.getFullYear(), easternNow.getMonth(), easternNow.getDate());
+            const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+            const todayStartISO = todayStart.toISOString();
+            const tomorrowStartISO = tomorrowStart.toISOString();
+
+            // Fetch queue items scheduled for TODAY using next_action_at
             const { data: queueData, error } = await sbClient
                 .from('outreach_queue')
-                .select('channel, status, last_attempt_at');
+                .select('channel, status, last_attempt_at, next_action_at')
+                .gte('next_action_at', todayStartISO)
+                .lt('next_action_at', tomorrowStartISO);
 
             if (error) {
                 console.log('Queue error:', error.message);
                 return;
             }
 
-            // Calculate totals
+            // Calculate totals from today's scheduled items
             const smsQueue = queueData?.filter(q => q.channel === 'sms').length || 0;
             const voiceQueue = queueData?.filter(q => q.channel === 'voice').length || 0;
             const totalQueued = smsQueue + voiceQueue;
 
-            // Pending = status is 'queued'
+            // Pending = status is 'queued' (not yet sent)
             const pending = queueData?.filter(q => q.status === 'queued').length || 0;
 
-            // Sent today = status is 'sent' AND last_attempt_at is today (Eastern time)
-            const easternStr = new Date().toLocaleString("en-US", {timeZone: "America/New_York"});
-            const easternNow = new Date(easternStr);
-            const todayStart = new Date(easternNow.getFullYear(), easternNow.getMonth(), easternNow.getDate()).toISOString();
-            const sentToday = queueData?.filter(q => {
-                if (q.status !== 'sent' || !q.last_attempt_at) return false;
-                return q.last_attempt_at >= todayStart;
-            }).length || 0;
+            // Sent today = status is 'sent'
+            const sentToday = queueData?.filter(q => q.status === 'sent').length || 0;
 
             // Update UI elements
             document.getElementById('totalQueued').textContent = totalQueued.toLocaleString();
@@ -1307,7 +1335,11 @@
             const signed90Avg = Math.round((data90.opportunities?.signedContract || 0) / scaleFactor);
 
             // ======== CONVERSION RATE (2nd completed → signed) ========
-            const conversionRateCurrent = secondCompletedCurrent > 0 ? (signedCurrent / secondCompletedCurrent * 100) : 0;
+            // Guard against impossible conversion rates (e.g., when signed contracts aren't filtered by date)
+            // If signed > 5x completed, likely a data issue - show 0% instead of impossible number
+            const conversionRateCurrent = (secondCompletedCurrent > 0 && signedCurrent <= secondCompletedCurrent * 5)
+                ? (signedCurrent / secondCompletedCurrent * 100)
+                : (secondCompletedCurrent > 0 ? 0 : 0);
             const conversionRate90Avg = second90Showed > 0 ? ((data90.opportunities?.signedContract || 0) / second90Showed * 100) : 0;
 
             // ======== UPDATE BENCHMARK CARDS ========
