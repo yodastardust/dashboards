@@ -72,28 +72,6 @@
             align-items: center;
         }
 
-        .nav-links {
-            display: flex;
-            gap: 10px;
-        }
-
-        .nav-link {
-            padding: 8px 15px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background: var(--bg-panel);
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 0.85rem;
-            transition: all 0.2s;
-        }
-
-        .nav-link:hover, .nav-link.active {
-            background: var(--accent-cyan);
-            color: var(--text-primary);
-            border-color: var(--accent-cyan);
-        }
-
         .refresh-btn {
             padding: 8px 20px;
             background: var(--accent-cyan);
@@ -108,6 +86,22 @@
         .refresh-btn:hover {
             background: var(--accent-blue);
             color: var(--text-primary);
+        }
+
+        .date-range-select {
+            padding: 8px 15px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.9rem;
+            min-width: 140px;
+        }
+
+        .date-range-select:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
         }
 
         .main-content {
@@ -497,17 +491,6 @@
                 gap: 10px;
             }
 
-            .nav-links {
-                width: 100%;
-                justify-content: center;
-                flex-wrap: wrap;
-            }
-
-            .nav-link {
-                padding: 6px 10px;
-                font-size: 0.75rem;
-            }
-
             .refresh-btn {
                 width: 100%;
             }
@@ -592,11 +575,6 @@
                 font-size: 1rem;
             }
 
-            .nav-link {
-                padding: 5px 8px;
-                font-size: 0.7rem;
-            }
-
             .kpi-cards {
                 grid-template-columns: 1fr 1fr;
                 gap: 8px;
@@ -657,12 +635,6 @@
                 justify-content: center;
             }
 
-            .nav-link {
-                min-height: 40px;
-                display: flex;
-                align-items: center;
-            }
-
             .refresh-btn {
                 min-height: 44px;
             }
@@ -677,12 +649,12 @@
     <div class="header">
         <h1>Outreach Schedule</h1>
         <div class="header-controls">
-            <div class="nav-links">
-                <button class="nav-link active" data-range="today" onclick="setDateRange('today')">Today</button>
-                <button class="nav-link" data-range="7" onclick="setDateRange('7')">Next 7 Days</button>
-                <button class="nav-link" data-range="30" onclick="setDateRange('30')">Next 30 Days</button>
-                <button class="nav-link" data-range="90" onclick="setDateRange('90')">Next 90 Days</button>
-            </div>
+            <select id="dateRangeSelect" class="date-range-select" onchange="setDateRange(this.value)">
+                <option value="today" selected>Today</option>
+                <option value="7">Next 7 Days</option>
+                <option value="30">Next 30 Days</option>
+                <option value="90">Next 90 Days</option>
+            </select>
             <button class="refresh-btn" onclick="loadAllData()">Refresh</button>
         </div>
     </div>
@@ -837,13 +809,11 @@
         function setDateRange(range) {
             selectedDateRange = range;
 
-            // Update active tab
-            document.querySelectorAll('.nav-link[data-range]').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.dataset.range === range) {
-                    btn.classList.add('active');
-                }
-            });
+            // Update dropdown if called programmatically
+            const select = document.getElementById('dateRangeSelect');
+            if (select && select.value !== range) {
+                select.value = range;
+            }
 
             // Reset pagination
             currentPage = 0;
