@@ -1183,9 +1183,19 @@
             const calls = await respRange.json();
             const calls90 = await resp90.json();
 
+            // Debug logging
+            console.log(`[Voice] Received ${calls.length} calls`);
+            const callTypes = calls.reduce((acc, c) => {
+                acc[c.call_type] = (acc[c.call_type] || 0) + 1;
+                return acc;
+            }, {});
+            console.log('[Voice] Call type breakdown:', callTypes);
+
             // Process current range
             const outbound = calls.filter(c => c.call_type !== 'inbound').length;
             const inbound = calls.filter(c => c.call_type === 'inbound').length;
+
+            console.log(`[Voice] Filtered: ${outbound} outbound, ${inbound} inbound`);
 
             let completed = 0, noAnswer = 0, failed = 0, busy = 0;
             calls.forEach(c => {
