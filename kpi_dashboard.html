@@ -924,38 +924,55 @@
             const filter = document.getElementById('dateFilter').value;
             const now = new Date();
             let startDate;
+            let endDate;
             let daysBack;
             let startDateStr;
+            let endDateStr;
+
+            // Get current date in Eastern timezone as a string
+            const todayEasternStr = formatEasternDate(now);
+            endDateStr = todayEasternStr;
 
             switch (filter) {
                 case 'today':
-                    // Get today's date in Eastern time
-                    startDateStr = formatEasternDate(now);
-                    startDate = new Date(now);
-                    startDate.setHours(0, 0, 0, 0);
+                    // For "Today", we need to get the START of today in Eastern time
+                    // and convert properly to UTC for database queries
+                    startDateStr = todayEasternStr;
+                    // Parse the Eastern date string and set to start of day in Eastern time
+                    // Create a date object for start of day in Eastern timezone
+                    const todayParts = todayEasternStr.split('-');
+                    // Create date at midnight Eastern time (approximated)
+                    startDate = new Date(`${todayEasternStr}T00:00:00-05:00`); // EST
+                    endDate = new Date(`${todayEasternStr}T23:59:59-05:00`); // End of today EST
                     daysBack = 1;
                     break;
                 case '7d':
                     startDate = new Date(now - 7 * 24 * 60 * 60 * 1000);
                     startDateStr = formatEasternDate(startDate);
+                    endDate = now;
                     daysBack = 7;
                     break;
                 case '90d':
                     startDate = new Date(now - 90 * 24 * 60 * 60 * 1000);
                     startDateStr = formatEasternDate(startDate);
+                    endDate = now;
                     daysBack = 90;
                     break;
                 case '30d':
                 default:
                     startDate = new Date(now - 30 * 24 * 60 * 60 * 1000);
                     startDateStr = formatEasternDate(startDate);
+                    endDate = now;
                     daysBack = 30;
             }
 
             return {
                 startDate: startDate,
+                endDate: endDate,
                 startDateISO: startDate.toISOString(),
-                startDateStr: startDateStr,  // Now correctly formatted in Eastern timezone
+                endDateISO: endDate.toISOString(),
+                startDateStr: startDateStr,  // YYYY-MM-DD in Eastern timezone
+                endDateStr: endDateStr,      // YYYY-MM-DD in Eastern timezone
                 daysBack: daysBack,
                 label: filter === 'today' ? 'Today' : `Last ${daysBack} Days`
             };
@@ -1096,13 +1113,18 @@
 
             const baseUrl = `${SUPABASE_URL}/rest/v1/messages`;
 
+            console.log(`[SMS] Fetching for range: ${range.startDateISO} to ${range.endDateISO}`);
+
             // Fetch counts in parallel (4 queries: current outbound/inbound, 90d outbound/inbound)
+            // Use BOTH start AND end dates for proper filtering
             const [outbound, inbound, outbound90, inbound90] = await Promise.all([
-                getSupabaseCount(`${baseUrl}?channel=eq.sms&direction=eq.outbound&created_at=gte.${range.startDateISO}&select=message_id`),
-                getSupabaseCount(`${baseUrl}?channel=eq.sms&direction=eq.inbound&created_at=gte.${range.startDateISO}&select=message_id`),
+                getSupabaseCount(`${baseUrl}?channel=eq.sms&direction=eq.outbound&created_at=gte.${range.startDateISO}&created_at=lte.${range.endDateISO}&select=message_id`),
+                getSupabaseCount(`${baseUrl}?channel=eq.sms&direction=eq.inbound&created_at=gte.${range.startDateISO}&created_at=lte.${range.endDateISO}&select=message_id`),
                 getSupabaseCount(`${baseUrl}?channel=eq.sms&direction=eq.outbound&created_at=gte.${d90ISO}&select=message_id`),
                 getSupabaseCount(`${baseUrl}?channel=eq.sms&direction=eq.inbound&created_at=gte.${d90ISO}&select=message_id`)
             ]);
+
+            console.log(`[SMS] Outbound: ${outbound}, Inbound: ${inbound}`);
 
             // Current range metrics
             const responseRate = outbound > 0 ? (inbound / outbound * 100) : 0;
@@ -1147,9 +1169,12 @@
                 'Content-Type': 'application/json'
             };
 
-            // Fetch current range and 90-day data in parallel (limit=10000 to get all records)
+            console.log(`[Voice] Fetching for range: ${range.startDateISO} to ${range.endDateISO}`);
+
+            // Fetch current range and 90-day data in parallel
+            // Use BOTH start AND end dates for proper filtering
             const [respRange, resp90] = await Promise.all([
-                fetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&select=call_type,disconnection_reason,call_status&limit=10000`, { headers }),
+                fetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&created_at=lte.${range.endDateISO}&select=call_type,disconnection_reason,call_status&limit=10000`, { headers }),
                 fetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${d90ISO}&select=call_type,disconnection_reason,call_status&limit=10000`, { headers })
             ]);
 
@@ -1307,6 +1332,18 @@
                 })
             });
 
+            // Fetch ALL opportunities for pipeline (current state, not date-filtered)
+            // Pipeline shows WHERE opportunities ARE NOW, not when they were created
+            const respPipeline = await fetch(GHL_STATS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    startDate: '2020-01-01',  // Far past to get ALL opportunities
+                    endDate: todayStr,
+                    pipelineOnly: true  // Signal we just want current pipeline state
+                })
+            });
+
             if (!respRange.ok || !resp90.ok) {
                 console.error('GHL fetch failed');
                 return;
@@ -1314,6 +1351,12 @@
 
             const dataRange = await respRange.json();
             const data90 = await resp90.json();
+
+            // Pipeline data (current state, not date-filtered)
+            let pipelineData = {};
+            if (respPipeline.ok) {
+                pipelineData = await respPipeline.json();
+            }
 
             // Calculate scaling factor for 90-day avg (to get equivalent for selected range)
             // If we selected 7 days, divide 90-day data by ~12.86 to get 7-day equivalent
@@ -1376,13 +1419,14 @@
             appointmentChart.data.datasets[2].data = [first.confirmed || 0, second.confirmed || 0];
             appointmentChart.update();
 
-            // Update pipeline with data from selected range
-            const oppsRange = dataRange.opportunities || {};
-            document.getElementById('pipeHotLead').textContent = oppsRange.hotLead || 0;
-            document.getElementById('pipeSentOffer').textContent = oppsRange.sentOffer || 0;
-            document.getElementById('pipeSentContract').textContent = oppsRange.sentContract || 0;
-            document.getElementById('pipeSignedContract').textContent = oppsRange.signedContract || 0;
-            document.getElementById('pipeTotal').textContent = oppsRange.total || 0;
+            // Update pipeline with CURRENT state (NOT date-filtered)
+            // Pipeline shows where opportunities are NOW, regardless of when they were created
+            const oppsPipeline = pipelineData.opportunities || dataRange.opportunities || {};
+            document.getElementById('pipeHotLead').textContent = oppsPipeline.hotLead || 0;
+            document.getElementById('pipeSentOffer').textContent = oppsPipeline.sentOffer || 0;
+            document.getElementById('pipeSentContract').textContent = oppsPipeline.sentContract || 0;
+            document.getElementById('pipeSignedContract').textContent = oppsPipeline.signedContract || 0;
+            document.getElementById('pipeTotal').textContent = oppsPipeline.total || 0;
 
             // Store firstBookedCurrent for cost per appointment calculation
             window.firstBookedCurrent = firstBookedCurrent;
@@ -1450,11 +1494,13 @@
         // Fetch cost data
         async function fetchCostData() {
             const range = getDateRange();
-            const now = new Date();
-            const today = formatEasternDate(now);  // Today in Eastern timezone
 
-            // Twilio costs
-            const twilioUrl = `${SUPABASE_URL}/rest/v1/twilio_daily_costs?date=gte.${range.startDateStr}&date=lte.${today}`;
+            console.log(`[Costs] Fetching for range: ${range.startDateStr} to ${range.endDateStr} (${range.label})`);
+            console.log(`[Costs] ISO range: ${range.startDateISO} to ${range.endDateISO}`);
+
+            // Twilio costs - uses DATE field (YYYY-MM-DD)
+            const twilioUrl = `${SUPABASE_URL}/rest/v1/twilio_daily_costs?date=gte.${range.startDateStr}&date=lte.${range.endDateStr}`;
+            console.log(`[Costs] Twilio URL: ${twilioUrl}`);
             const twilioResp = await fetch(twilioUrl, {
                 headers: {
                     'apikey': SUPABASE_KEY,
@@ -1467,6 +1513,7 @@
             let smsCost = 0, twilioCost = 0, smsCount = 0, callMinutes = 0;
             if (twilioResp.ok) {
                 const twilioData = await twilioResp.json();
+                console.log(`[Costs] Twilio rows returned: ${twilioData.length}`);
                 twilioData.forEach(d => {
                     smsCost += parseFloat(d.sms_cost) || 0;
                     twilioCost += parseFloat(d.call_cost) || 0;
@@ -1475,8 +1522,9 @@
                 });
             }
 
-            // Retell costs
-            const retellUrl = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&select=call_cost_cents`;
+            // Retell costs - uses TIMESTAMP field, need BOTH start AND end
+            const retellUrl = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&created_at=lte.${range.endDateISO}&select=call_cost_cents,created_at`;
+            console.log(`[Costs] Retell URL: ${retellUrl}`);
             const retellResp = await fetch(retellUrl, {
                 headers: {
                     'apikey': SUPABASE_KEY,
@@ -1490,6 +1538,11 @@
             if (retellResp.ok) {
                 const retellData = await retellResp.json();
                 retellCalls = retellData.length;
+                console.log(`[Costs] Retell calls returned: ${retellCalls}`);
+                if (retellCalls > 0) {
+                    console.log(`[Costs] First call date: ${retellData[0].created_at}`);
+                    console.log(`[Costs] Last call date: ${retellData[retellData.length-1].created_at}`);
+                }
                 retellData.forEach(d => {
                     retellCost += (d.call_cost_cents || 0) / 100;
                 });
@@ -1515,4 +1568,4 @@
     </script>
 </body>
 </html>
-<!-- Deployed: Mon, Feb  2, 2026  3:03:41 PM -->
+<!-- Deployed: Mon, Feb  3, 2026 - Fixed date filtering for all sections -->
