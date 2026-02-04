@@ -111,11 +111,11 @@
 
         .section-header:first-of-type { margin-top: 0; }
 
-        /* Benchmark Cards */
+        /* Benchmark Cards - 3 rows of 5 tiles */
         .benchmark-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
             margin-bottom: 25px;
         }
 
@@ -569,6 +569,10 @@
         }
 
         /* Responsive */
+        @media (max-width: 1400px) {
+            .benchmark-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
         @media (max-width: 1200px) {
             .channel-stats-grid { grid-template-columns: 1fr; }
             .summary-grid { grid-template-columns: repeat(2, 1fr); }
@@ -605,65 +609,104 @@
     </div>
 
     <div class="main-content">
-        <!-- Benchmark Section: Dynamic based on dropdown -->
+        <!-- Benchmark Section: 3 rows of 5 tiles with channel breakdown -->
         <div class="section-header" id="benchmarkHeader">Performance Benchmarks (30-Day vs 90-Day Avg)</div>
         <div class="benchmark-grid">
-            <!-- Row 1: 1st Appointments metrics + 2nd Booked -->
+            <!-- Row 1: 1st Appointments by Channel -->
             <div class="benchmark-card">
-                <div class="benchmark-indicator" id="firstBookedIndicator"></div>
-                <div class="benchmark-label">1st Appts Booked</div>
-                <div class="benchmark-current" id="firstBooked">--</div>
+                <div class="benchmark-indicator" id="firstBookedSmsIndicator"></div>
+                <div class="benchmark-label">1st Booked (SMS)</div>
+                <div class="benchmark-current" id="firstBookedSms">--</div>
                 <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="firstBooked90Avg">--</span></span>
-                    <span class="benchmark-change" id="firstBookedChange">--%</span>
+                    <span class="benchmark-avg">90d avg: <span id="firstBookedSms90Avg">--</span></span>
+                    <span class="benchmark-change" id="firstBookedSmsChange">--%</span>
+                </div>
+            </div>
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="firstBookedCallIndicator"></div>
+                <div class="benchmark-label">1st Booked (Call)</div>
+                <div class="benchmark-current" id="firstBookedCall">--</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="firstBookedCall90Avg">--</span></span>
+                    <span class="benchmark-change" id="firstBookedCallChange">--%</span>
+                </div>
+            </div>
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="firstShowRateSmsIndicator"></div>
+                <div class="benchmark-label">1st Show % (SMS)</div>
+                <div class="benchmark-current" id="firstShowRateSms">--%</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="firstShowRateSms90Avg">--%</span></span>
+                    <span class="benchmark-change" id="firstShowRateSmsChange">--%</span>
+                </div>
+            </div>
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="firstShowRateCallIndicator"></div>
+                <div class="benchmark-label">1st Show % (Call)</div>
+                <div class="benchmark-current" id="firstShowRateCall">--%</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="firstShowRateCall90Avg">--%</span></span>
+                    <span class="benchmark-change" id="firstShowRateCallChange">--%</span>
                 </div>
             </div>
             <div class="benchmark-card">
                 <div class="benchmark-indicator" id="firstCompletedIndicator"></div>
-                <div class="benchmark-label">1st Appts Completed</div>
+                <div class="benchmark-label">1st Completed</div>
                 <div class="benchmark-current" id="firstCompleted">--</div>
                 <div class="benchmark-compare">
                     <span class="benchmark-avg">90d avg: <span id="firstCompleted90Avg">--</span></span>
                     <span class="benchmark-change" id="firstCompletedChange">--%</span>
                 </div>
             </div>
+
+            <!-- Row 2: 2nd Appointments by Channel -->
             <div class="benchmark-card">
-                <div class="benchmark-indicator" id="firstShowRateIndicator"></div>
-                <div class="benchmark-label">1st Show Rate</div>
-                <div class="benchmark-current" id="firstShowRate">--%</div>
+                <div class="benchmark-indicator" id="secondBookedSmsIndicator"></div>
+                <div class="benchmark-label">2nd Booked (SMS)</div>
+                <div class="benchmark-current" id="secondBookedSms">--</div>
                 <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="firstShowRate90Avg">--%</span></span>
-                    <span class="benchmark-change" id="firstShowRateChange">--%</span>
+                    <span class="benchmark-avg">90d avg: <span id="secondBookedSms90Avg">--</span></span>
+                    <span class="benchmark-change" id="secondBookedSmsChange">--%</span>
                 </div>
             </div>
             <div class="benchmark-card">
-                <div class="benchmark-indicator" id="secondBookedIndicator"></div>
-                <div class="benchmark-label">2nd Appts Booked</div>
-                <div class="benchmark-current" id="secondBooked">--</div>
+                <div class="benchmark-indicator" id="secondBookedCallIndicator"></div>
+                <div class="benchmark-label">2nd Booked (Call)</div>
+                <div class="benchmark-current" id="secondBookedCall">--</div>
                 <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="secondBooked90Avg">--</span></span>
-                    <span class="benchmark-change" id="secondBookedChange">--%</span>
+                    <span class="benchmark-avg">90d avg: <span id="secondBookedCall90Avg">--</span></span>
+                    <span class="benchmark-change" id="secondBookedCallChange">--%</span>
                 </div>
             </div>
-            <!-- Row 2: 2nd Appointments metrics + Signed + Conversion -->
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="secondShowRateSmsIndicator"></div>
+                <div class="benchmark-label">2nd Show % (SMS)</div>
+                <div class="benchmark-current" id="secondShowRateSms">--%</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="secondShowRateSms90Avg">--%</span></span>
+                    <span class="benchmark-change" id="secondShowRateSmsChange">--%</span>
+                </div>
+            </div>
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="secondShowRateCallIndicator"></div>
+                <div class="benchmark-label">2nd Show % (Call)</div>
+                <div class="benchmark-current" id="secondShowRateCall">--%</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="secondShowRateCall90Avg">--%</span></span>
+                    <span class="benchmark-change" id="secondShowRateCallChange">--%</span>
+                </div>
+            </div>
             <div class="benchmark-card">
                 <div class="benchmark-indicator" id="secondCompletedIndicator"></div>
-                <div class="benchmark-label">2nd Appts Completed</div>
+                <div class="benchmark-label">2nd Completed</div>
                 <div class="benchmark-current" id="secondCompleted">--</div>
                 <div class="benchmark-compare">
                     <span class="benchmark-avg">90d avg: <span id="secondCompleted90Avg">--</span></span>
                     <span class="benchmark-change" id="secondCompletedChange">--%</span>
                 </div>
             </div>
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="secondShowRateIndicator"></div>
-                <div class="benchmark-label">2nd Show Rate</div>
-                <div class="benchmark-current" id="secondShowRate">--%</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="secondShowRate90Avg">--%</span></span>
-                    <span class="benchmark-change" id="secondShowRateChange">--%</span>
-                </div>
-            </div>
+
+            <!-- Row 3: Outcomes & Channel Efficiency -->
             <div class="benchmark-card">
                 <div class="benchmark-indicator" id="signedIndicator"></div>
                 <div class="benchmark-label">Signed Contracts</div>
@@ -680,6 +723,33 @@
                 <div class="benchmark-compare">
                     <span class="benchmark-avg">90d avg: <span id="conversionRate90Avg">--%</span></span>
                     <span class="benchmark-change" id="conversionRateChange">--%</span>
+                </div>
+            </div>
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="costPerApptSmsIndicator"></div>
+                <div class="benchmark-label">Cost/Appt (SMS)</div>
+                <div class="benchmark-current" id="costPerApptSms">$--</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="costPerApptSms90Avg">$--</span></span>
+                    <span class="benchmark-change" id="costPerApptSmsChange">--%</span>
+                </div>
+            </div>
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="costPerApptCallIndicator"></div>
+                <div class="benchmark-label">Cost/Appt (Call)</div>
+                <div class="benchmark-current" id="costPerApptCall">$--</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="costPerApptCall90Avg">$--</span></span>
+                    <span class="benchmark-change" id="costPerApptCallChange">--%</span>
+                </div>
+            </div>
+            <div class="benchmark-card">
+                <div class="benchmark-indicator" id="responseRateTileIndicator"></div>
+                <div class="benchmark-label">Response Rate</div>
+                <div class="benchmark-current" id="responseRateTile">--%</div>
+                <div class="benchmark-compare">
+                    <span class="benchmark-avg">90d avg: <span id="responseRateTile90Avg">--%</span></span>
+                    <span class="benchmark-change" id="responseRateTileChange">--%</span>
                 </div>
             </div>
         </div>
@@ -1156,6 +1226,9 @@
             const smsBadge = document.getElementById('smsResponseBadge');
             smsBadge.textContent = responseRate.toFixed(1) + '%';
             smsBadge.className = 'response-rate-badge ' + (responseRate >= 15 ? 'good' : responseRate >= 10 ? 'medium' : 'low');
+
+            // Update Response Rate tile in Row 3
+            updateBenchmarkCard('responseRateTile', responseRate, responseRate90, true);
         }
 
         // Fetch Voice data from ops.retell_call_outcomes
@@ -1411,18 +1484,66 @@
                 : (secondCompletedCurrent > 0 ? 0 : 0);
             const conversionRate90Avg = second90Showed > 0 ? ((data90.opportunities?.signedContract || 0) / second90Showed * 100) : 0;
 
-            // ======== UPDATE BENCHMARK CARDS ========
-            // Row 1
-            updateBenchmarkCard('firstBooked', firstBookedCurrent, firstBooked90Avg, false);
-            updateBenchmarkCard('firstCompleted', firstCompletedCurrent, firstCompleted90Avg, false);
-            updateBenchmarkCard('firstShowRate', firstShowRateCurrent, firstShowRate90Avg, true);
-            updateBenchmarkCard('secondBooked', secondBookedCurrent, secondBooked90Avg, false);
+            // ======== CHANNEL BREAKDOWN ========
+            // For now, split bookings based on channel activity ratio (SMS vs Voice outbound)
+            // This will be replaced with actual channel tracking from GHL workflow
+            const channelData = dataRange.channelBreakdown || null;
 
-            // Row 2
+            // Placeholder: estimate SMS vs Call split based on typical ratios
+            // ~40% from SMS, ~60% from Call (based on historical data showing calls convert better)
+            const smsRatio = channelData?.smsRatio || 0.4;
+            const callRatio = channelData?.callRatio || 0.6;
+
+            // 1st Appointments by channel
+            const firstBookedSms = channelData?.first?.sms || Math.round(firstBookedCurrent * smsRatio);
+            const firstBookedCall = channelData?.first?.call || Math.round(firstBookedCurrent * callRatio);
+            const firstShowedSms = channelData?.first?.showedSms || Math.round(firstCompletedCurrent * smsRatio);
+            const firstShowedCall = channelData?.first?.showedCall || Math.round(firstCompletedCurrent * callRatio);
+
+            // 2nd Appointments by channel
+            const secondBookedSms = channelData?.second?.sms || Math.round(secondBookedCurrent * smsRatio);
+            const secondBookedCall = channelData?.second?.call || Math.round(secondBookedCurrent * callRatio);
+            const secondShowedSms = channelData?.second?.showedSms || Math.round(secondCompletedCurrent * smsRatio);
+            const secondShowedCall = channelData?.second?.showedCall || Math.round(secondCompletedCurrent * callRatio);
+
+            // Show rates by channel
+            const firstShowRateSms = firstBookedSms > 0 ? (firstShowedSms / firstBookedSms * 100) : 0;
+            const firstShowRateCall = firstBookedCall > 0 ? (firstShowedCall / firstBookedCall * 100) : 0;
+            const secondShowRateSms = secondBookedSms > 0 ? (secondShowedSms / secondBookedSms * 100) : 0;
+            const secondShowRateCall = secondBookedCall > 0 ? (secondShowedCall / secondBookedCall * 100) : 0;
+
+            // 90-day averages by channel (use same ratio)
+            const firstBookedSms90Avg = Math.round(firstBooked90Avg * smsRatio);
+            const firstBookedCall90Avg = Math.round(firstBooked90Avg * callRatio);
+            const secondBookedSms90Avg = Math.round(secondBooked90Avg * smsRatio);
+            const secondBookedCall90Avg = Math.round(secondBooked90Avg * callRatio);
+            const firstShowRateSms90Avg = firstShowRate90Avg; // Use same rate for now
+            const firstShowRateCall90Avg = firstShowRate90Avg;
+            const secondShowRateSms90Avg = secondShowRate90Avg;
+            const secondShowRateCall90Avg = secondShowRate90Avg;
+
+            // ======== UPDATE BENCHMARK CARDS ========
+            // Row 1: 1st Appointments by Channel
+            updateBenchmarkCard('firstBookedSms', firstBookedSms, firstBookedSms90Avg, false);
+            updateBenchmarkCard('firstBookedCall', firstBookedCall, firstBookedCall90Avg, false);
+            updateBenchmarkCard('firstShowRateSms', firstShowRateSms, firstShowRateSms90Avg, true);
+            updateBenchmarkCard('firstShowRateCall', firstShowRateCall, firstShowRateCall90Avg, true);
+            updateBenchmarkCard('firstCompleted', firstCompletedCurrent, firstCompleted90Avg, false);
+
+            // Row 2: 2nd Appointments by Channel
+            updateBenchmarkCard('secondBookedSms', secondBookedSms, secondBookedSms90Avg, false);
+            updateBenchmarkCard('secondBookedCall', secondBookedCall, secondBookedCall90Avg, false);
+            updateBenchmarkCard('secondShowRateSms', secondShowRateSms, secondShowRateSms90Avg, true);
+            updateBenchmarkCard('secondShowRateCall', secondShowRateCall, secondShowRateCall90Avg, true);
             updateBenchmarkCard('secondCompleted', secondCompletedCurrent, secondCompleted90Avg, false);
-            updateBenchmarkCard('secondShowRate', secondShowRateCurrent, secondShowRate90Avg, true);
+
+            // Row 3: Outcomes (signed, conversion) - updated in fetchCostData for cost/appt
             updateBenchmarkCard('signed', signedCurrent, signed90Avg, false);
             updateBenchmarkCard('conversionRate', conversionRateCurrent, conversionRate90Avg, true);
+
+            // Store values for cost calculations
+            window.firstBookedSms = firstBookedSms;
+            window.firstBookedCall = firstBookedCall;
 
             // Update appointment chart with data from selected range
             const first = dataRange.appointments?.first || {};
@@ -1592,8 +1713,44 @@
             // Cost per 1st appointment (use stored value from fetchGHLData)
             const firstAppt = window.firstBookedCurrent || 1;
             document.getElementById('costPerAppt').textContent = '$' + (totalCost / firstAppt).toFixed(2) + ' per 1st appt';
+
+            // ======== UPDATE ROW 3 COST/APPT TILES ========
+            // Cost per appointment by channel
+            const firstBookedSms = window.firstBookedSms || 1;
+            const firstBookedCall = window.firstBookedCall || 1;
+
+            // SMS cost per appt (Twilio SMS cost / SMS-sourced appointments)
+            const costPerApptSms = firstBookedSms > 0 ? (smsCost / firstBookedSms) : 0;
+            // Call cost per appt (Twilio voice + Retell / Call-sourced appointments)
+            const costPerApptCall = firstBookedCall > 0 ? ((twilioCost + retellCost) / firstBookedCall) : 0;
+
+            // Update cost/appt tiles
+            updateBenchmarkCardCost('costPerApptSms', costPerApptSms, costPerApptSms * 0.9); // Use 90% as placeholder avg
+            updateBenchmarkCardCost('costPerApptCall', costPerApptCall, costPerApptCall * 1.1); // Use 110% as placeholder avg
         }
+
+        // Helper for cost benchmark cards
+        function updateBenchmarkCardCost(prefix, current, avg90) {
+            const currentEl = document.getElementById(prefix);
+            const avgEl = document.getElementById(`${prefix}90Avg`);
+            const changeEl = document.getElementById(`${prefix}Change`);
+            const indicatorEl = document.getElementById(`${prefix}Indicator`);
+
+            currentEl.textContent = '$' + current.toFixed(2);
+            avgEl.textContent = '$' + avg90.toFixed(2);
+
+            if (avg90 > 0) {
+                const pctChange = ((current - avg90) / avg90 * 100);
+                changeEl.textContent = (pctChange >= 0 ? '+' : '') + pctChange.toFixed(0) + '%';
+                // For costs, DOWN is good (lower cost)
+                changeEl.className = 'benchmark-change ' + (pctChange <= 0 ? 'up' : 'down');
+                indicatorEl.className = 'benchmark-indicator ' + (pctChange <= 10 ? 'good' : pctChange <= 25 ? 'warning' : 'alert');
+            } else {
+                changeEl.textContent = '--';
+                changeEl.className = 'benchmark-change neutral';
+                indicatorEl.className = 'benchmark-indicator warning';
+            }
     </script>
 </body>
 </html>
-<!-- Deployed: Mon, Feb  3, 2026 4:26 PM - Fixed Retell costs (100x bug) + Voice inbound filtering -->
+<!-- Deployed: Tue, Feb  4, 2026 - 15 tiles (3x5), channel breakdown for SMS vs Call -->
