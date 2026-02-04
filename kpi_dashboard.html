@@ -952,6 +952,33 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTI1NTEwMywiZXhwIjoyMDg0NjE1MTAzfQ.X7fHo2v_7HZBYZzggydteFbMh_y_pgQN78yynby5sI4';
         const GHL_STATS_URL = 'https://n8n.stopmyauctionnow.com/webhook/ghl-appointment-stats';
 
+        // Fetch signed contracts from Supabase (date-filtered)
+        async function fetchSignedContracts(startDateISO, endDateISO) {
+            try {
+                const { data, error } = await sbClient
+                    .from('signed_contracts')
+                    .select('id, signed_at, booking_source')
+                    .gte('signed_at', startDateISO)
+                    .lte('signed_at', endDateISO)
+                    .schema('ops');
+
+                if (error) {
+                    console.warn('Signed contracts fetch error (table may not exist yet):', error.message);
+                    return { count: 0, bySms: 0, byCall: 0 };
+                }
+
+                const contracts = data || [];
+                return {
+                    count: contracts.length,
+                    bySms: contracts.filter(c => c.booking_source?.toLowerCase() === 'sms').length,
+                    byCall: contracts.filter(c => c.booking_source?.toLowerCase() === 'call').length
+                };
+            } catch (err) {
+                console.warn('Signed contracts query failed:', err);
+                return { count: 0, bySms: 0, byCall: 0 };
+            }
+        }
+
         // Format date as YYYY-MM-DD in Eastern timezone
         // Uses 'en-CA' locale which outputs ISO format (YYYY-MM-DD)
         function formatEasternDate(date) {
@@ -1472,9 +1499,20 @@
             const second90Showed = data90.appointments?.second?.showed || 0;
             const secondShowRate90Avg = (second90Showed / second90Total * 100);
 
-            // ======== SIGNED CONTRACTS ========
-            const signedCurrent = dataRange.opportunities?.signedContract || 0;
-            const signed90Avg = Math.round((data90.opportunities?.signedContract || 0) / scaleFactor);
+            // ======== SIGNED CONTRACTS (from Supabase for accurate date filtering) ========
+            // Try Supabase first, fall back to GHL opportunities if table doesn't exist yet
+            let signedCurrent = 0;
+            let signed90Avg = 0;
+            try {
+                const signedData = await fetchSignedContracts(range.startDateISO, range.endDateISO);
+                const signed90Data = await fetchSignedContracts(d90.toISOString(), now.toISOString());
+                signedCurrent = signedData.count;
+                signed90Avg = Math.round(signed90Data.count / scaleFactor);
+            } catch (e) {
+                // Fallback to GHL if Supabase fails
+                signedCurrent = dataRange.opportunities?.signedContract || 0;
+                signed90Avg = Math.round((data90.opportunities?.signedContract || 0) / scaleFactor);
+            }
 
             // ======== CONVERSION RATE (2nd completed → signed) ========
             // Guard against impossible conversion rates (e.g., when signed contracts aren't filtered by date)
@@ -1512,15 +1550,38 @@
             const secondShowRateSms = secondBookedSms > 0 ? (secondShowedSms / secondBookedSms * 100) : 0;
             const secondShowRateCall = secondBookedCall > 0 ? (secondShowedCall / secondBookedCall * 100) : 0;
 
-            // 90-day averages by channel (use same ratio)
-            const firstBookedSms90Avg = Math.round(firstBooked90Avg * smsRatio);
-            const firstBookedCall90Avg = Math.round(firstBooked90Avg * callRatio);
-            const secondBookedSms90Avg = Math.round(secondBooked90Avg * smsRatio);
-            const secondBookedCall90Avg = Math.round(secondBooked90Avg * callRatio);
-            const firstShowRateSms90Avg = firstShowRate90Avg; // Use same rate for now
-            const firstShowRateCall90Avg = firstShowRate90Avg;
-            const secondShowRateSms90Avg = secondShowRate90Avg;
-            const secondShowRateCall90Avg = secondShowRate90Avg;
+            // 90-day averages by channel (use real data when available, fallback to ratio)
+            const channel90 = data90.channelBreakdown || null;
+            const firstBookedSms90Avg = channel90?.first?.sms
+                ? Math.round(channel90.first.sms / scaleFactor)
+                : Math.round(firstBooked90Avg * smsRatio);
+            const firstBookedCall90Avg = channel90?.first?.call
+                ? Math.round(channel90.first.call / scaleFactor)
+                : Math.round(firstBooked90Avg * callRatio);
+            const secondBookedSms90Avg = channel90?.second?.sms
+                ? Math.round(channel90.second.sms / scaleFactor)
+                : Math.round(secondBooked90Avg * smsRatio);
+            const secondBookedCall90Avg = channel90?.second?.call
+                ? Math.round(channel90.second.call / scaleFactor)
+                : Math.round(secondBooked90Avg * callRatio);
+
+            // Show rate 90-day averages by channel
+            const firstShowedSms90 = channel90?.first?.showedSms || 0;
+            const firstShowedCall90 = channel90?.first?.showedCall || 0;
+            const firstShowRateSms90Avg = (channel90?.first?.sms > 0)
+                ? (firstShowedSms90 / channel90.first.sms * 100)
+                : firstShowRate90Avg;
+            const firstShowRateCall90Avg = (channel90?.first?.call > 0)
+                ? (firstShowedCall90 / channel90.first.call * 100)
+                : firstShowRate90Avg;
+            const secondShowedSms90 = channel90?.second?.showedSms || 0;
+            const secondShowedCall90 = channel90?.second?.showedCall || 0;
+            const secondShowRateSms90Avg = (channel90?.second?.sms > 0)
+                ? (secondShowedSms90 / channel90.second.sms * 100)
+                : secondShowRate90Avg;
+            const secondShowRateCall90Avg = (channel90?.second?.call > 0)
+                ? (secondShowedCall90 / channel90.second.call * 100)
+                : secondShowRate90Avg;
 
             // ======== UPDATE BENCHMARK CARDS ========
             // Row 1: 1st Appointments by Channel
@@ -1754,4 +1815,5 @@
     </script>
 </body>
 </html>
-<!-- Deployed: Tue, Feb  4, 2026 - 15 tiles (3x5), channel breakdown for SMS vs Call -->
+<!-- Deployed: Tue, Feb  4, 2026 - Channel tracking + Supabase signed contracts -->
+<!-- Changes: Real channel breakdown from GHL Stats API, Signed contracts from ops.signed_contracts -->
