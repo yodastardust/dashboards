@@ -1050,7 +1050,10 @@
             const benchmarkLabel = range.daysBack === 1 ? '1-Day' : `${range.daysBack}-Day`;
             document.getElementById('benchmarkHeader').textContent = `Performance Benchmarks (${benchmarkLabel} vs 90-Day Avg)`;
             document.getElementById('outreachHeader').textContent = `Outreach Performance (${range.label})`;
-            document.getElementById('costsHeader').textContent = `Costs (${range.label})`;
+            // For "Today", Twilio costs show yesterday (complete data) while Retell shows today (real-time)
+            const filter = document.getElementById('dateFilter').value;
+            const costsLabel = filter === 'today' ? 'Yesterday - Twilio updates nightly' : range.label;
+            document.getElementById('costsHeader').textContent = `Costs (${costsLabel})`;
             document.getElementById('appointmentChartTitle').textContent = `Appointment Outcomes (${range.label})`;
 
             // Update queue header with today's date (Eastern time)
@@ -1504,12 +1507,27 @@
         // Fetch cost data
         async function fetchCostData() {
             const range = getDateRange();
+            const filter = document.getElementById('dateFilter').value;
 
             console.log(`[Costs] Fetching for range: ${range.startDateStr} to ${range.endDateStr} (${range.label})`);
             console.log(`[Costs] ISO range: ${range.startDateISO} to ${range.endDateISO}`);
 
             // Twilio costs - uses DATE field (YYYY-MM-DD)
-            const twilioUrl = `${SUPABASE_URL}/rest/v1/twilio_daily_costs?date=gte.${range.startDateStr}&date=lte.${range.endDateStr}`;
+            // Note: twilio_daily_costs is updated once daily ~8-9pm Eastern
+            // For "Today", show yesterday's complete data instead of today's incomplete data
+            let twilioStartDate = range.startDateStr;
+            let twilioEndDate = range.endDateStr;
+
+            if (filter === 'today') {
+                // Use yesterday's date for complete cost data
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                twilioStartDate = formatEasternDate(yesterday);
+                twilioEndDate = twilioStartDate;
+                console.log(`[Costs] Using yesterday's complete data: ${twilioStartDate}`);
+            }
+
+            const twilioUrl = `${SUPABASE_URL}/rest/v1/twilio_daily_costs?date=gte.${twilioStartDate}&date=lte.${twilioEndDate}`;
             console.log(`[Costs] Twilio URL: ${twilioUrl}`);
             const twilioResp = await fetch(twilioUrl, {
                 headers: {
