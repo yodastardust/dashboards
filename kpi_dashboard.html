@@ -960,13 +960,13 @@
         async function fetchAppointmentChannelBreakdown(startDateISO, endDateISO) {
             try {
                 // Use ghl_calendar_id to distinguish 1st vs 2nd appointments
-                // Use updated_at for date filtering (no created_at column exists)
+                // Use created_at for date filtering (when appointment was booked)
                 const { data, error } = await sbClient
                     .schema('ops')
                     .from('lead_appointments')
                     .select('ghl_calendar_id, last_source')
-                    .gte('updated_at', startDateISO)
-                    .lte('updated_at', endDateISO);
+                    .gte('created_at', startDateISO)
+                    .lte('created_at', endDateISO);
 
                 if (error) {
                     console.warn('[Channel] lead_appointments query error:', error.message);
@@ -1051,8 +1051,8 @@
                 hideLoading();
             }
 
-            // Auto-refresh every 60 seconds
-            setInterval(refreshData, 60000);
+            // Auto-refresh every 10 minutes
+            setInterval(refreshData, 600000);
         });
 
         function showLoading() {
