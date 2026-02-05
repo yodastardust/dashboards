@@ -903,9 +903,9 @@
         <div class="section-header">Distribution</div>
         <div class="charts-grid">
             <div class="chart-card">
-                <div class="chart-title" id="appointmentChartTitle">Appointment Outcomes (Last 30 Days)</div>
+                <div class="chart-title" id="queueChartTitle">Queue Status by Channel (Today)</div>
                 <div class="chart-container">
-                    <canvas id="appointmentChart"></canvas>
+                    <canvas id="queueChartCanvas"></canvas>
                 </div>
             </div>
             <div class="chart-card">
@@ -991,7 +991,7 @@
         }
 
         let sbClient;
-        let appointmentChart, outcomesChart;
+        let queueChart, outcomesChart;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
@@ -1076,29 +1076,23 @@
         }
 
         function initCharts() {
-            // Appointment outcomes chart
-            const apptCtx = document.getElementById('appointmentChart').getContext('2d');
-            appointmentChart = new Chart(apptCtx, {
+            // Queue status by channel chart
+            const queueCtx = document.getElementById('queueChartCanvas').getContext('2d');
+            queueChart = new Chart(queueCtx, {
                 type: 'bar',
                 data: {
-                    labels: ['1st Appts', '2nd Appts'],
+                    labels: ['SMS', 'Voice'],
                     datasets: [
                         {
-                            label: 'Showed',
-                            data: [0, 0],
-                            backgroundColor: 'rgba(0, 200, 83, 0.7)',
-                            borderRadius: 4
-                        },
-                        {
-                            label: 'No Show',
-                            data: [0, 0],
-                            backgroundColor: 'rgba(196, 30, 58, 0.7)',
-                            borderRadius: 4
-                        },
-                        {
-                            label: 'Pending',
+                            label: 'Queued',
                             data: [0, 0],
                             backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Sent',
+                            data: [0, 0],
+                            backgroundColor: 'rgba(0, 200, 83, 0.7)',
                             borderRadius: 4
                         }
                     ]
@@ -1277,8 +1271,8 @@
             // Fetch current range and 90-day data in parallel
             // Use BOTH start AND end dates for proper filtering
             const [respRange, resp90] = await Promise.all([
-                fetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&created_at=lte.${range.endDateISO}&select=call_type,disconnection_reason,call_status&limit=10000`, { headers }),
-                fetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${d90ISO}&select=call_type,disconnection_reason,call_status&limit=10000`, { headers })
+                fetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?start_timestamp=gte.${range.startDateISO}&start_timestamp=lte.${range.endDateISO}&select=call_type,disconnection_reason,call_status,start_timestamp&limit=10000`, { headers }),
+                fetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?start_timestamp=gte.${d90ISO}&select=call_type,disconnection_reason,call_status,start_timestamp&limit=10000`, { headers })
             ]);
 
             if (!respRange.ok || !resp90.ok) throw new Error('Failed to fetch voice data');
@@ -1732,8 +1726,8 @@
                 });
             }
 
-            // Retell costs - uses TIMESTAMP field, need BOTH start AND end
-            const retellUrl = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&created_at=lte.${range.endDateISO}&select=call_cost_cents,created_at`;
+            // Retell costs - filter by actual call time, need BOTH start AND end
+            const retellUrl = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?start_timestamp=gte.${range.startDateISO}&start_timestamp=lte.${range.endDateISO}&select=call_cost_cents,start_timestamp`;
             console.log(`[Costs] Retell URL: ${retellUrl}`);
             const retellResp = await fetch(retellUrl, {
                 headers: {
@@ -1750,8 +1744,8 @@
                 retellCalls = retellData.length;
                 console.log(`[Costs] Retell calls returned: ${retellCalls}`);
                 if (retellCalls > 0) {
-                    console.log(`[Costs] First call date: ${retellData[0].created_at}`);
-                    console.log(`[Costs] Last call date: ${retellData[retellData.length-1].created_at}`);
+                    console.log(`[Costs] First call date: ${retellData[0].start_timestamp}`);
+                    console.log(`[Costs] Last call date: ${retellData[retellData.length-1].start_timestamp}`);
                 }
                 retellData.forEach(d => {
                     retellCost += (d.call_cost_cents || 0) / 100;
