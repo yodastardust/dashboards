@@ -956,11 +956,11 @@
         async function fetchSignedContracts(startDateISO, endDateISO) {
             try {
                 const { data, error } = await sbClient
+                    .schema('ops')
                     .from('signed_contracts')
                     .select('id, signed_at, booking_source')
                     .gte('signed_at', startDateISO)
-                    .lte('signed_at', endDateISO)
-                    .schema('ops');
+                    .lte('signed_at', endDateISO);
 
                 if (error) {
                     console.warn('Signed contracts fetch error (table may not exist yet):', error.message);
