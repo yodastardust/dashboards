@@ -1145,7 +1145,7 @@
             const filter = document.getElementById('dateFilter').value;
             const costsLabel = filter === 'today' ? 'Yesterday - Twilio updates nightly' : range.label;
             document.getElementById('costsHeader').textContent = `Costs (${costsLabel})`;
-            document.getElementById('appointmentChartTitle').textContent = `Appointment Outcomes (${range.label})`;
+            document.getElementById('queueChartTitle').textContent = 'Queue Status by Channel (Today)';
 
             // Update queue header with today's date (Eastern time)
             const easternDate = new Date().toLocaleDateString("en-US", {
@@ -1404,12 +1404,25 @@
             // Sent today = status is 'sent'
             const sentToday = queueData?.filter(q => q.status === 'sent').length || 0;
 
+            // Per-channel queued vs sent breakdown for chart
+            const smsQueued = queueData?.filter(q => q.channel === 'sms' && q.status === 'queued').length || 0;
+            const smsSent = queueData?.filter(q => q.channel === 'sms' && q.status === 'sent').length || 0;
+            const voiceQueued = queueData?.filter(q => q.channel === 'voice' && q.status === 'queued').length || 0;
+            const voiceSent = queueData?.filter(q => q.channel === 'voice' && q.status === 'sent').length || 0;
+
             // Update UI elements
             document.getElementById('totalQueued').textContent = totalQueued.toLocaleString();
             document.getElementById('queueSMS').textContent = smsQueue.toLocaleString();
             document.getElementById('queueVoice').textContent = voiceQueue.toLocaleString();
             document.getElementById('queuePending').textContent = pending.toLocaleString();
             document.getElementById('sentToday').textContent = sentToday.toLocaleString();
+
+            // Update queue chart
+            if (queueChart) {
+                queueChart.data.datasets[0].data = [smsQueued, voiceQueued];
+                queueChart.data.datasets[1].data = [smsSent, voiceSent];
+                queueChart.update();
+            }
         }
 
         // Fetch GHL appointment & opportunity data
@@ -1600,13 +1613,7 @@
             window.firstBookedSms = firstBookedSms;
             window.firstBookedCall = firstBookedCall;
 
-            // Update appointment chart with data from selected range
-            const first = dataRange.appointments?.first || {};
-            const second = dataRange.appointments?.second || {};
-            appointmentChart.data.datasets[0].data = [first.showed || 0, second.showed || 0];
-            appointmentChart.data.datasets[1].data = [first.noshow || 0, second.noshow || 0];
-            appointmentChart.data.datasets[2].data = [first.confirmed || 0, second.confirmed || 0];
-            appointmentChart.update();
+            // Queue chart is now updated in fetchQueueData() instead
 
             // Update pipeline with CURRENT state (NOT date-filtered)
             // Pipeline shows where opportunities are NOW, regardless of when they were created
