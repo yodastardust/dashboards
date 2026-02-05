@@ -952,15 +952,21 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTI1NTEwMywiZXhwIjoyMDg0NjE1MTAzfQ.X7fHo2v_7HZBYZzggydteFbMh_y_pgQN78yynby5sI4';
         const GHL_STATS_URL = 'https://n8n.stopmyauctionnow.com/webhook/ghl-appointment-stats';
 
+        // GHL Calendar IDs for 1st and 2nd appointments
+        const GHL_CALENDAR_FIRST = 'gBD1ts4ZdRzWaMzti2Ck';
+        const GHL_CALENDAR_SECOND = 'WM8EhHF8mZjCPQAHXJxp';
+
         // Fetch real appointment channel breakdown from Supabase ops.lead_appointments
         async function fetchAppointmentChannelBreakdown(startDateISO, endDateISO) {
             try {
+                // Use ghl_calendar_id to distinguish 1st vs 2nd appointments
+                // Use updated_at for date filtering (no created_at column exists)
                 const { data, error } = await sbClient
                     .schema('ops')
                     .from('lead_appointments')
-                    .select('appointment_type, last_source')
-                    .gte('created_at', startDateISO)
-                    .lte('created_at', endDateISO);
+                    .select('ghl_calendar_id, last_source')
+                    .gte('updated_at', startDateISO)
+                    .lte('updated_at', endDateISO);
 
                 if (error) {
                     console.warn('[Channel] lead_appointments query error:', error.message);
@@ -970,8 +976,9 @@
                 const appointments = data || [];
                 if (appointments.length === 0) return null;
 
-                const first = appointments.filter(a => a.appointment_type === '1st' || a.appointment_type === 'first' || !a.appointment_type);
-                const second = appointments.filter(a => a.appointment_type === '2nd' || a.appointment_type === 'second');
+                // Filter by calendar ID: gBD1ts4ZdRzWaMzti2Ck = 1st, WM8EhHF8mZjCPQAHXJxp = 2nd
+                const first = appointments.filter(a => a.ghl_calendar_id === GHL_CALENDAR_FIRST);
+                const second = appointments.filter(a => a.ghl_calendar_id === GHL_CALENDAR_SECOND);
 
                 const result = {
                     first: {
@@ -1322,9 +1329,9 @@
             console.log(`[Voice] Fetching for range: ${range.startDateISO} to ${range.endDateISO}`);
 
             // Fetch current range and 90-day data in parallel
-            // Use PostgREST and() for proper range filtering, add not.is.null to exclude rows without timestamps
-            const rangeUrl = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?and=(start_timestamp.gte.${range.startDateISO},start_timestamp.lte.${range.endDateISO},start_timestamp.not.is.null)&select=call_type,disconnection_reason,call_status,start_timestamp&limit=10000`;
-            const d90Url = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?and=(start_timestamp.gte.${d90ISO},start_timestamp.not.is.null)&select=call_type,disconnection_reason,call_status,start_timestamp&limit=10000`;
+            // Use created_at (which has an index) instead of start_timestamp to avoid timeouts
+            const rangeUrl = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&created_at=lte.${range.endDateISO}&select=call_type,disconnection_reason,call_status,created_at&limit=10000`;
+            const d90Url = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${d90ISO}&created_at=lte.${new Date().toISOString()}&select=call_type,disconnection_reason,call_status,created_at&limit=10000`;
 
             const [respRange, resp90] = await Promise.all([
                 fetch(rangeUrl, { headers }),
@@ -1803,8 +1810,8 @@
                 });
             }
 
-            // Retell costs - filter by actual call time, need BOTH start AND end
-            const retellUrl = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?start_timestamp=gte.${range.startDateISO}&start_timestamp=lte.${range.endDateISO}&select=call_cost_cents,start_timestamp`;
+            // Retell costs - use created_at (indexed) instead of start_timestamp to avoid timeouts
+            const retellUrl = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&created_at=lte.${range.endDateISO}&select=call_cost_cents,created_at`;
             console.log(`[Costs] Retell URL: ${retellUrl}`);
             const retellResp = await fetch(retellUrl, {
                 headers: {
@@ -1821,8 +1828,8 @@
                 retellCalls = retellData.length;
                 console.log(`[Costs] Retell calls returned: ${retellCalls}`);
                 if (retellCalls > 0) {
-                    console.log(`[Costs] First call date: ${retellData[0].start_timestamp}`);
-                    console.log(`[Costs] Last call date: ${retellData[retellData.length-1].start_timestamp}`);
+                    console.log(`[Costs] First call date: ${retellData[0].created_at}`);
+                    console.log(`[Costs] Last call date: ${retellData[retellData.length-1].created_at}`);
                 }
                 retellData.forEach(d => {
                     retellCost += (d.call_cost_cents || 0) / 100;
