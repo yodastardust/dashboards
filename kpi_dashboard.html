@@ -960,13 +960,14 @@
         async function fetchAppointmentChannelBreakdown(startDateISO, endDateISO) {
             try {
                 // Use ghl_calendar_id to distinguish 1st vs 2nd appointments
-                // Use created_at for date filtering (when appointment was booked)
+                // Use updated_at for now (created_at may have NULL values)
+                // TODO: Backfill created_at values and switch back
                 const { data, error } = await sbClient
                     .schema('ops')
                     .from('lead_appointments')
                     .select('ghl_calendar_id, last_source')
-                    .gte('created_at', startDateISO)
-                    .lte('created_at', endDateISO);
+                    .gte('updated_at', startDateISO)
+                    .lte('updated_at', endDateISO);
 
                 if (error) {
                     console.warn('[Channel] lead_appointments query error:', error.message);
