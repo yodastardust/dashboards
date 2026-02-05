@@ -952,6 +952,45 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTI1NTEwMywiZXhwIjoyMDg0NjE1MTAzfQ.X7fHo2v_7HZBYZzggydteFbMh_y_pgQN78yynby5sI4';
         const GHL_STATS_URL = 'https://n8n.stopmyauctionnow.com/webhook/ghl-appointment-stats';
 
+        // Fetch real appointment channel breakdown from Supabase ops.lead_appointments
+        async function fetchAppointmentChannelBreakdown(startDateISO, endDateISO) {
+            try {
+                const { data, error } = await sbClient
+                    .schema('ops')
+                    .from('lead_appointments')
+                    .select('appointment_type, last_source')
+                    .gte('created_at', startDateISO)
+                    .lte('created_at', endDateISO);
+
+                if (error) {
+                    console.warn('[Channel] lead_appointments query error:', error.message);
+                    return null;
+                }
+
+                const appointments = data || [];
+                if (appointments.length === 0) return null;
+
+                const first = appointments.filter(a => a.appointment_type === '1st' || a.appointment_type === 'first' || !a.appointment_type);
+                const second = appointments.filter(a => a.appointment_type === '2nd' || a.appointment_type === 'second');
+
+                const result = {
+                    first: {
+                        sms: first.filter(a => a.last_source === 'sms').length,
+                        call: first.filter(a => a.last_source === 'voice' || a.last_source === 'call').length
+                    },
+                    second: {
+                        sms: second.filter(a => a.last_source === 'sms').length,
+                        call: second.filter(a => a.last_source === 'voice' || a.last_source === 'call').length
+                    }
+                };
+                console.log('[Channel] Real channel data from Supabase:', result);
+                return result;
+            } catch (err) {
+                console.warn('[Channel] Failed to fetch channel breakdown:', err);
+                return null;
+            }
+        }
+
         // Fetch signed contracts from Supabase (date-filtered)
         async function fetchSignedContracts(startDateISO, endDateISO) {
             try {
@@ -1157,8 +1196,8 @@
             document.getElementById('queueHeader').textContent = `Outreach Queue ${easternDate}`;
 
             try {
-                // Fetch data in parallel
-                await Promise.all([
+                // Fetch data in parallel - use allSettled so one failure doesn't block others
+                const results = await Promise.allSettled([
                     fetchSMSData(),
                     fetchVoiceData(),
                     fetchQueueData(),
@@ -1166,9 +1205,23 @@
                     fetchCostData()
                 ]);
 
+                const labels = ['SMS', 'Voice', 'Queue', 'GHL', 'Costs'];
+                const failures = results
+                    .map((r, i) => r.status === 'rejected' ? labels[i] : null)
+                    .filter(Boolean);
+
                 const elapsed = Date.now() - startTime;
-                document.getElementById('lastUpdated').textContent =
-                    new Date().toLocaleTimeString() + ` (${elapsed}ms)`;
+                if (failures.length > 0) {
+                    console.warn(`[Dashboard] Partial failure: ${failures.join(', ')}`);
+                    results.forEach((r, i) => {
+                        if (r.status === 'rejected') console.error(`[${labels[i]}] Error:`, r.reason);
+                    });
+                    document.getElementById('lastUpdated').textContent =
+                        new Date().toLocaleTimeString() + ` (${elapsed}ms) - ${failures.join(', ')} failed`;
+                } else {
+                    document.getElementById('lastUpdated').textContent =
+                        new Date().toLocaleTimeString() + ` (${elapsed}ms)`;
+                }
             } catch (err) {
                 console.error('Refresh error:', err);
                 document.getElementById('lastUpdated').textContent = 'Error: ' + err.message;
@@ -1269,12 +1322,23 @@
             console.log(`[Voice] Fetching for range: ${range.startDateISO} to ${range.endDateISO}`);
 
             // Fetch current range and 90-day data in parallel
-            // Use BOTH start AND end dates for proper filtering
+            // Use PostgREST and() for proper range filtering, add not.is.null to exclude rows without timestamps
+            const rangeUrl = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?and=(start_timestamp.gte.${range.startDateISO},start_timestamp.lte.${range.endDateISO},start_timestamp.not.is.null)&select=call_type,disconnection_reason,call_status,start_timestamp&limit=10000`;
+            const d90Url = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?and=(start_timestamp.gte.${d90ISO},start_timestamp.not.is.null)&select=call_type,disconnection_reason,call_status,start_timestamp&limit=10000`;
+
             const [respRange, resp90] = await Promise.all([
-                fetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?start_timestamp=gte.${range.startDateISO}&start_timestamp=lte.${range.endDateISO}&select=call_type,disconnection_reason,call_status,start_timestamp&limit=10000`, { headers }),
-                fetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?start_timestamp=gte.${d90ISO}&select=call_type,disconnection_reason,call_status,start_timestamp&limit=10000`, { headers })
+                fetch(rangeUrl, { headers }),
+                fetch(d90Url, { headers })
             ]);
 
+            if (!respRange.ok) {
+                console.error(`[Voice] Range query failed: ${respRange.status} ${respRange.statusText}`);
+                const errBody = await respRange.text().catch(() => '');
+                console.error('[Voice] Error details:', errBody);
+            }
+            if (!resp90.ok) {
+                console.error(`[Voice] 90-day query failed: ${resp90.status} ${resp90.statusText}`);
+            }
             if (!respRange.ok || !resp90.ok) throw new Error('Failed to fetch voice data');
 
             const calls = await respRange.json();
@@ -1529,27 +1593,33 @@
                 : (secondCompletedCurrent > 0 ? 0 : 0);
             const conversionRate90Avg = second90Showed > 0 ? ((data90.opportunities?.signedContract || 0) / second90Showed * 100) : 0;
 
-            // ======== CHANNEL BREAKDOWN ========
-            // For now, split bookings based on channel activity ratio (SMS vs Voice outbound)
-            // This will be replaced with actual channel tracking from GHL workflow
-            const channelData = dataRange.channelBreakdown || null;
+            // ======== CHANNEL BREAKDOWN (from Supabase lead_appointments) ========
+            // Query real channel attribution from ops.lead_appointments
+            let realChannelData = null;
+            try {
+                realChannelData = await fetchAppointmentChannelBreakdown(range.startDateISO, range.endDateISO);
+            } catch (e) {
+                console.warn('[Channel] Supabase channel query failed, using GHL fallback:', e.message);
+            }
 
-            // Placeholder: estimate SMS vs Call split based on typical ratios
-            // ~40% from SMS, ~60% from Call (based on historical data showing calls convert better)
-            const smsRatio = channelData?.smsRatio || 0.4;
-            const callRatio = channelData?.callRatio || 0.6;
+            const channelData = dataRange.channelBreakdown ?? null;
 
-            // 1st Appointments by channel
-            const firstBookedSms = channelData?.first?.sms || Math.round(firstBookedCurrent * smsRatio);
-            const firstBookedCall = channelData?.first?.call || Math.round(firstBookedCurrent * callRatio);
-            const firstShowedSms = channelData?.first?.showedSms || Math.round(firstCompletedCurrent * smsRatio);
-            const firstShowedCall = channelData?.first?.showedCall || Math.round(firstCompletedCurrent * callRatio);
+            // Use real Supabase data when available, otherwise fall back to GHL webhook data
+            // Use ?? (nullish coalescing) instead of || to properly handle 0 values
+            const smsRatio = channelData?.smsRatio ?? 0.4;
+            const callRatio = channelData?.callRatio ?? 0.6;
+
+            // 1st Appointments by channel - prefer real Supabase data
+            const firstBookedSms = realChannelData?.first?.sms ?? channelData?.first?.sms ?? Math.round(firstBookedCurrent * smsRatio);
+            const firstBookedCall = realChannelData?.first?.call ?? channelData?.first?.call ?? Math.round(firstBookedCurrent * callRatio);
+            const firstShowedSms = channelData?.first?.showedSms ?? Math.round(firstCompletedCurrent * smsRatio);
+            const firstShowedCall = channelData?.first?.showedCall ?? Math.round(firstCompletedCurrent * callRatio);
 
             // 2nd Appointments by channel
-            const secondBookedSms = channelData?.second?.sms || Math.round(secondBookedCurrent * smsRatio);
-            const secondBookedCall = channelData?.second?.call || Math.round(secondBookedCurrent * callRatio);
-            const secondShowedSms = channelData?.second?.showedSms || Math.round(secondCompletedCurrent * smsRatio);
-            const secondShowedCall = channelData?.second?.showedCall || Math.round(secondCompletedCurrent * callRatio);
+            const secondBookedSms = realChannelData?.second?.sms ?? channelData?.second?.sms ?? Math.round(secondBookedCurrent * smsRatio);
+            const secondBookedCall = realChannelData?.second?.call ?? channelData?.second?.call ?? Math.round(secondBookedCurrent * callRatio);
+            const secondShowedSms = channelData?.second?.showedSms ?? Math.round(secondCompletedCurrent * smsRatio);
+            const secondShowedCall = channelData?.second?.showedCall ?? Math.round(secondCompletedCurrent * callRatio);
 
             // Show rates by channel
             const firstShowRateSms = firstBookedSms > 0 ? (firstShowedSms / firstBookedSms * 100) : 0;
