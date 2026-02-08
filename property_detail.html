@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Audit - Mission Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-primary: #0b0b0f;
+            --bg-secondary: #1a1a1e;
+            --bg-panel: #141418;
+            --bg-hover: #252529;
+            --accent-blue: #005288;
+            --accent-cyan: #00bcd4;
+            --alert-red: #c41e3a;
+            --success-green: #00c853;
+            --warning-yellow: #ffc107;
+            --warning-orange: #ff8800;
+            --text-primary: #ffffff;
+            --text-secondary: #9e9e9e;
+            --text-muted: #666666;
+            --border-color: #2a2a2e;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-weight: 500;
+            font-size: 18px;
+        }
+
+        .logo-text span {
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .header-search {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-search input {
+            padding: 8px 12px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.8rem;
+            width: 280px;
+            outline: none;
+        }
+
+        .header-search input:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .header-search input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            border-color: var(--accent-cyan);
+        }
+
+        .btn-primary:hover { opacity: 0.85; }
+
+        .btn-secondary {
+            background: var(--bg-panel);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .btn-danger {
+            background: var(--alert-red);
+            color: white;
+            border-color: var(--alert-red);
+        }
+
+        .btn-danger:hover { opacity: 0.85; }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .loading-page {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 50vh;
+            color: var(--text-muted);
+        }
+
+        .loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .not-found-page {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 50vh;
+            color: var(--text-muted);
+        }
+
+        .not-found-page h2 {
+            font-size: 1.25rem;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        /* Cards / Sections */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        .card-body {
+            padding: 16px 20px;
+        }
+
+        /* Property Details Grid */
+        .prop-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 32px;
+        }
+
+        .prop-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 4px 0;
+        }
+
+        .prop-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .prop-value {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            font-family: 'Roboto Mono', monospace;
+            text-align: right;
+        }
+
+        .prop-value.address {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+        }
+
+        .prop-value.money {
+            color: var(--success-green);
+        }
+
+        /* Badges */
+        .badge {
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .badge-deceased { background: var(--alert-red); color: white; }
+        .badge-llc { background: var(--accent-blue); color: white; }
+        .badge-owner { background: var(--success-green); color: black; }
+        .badge-relative { background: var(--warning-yellow); color: black; }
+        .badge-active { background: var(--accent-cyan); color: black; }
+        .badge-suppressed { background: var(--alert-red); color: white; }
+        .badge-stopped { background: var(--text-muted); color: white; }
+        .badge-foreclosure { background: var(--warning-orange); color: black; }
+        .badge-taxdeed { background: var(--accent-blue); color: white; }
+
+        /* Contacts Table */
+        .contacts-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .contacts-table th {
+            text-align: left;
+            padding: 8px 12px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .contacts-table td {
+            padding: 10px 12px;
+            font-size: 0.85rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .contacts-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .contacts-table tr.contact-row {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .contacts-table tr.contact-row:hover {
+            background: var(--bg-hover);
+        }
+
+        .contacts-table tr.contact-row.expanded {
+            background: var(--bg-panel);
+        }
+
+        .contact-phone {
+            font-family: 'Roboto Mono', monospace;
+            color: var(--accent-cyan);
+            font-size: 0.8rem;
+        }
+
+        .expand-arrow {
+            display: inline-block;
+            transition: transform 0.2s;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+        }
+
+        .expand-arrow.open {
+            transform: rotate(90deg);
+        }
+
+        /* Communication History (expandable) */
+        .contact-history {
+            display: none;
+            background: var(--bg-primary);
+        }
+
+        .contact-history.show {
+            display: table-row;
+        }
+
+        .contact-history td {
+            padding: 0;
+        }
+
+        .history-container {
+            padding: 12px 20px 16px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .timeline-item:last-child {
+            border-bottom: none;
+        }
+
+        .timeline-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .timeline-icon.sms-out { background: var(--accent-blue); color: white; }
+        .timeline-icon.sms-in { background: var(--success-green); color: black; }
+        .timeline-icon.call-out { background: var(--warning-orange); color: black; }
+        .timeline-icon.call-in { background: var(--accent-cyan); color: black; }
+        .timeline-icon.queue { background: var(--bg-hover); color: var(--text-secondary); }
+
+        .timeline-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .timeline-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .timeline-type {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .timeline-time {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .timeline-body {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .timeline-body.inbound {
+            color: var(--text-primary);
+        }
+
+        .timeline-detail {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Add Contact Form */
+        .add-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 8px 12px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-group select {
+            cursor: pointer;
+        }
+
+        .form-group select option {
+            background: var(--bg-secondary);
+        }
+
+        .form-actions {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success-green);
+            color: black;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            z-index: 2000;
+            animation: toastIn 0.3s ease;
+        }
+
+        .toast.error {
+            background: var(--alert-red);
+            color: white;
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .prop-grid {
+                grid-template-columns: 1fr;
+            }
+            .header-search input {
+                width: 180px;
+            }
+            .add-form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <div class="logo-icon">PA</div>
+            <div class="logo-text">Property <span>Audit</span></div>
+        </div>
+        <div class="header-actions">
+            <div class="header-search">
+                <input type="text" id="search-input" placeholder="Phone, case #, or address..." onkeydown="if(event.key==='Enter')searchProperty()">
+                <button class="btn btn-primary" onclick="searchProperty()">Search</button>
+            </div>
+            <a href="needs_response.html" class="btn btn-secondary">Needs Response</a>
+            <a href="index.html" class="btn btn-secondary">Dashboards</a>
+        </div>
+    </div>
+
+    <div class="container" id="main-container">
+        <div class="loading-page" id="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Loading property data...</p>
+        </div>
+
+        <div class="not-found-page" id="not-found-state" style="display:none">
+            <h2>No Property Found</h2>
+            <p>Search by phone number, case number, or address above.</p>
+        </div>
+
+        <div id="property-content" style="display:none">
+            <!-- Property Details Card -->
+            <div class="card" id="property-card">
+                <div class="card-header">
+                    <span class="card-title">Property Details</span>
+                    <span id="prop-badges"></span>
+                </div>
+                <div class="card-body">
+                    <div class="prop-grid" id="prop-grid">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contacts Card -->
+            <div class="card" id="contacts-card">
+                <div class="card-header">
+                    <span class="card-title" id="contacts-title">Contacts</span>
+                </div>
+                <div class="card-body" style="padding:0">
+                    <table class="contacts-table" id="contacts-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Name</th>
+                                <th>Phone</th>
+                                <th>Role</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contacts-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Add Contact Form Card -->
+            <div class="card" id="add-contact-card">
+                <div class="card-header">
+                    <span class="card-title">Add Phone Number to Property</span>
+                </div>
+                <div class="card-body">
+                    <div class="add-form-grid">
+                        <div class="form-group">
+                            <label>Phone Number *</label>
+                            <input type="text" id="add-phone" placeholder="(XXX) XXX-XXXX">
+                        </div>
+                        <div class="form-group">
+                            <label>Person Name</label>
+                            <input type="text" id="add-name" placeholder="Optional">
+                        </div>
+                        <div class="form-group">
+                            <label>Role</label>
+                            <select id="add-role">
+                                <option value="owner">Owner</option>
+                                <option value="rel1" selected>Relative 1</option>
+                                <option value="rel2">Relative 2</option>
+                                <option value="rel3">Relative 3</option>
+                                <option value="rel4">Relative 4</option>
+                                <option value="rel5">Relative 5</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Relationship</label>
+                            <select id="add-relationship">
+                                <option value="">Unknown</option>
+                                <option value="Spouse">Spouse</option>
+                                <option value="Son">Son</option>
+                                <option value="Daughter">Daughter</option>
+                                <option value="Sibling">Sibling</option>
+                                <option value="Parent">Parent</option>
+                                <option value="Attorney">Attorney</option>
+                                <option value="Other Relative">Other Relative</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Type</label>
+                            <select id="add-phone-type">
+                                <option value="mobile" selected>Mobile</option>
+                                <option value="landline">Landline</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-primary" onclick="addContact()">Add Contact</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const SUPABASE_URL = 'https://saksbjogtkagedmlsrsv.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNTUxMDMsImV4cCI6MjA4NDYxNTEwM30.FvfTxotEWZlkmQNiekbt4KyxvDk_7GBqfWn55pKTjho';
+        const DISPO_WEBHOOK = 'https://n8n.stopmyauctionnow.com/webhook/dashboard-dispo-v3';
+
+        // State
+        let supabaseClient = null;
+        let currentProperty = null;   // First row from v_agent_contact_context
+        let currentContacts = [];     // All contacts from v_contact_points
+        let currentRawRowId = null;
+        let expandedContactIdx = null; // Which contact row is expanded
+        let contactHistoryCache = {};  // Cache loaded histories by phone_digits
+
+        // Initialize
+        async function init() {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            // Parse URL params
+            const params = new URLSearchParams(window.location.search);
+            const rawRowId = params.get('raw_row_id');
+            const phone = params.get('phone');
+            const caseNum = params.get('case');
+            const addPhone = params.get('add_phone');
+
+            if (rawRowId) {
+                await loadByRawRowId(rawRowId);
+            } else if (phone) {
+                await loadByPhone(cleanPhoneNumber(phone));
+            } else if (caseNum) {
+                await loadByCase(caseNum);
+            } else {
+                showNotFound();
+                return;
+            }
+
+            // Pre-populate add phone form if param provided
+            if (addPhone) {
+                const cleaned = cleanPhoneNumber(addPhone);
+                if (cleaned) {
+                    document.getElementById('add-phone').value = formatPhone(cleaned);
+                }
+            }
+        }
+
+        // Load functions
+        async function loadByRawRowId(rawRowId) {
+            showLoading();
+            const { data, error } = await supabaseClient
+                .from('v_agent_contact_context')
+                .select('*')
+                .eq('raw_row_id', rawRowId)
+                .limit(1);
+            if (error || !data?.length) { showNotFound(); return; }
+            currentRawRowId = rawRowId;
+            currentProperty = data[0];
+            await loadContacts();
+            renderProperty();
+        }
+
+        async function loadByPhone(phoneDigits) {
+            if (!phoneDigits) { showNotFound(); return; }
+            showLoading();
+            const { data, error } = await supabaseClient
+                .from('v_agent_contact_context')
+                .select('*')
+                .eq('phone_digits', phoneDigits)
+                .limit(1);
+            if (error || !data?.length) { showNotFound(); return; }
+            currentRawRowId = data[0].raw_row_id;
+            currentProperty = data[0];
+            await loadContacts();
+            renderProperty();
+        }
+
+        async function loadByCase(caseNum) {
+            showLoading();
+            const { data, error } = await supabaseClient
+                .from('v_agent_contact_context')
+                .select('*')
+                .eq('case_number', caseNum)
+                .limit(1);
+            if (error || !data?.length) { showNotFound(); return; }
+            currentRawRowId = data[0].raw_row_id;
+            currentProperty = data[0];
+            await loadContacts();
+            renderProperty();
+        }
+
+        async function loadContacts() {
+            const { data, error } = await supabaseClient
+                .from('v_contact_points')
+                .select('*')
+                .eq('raw_row_id', currentRawRowId)
+                .order('priority_rank', { ascending: true });
+            currentContacts = data || [];
+
+            // Also load conversation status for each contact
+            if (currentContacts.length > 0) {
+                const phones = currentContacts.map(c => c.phone_digits);
+                const { data: convos } = await supabaseClient
+                    .from('conversations')
+                    .select('phone_digits, status, resolution')
+                    .in('phone_digits', phones);
+
+                const convoMap = {};
+                (convos || []).forEach(c => { convoMap[c.phone_digits] = c; });
+                currentContacts.forEach(c => { c._convo = convoMap[c.phone_digits] || null; });
+            }
+        }
+
+        // Search from header
+        async function searchProperty() {
+            const input = document.getElementById('search-input').value.trim();
+            if (!input) return;
+
+            // Try as phone number first
+            const phoneDigits = cleanPhoneNumber(input);
+            if (phoneDigits) {
+                window.history.replaceState(null, '', `?phone=${phoneDigits}`);
+                expandedContactIdx = null;
+                contactHistoryCache = {};
+                await loadByPhone(phoneDigits);
+                return;
+            }
+
+            // Try as case number (contains dash or numbers only)
+            if (/^\d{3,}-\d{4}$/.test(input) || /^\d{5,}$/.test(input)) {
+                window.history.replaceState(null, '', `?case=${encodeURIComponent(input)}`);
+                expandedContactIdx = null;
+                contactHistoryCache = {};
+                await loadByCase(input);
+                return;
+            }
+
+            // Try as address (text search)
+            showLoading();
+            const { data, error } = await supabaseClient
+                .from('v_agent_contact_context')
+                .select('*')
+                .ilike('property_address', `%${input}%`)
+                .limit(1);
+            if (error || !data?.length) { showNotFound(); return; }
+            currentRawRowId = data[0].raw_row_id;
+            currentProperty = data[0];
+            window.history.replaceState(null, '', `?raw_row_id=${currentRawRowId}`);
+            expandedContactIdx = null;
+            contactHistoryCache = {};
+            await loadContacts();
+            renderProperty();
+        }
+
+        // Render functions
+        function showLoading() {
+            document.getElementById('loading-state').style.display = 'flex';
+            document.getElementById('not-found-state').style.display = 'none';
+            document.getElementById('property-content').style.display = 'none';
+        }
+
+        function showNotFound() {
+            document.getElementById('loading-state').style.display = 'none';
+            document.getElementById('not-found-state').style.display = 'flex';
+            document.getElementById('property-content').style.display = 'none';
+        }
+
+        function renderProperty() {
+            document.getElementById('loading-state').style.display = 'none';
+            document.getElementById('not-found-state').style.display = 'none';
+            document.getElementById('property-content').style.display = 'block';
+
+            const p = currentProperty;
+
+            // Badges
+            let badges = '';
+            if (p.auction_type) {
+                const cls = p.auction_type.toLowerCase() === 'foreclosure' ? 'badge-foreclosure' : 'badge-taxdeed';
+                badges += `<span class="badge ${cls}">${escapeHtml(p.auction_type)}</span> `;
+            }
+            if (p.dec === true) badges += '<span class="badge badge-deceased">Deceased Owner</span> ';
+            if (p.llc) badges += '<span class="badge badge-llc">LLC</span> ';
+            document.getElementById('prop-badges').innerHTML = badges;
+
+            // Property grid
+            const formatMoney = (v) => v ? '$' + Number(v).toLocaleString() : '-';
+            const daysToAuction = p.auction_date ? Math.ceil((new Date(p.auction_date + 'T00:00:00') - new Date()) / (1000*60*60*24)) : null;
+            const auctionDisplay = p.auction_date
+                ? `${formatDate(p.auction_date)}${daysToAuction !== null ? ` (${daysToAuction}d)` : ''}`
+                : '-';
+
+            document.getElementById('prop-grid').innerHTML = `
+                <div class="prop-row"><span class="prop-label">Address</span><span class="prop-value address">${escapeHtml(p.property_address || '-')}</span></div>
+                <div class="prop-row"><span class="prop-label">Case #</span><span class="prop-value">${escapeHtml(p.case_number || '-')}</span></div>
+                <div class="prop-row"><span class="prop-label">City / State / Zip</span><span class="prop-value">${escapeHtml([p.city, p.state, p.zip].filter(Boolean).join(', ') || '-')}</span></div>
+                <div class="prop-row"><span class="prop-label">Parcel ID</span><span class="prop-value">${escapeHtml(p.parcel_id || '-')}</span></div>
+                <div class="prop-row"><span class="prop-label">County</span><span class="prop-value">${escapeHtml(p.county || '-')}</span></div>
+                <div class="prop-row"><span class="prop-label">Auction Date</span><span class="prop-value">${auctionDisplay}</span></div>
+                <div class="prop-row"><span class="prop-label">Owner(s)</span><span class="prop-value address">${escapeHtml(p.owners_name || '-')}</span></div>
+                <div class="prop-row"><span class="prop-label">Judgment / Bid</span><span class="prop-value money">${formatMoney(p.final_judgment_or_opening_bid)}</span></div>
+                <div class="prop-row"><span class="prop-label">LLC</span><span class="prop-value">${escapeHtml(p.llc || '-')}</span></div>
+                <div class="prop-row"><span class="prop-label">Just Value</span><span class="prop-value money">${formatMoney(p.just_value)}</span></div>
+                <div class="prop-row"><span class="prop-label"></span><span class="prop-value"></span></div>
+                <div class="prop-row"><span class="prop-label">Zestimate</span><span class="prop-value money">${formatMoney(p.zestimate)}</span></div>
+            `;
+
+            // Update page title
+            document.title = `${p.property_address || 'Property'} - Audit`;
+
+            renderContacts();
+        }
+
+        function renderContacts() {
+            document.getElementById('contacts-title').textContent = `Contacts (${currentContacts.length})`;
+            const tbody = document.getElementById('contacts-body');
+
+            if (currentContacts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">No contacts found for this property</td></tr>';
+                return;
+            }
+
+            let html = '';
+            currentContacts.forEach((c, idx) => {
+                const isExpanded = expandedContactIdx === idx;
+                const convo = c._convo;
+                let statusBadge = '<span class="badge badge-active">Active</span>';
+                if (convo?.status === 'stopped') {
+                    statusBadge = '<span class="badge badge-stopped">Stopped</span>';
+                } else if (convo?.resolution === 'suppress_person' || convo?.resolution === 'suppress_property') {
+                    statusBadge = '<span class="badge badge-suppressed">Suppressed</span>';
+                }
+
+                html += `<tr class="contact-row ${isExpanded ? 'expanded' : ''}" onclick="toggleHistory(${idx})">
+                    <td><span class="expand-arrow ${isExpanded ? 'open' : ''}">&#9654;</span></td>
+                    <td>${escapeHtml(c.full_name || '-')}</td>
+                    <td class="contact-phone">${formatPhone(c.phone_digits)}</td>
+                    <td>${escapeHtml(c.role || '-')}${c.likely_relationship ? ' <span style="color:var(--text-muted);font-size:0.75rem">(' + escapeHtml(c.likely_relationship) + ')</span>' : ''}</td>
+                    <td>${escapeHtml(c.phone_type || '-')}</td>
+                    <td>${statusBadge}</td>
+                </tr>`;
+
+                // History row (hidden by default)
+                html += `<tr class="contact-history ${isExpanded ? 'show' : ''}" id="history-${idx}">
+                    <td colspan="6">
+                        <div class="history-container" id="history-content-${idx}">
+                            ${isExpanded ? '' : ''}
+                        </div>
+                    </td>
+                </tr>`;
+            });
+
+            tbody.innerHTML = html;
+
+            // If expanded, load history
+            if (expandedContactIdx !== null) {
+                loadHistory(expandedContactIdx);
+            }
+        }
+
+        async function toggleHistory(idx) {
+            if (expandedContactIdx === idx) {
+                expandedContactIdx = null;
+            } else {
+                expandedContactIdx = idx;
+            }
+            renderContacts();
+        }
+
+        async function loadHistory(idx) {
+            const contact = currentContacts[idx];
+            const phoneDigits = contact.phone_digits;
+            const container = document.getElementById(`history-content-${idx}`);
+
+            // Check cache
+            if (contactHistoryCache[phoneDigits]) {
+                container.innerHTML = contactHistoryCache[phoneDigits];
+                return;
+            }
+
+            container.innerHTML = '<div class="history-loading">Loading communication history...</div>';
+
+            try {
+                // Parallel queries: messages, retell calls, queue items
+                const [msgsRes, callsRes, queueRes] = await Promise.all([
+                    supabaseClient
+                        .from('messages')
+                        .select('direction, body, created_at, status')
+                        .eq('phone_digits', phoneDigits)
+                        .order('created_at', { ascending: false })
+                        .limit(50),
+                    supabaseClient
+                        .schema('ops')
+                        .from('retell_call_outcomes')
+                        .select('call_id, call_type, duration_ms, call_status, call_successful, call_summary, user_sentiment, created_at')
+                        .eq('phone_digits', phoneDigits)
+                        .order('created_at', { ascending: false })
+                        .limit(20),
+                    supabaseClient
+                        .from('outreach_queue')
+                        .select('channel, status, template_key, next_action_at, attempt_count, created_at, updated_at')
+                        .eq('phone_digits', phoneDigits)
+                        .eq('raw_row_id', currentRawRowId)
+                        .order('created_at', { ascending: false })
+                        .limit(20)
+                ]);
+
+                const messages = msgsRes.data || [];
+                const calls = callsRes.data || [];
+                const queueItems = queueRes.data || [];
+
+                // Combine into timeline
+                const timeline = [];
+
+                messages.forEach(m => {
+                    timeline.push({
+                        type: m.direction === 'inbound' ? 'sms-in' : 'sms-out',
+                        label: m.direction === 'inbound' ? 'Inbound SMS' : 'Outbound SMS',
+                        body: m.body,
+                        time: new Date(m.created_at),
+                        detail: m.status || null
+                    });
+                });
+
+                calls.forEach(c => {
+                    const durSec = c.duration_ms ? Math.round(c.duration_ms / 1000) : 0;
+                    const durStr = durSec > 0 ? `${Math.floor(durSec/60)}:${String(durSec%60).padStart(2,'0')}` : '0:00';
+                    timeline.push({
+                        type: c.call_type === 'inbound' ? 'call-in' : 'call-out',
+                        label: (c.call_type === 'inbound' ? 'Inbound' : 'Outbound') + ' Call',
+                        body: c.call_summary || null,
+                        time: new Date(c.created_at),
+                        detail: `${durStr} | ${c.call_status || '-'}${c.user_sentiment ? ' | ' + c.user_sentiment : ''}`
+                    });
+                });
+
+                queueItems.forEach(q => {
+                    timeline.push({
+                        type: 'queue',
+                        label: `Queue: ${q.channel} ${q.template_key || ''}`,
+                        body: null,
+                        time: new Date(q.created_at),
+                        detail: `Status: ${q.status} | Attempts: ${q.attempt_count || 0}`
+                    });
+                });
+
+                // Sort newest first
+                timeline.sort((a, b) => b.time - a.time);
+
+                if (timeline.length === 0) {
+                    const html = '<div class="history-empty">No communication history found</div>';
+                    container.innerHTML = html;
+                    contactHistoryCache[phoneDigits] = html;
+                    return;
+                }
+
+                let html = '';
+                timeline.forEach(item => {
+                    const iconClass = item.type;
+                    const icons = {
+                        'sms-out': 'OUT', 'sms-in': 'IN',
+                        'call-out': 'C', 'call-in': 'C',
+                        'queue': 'Q'
+                    };
+                    html += `<div class="timeline-item">
+                        <div class="timeline-icon ${iconClass}">${icons[item.type] || '?'}</div>
+                        <div class="timeline-content">
+                            <div class="timeline-meta">
+                                <span class="timeline-type">${escapeHtml(item.label)}</span>
+                                <span class="timeline-time">${formatDateTime(item.time)}</span>
+                            </div>
+                            ${item.body ? `<div class="timeline-body ${item.type === 'sms-in' ? 'inbound' : ''}">${escapeHtml(item.body)}</div>` : ''}
+                            ${item.detail ? `<div class="timeline-detail">${escapeHtml(item.detail)}</div>` : ''}
+                        </div>
+                    </div>`;
+                });
+
+                container.innerHTML = html;
+                contactHistoryCache[phoneDigits] = html;
+
+            } catch (err) {
+                console.error('Error loading history:', err);
+                container.innerHTML = '<div class="history-empty" style="color:var(--alert-red)">Error loading history: ' + escapeHtml(err.message) + '</div>';
+            }
+        }
+
+        // Add Contact via Postgres RPC function
+        async function addContact() {
+            const phoneRaw = document.getElementById('add-phone').value.trim();
+            const phoneDigits = cleanPhoneNumber(phoneRaw);
+            if (!phoneDigits) {
+                showToast('Enter a valid 10-digit phone number', true);
+                return;
+            }
+
+            if (!currentRawRowId) {
+                showToast('No property loaded', true);
+                return;
+            }
+
+            // Check if phone already linked to this property
+            const existing = currentContacts.find(c => c.phone_digits === phoneDigits);
+            if (existing) {
+                showToast('This phone is already linked to this property', true);
+                return;
+            }
+
+            const addBtn = document.querySelector('#add-contact-card .btn-primary');
+            addBtn.textContent = 'Adding...';
+            addBtn.disabled = true;
+
+            try {
+                const { data, error } = await supabaseClient.rpc('add_contact_phone', {
+                    p_raw_row_id: currentRawRowId,
+                    p_phone_digits: phoneDigits,
+                    p_person_name: document.getElementById('add-name').value.trim() || null,
+                    p_role: document.getElementById('add-role').value,
+                    p_relationship: document.getElementById('add-relationship').value || null,
+                    p_phone_type: document.getElementById('add-phone-type').value
+                });
+
+                if (error) throw error;
+
+                if (data && data.success) {
+                    showToast(data.message || 'Contact added successfully');
+                    // Clear form
+                    document.getElementById('add-phone').value = '';
+                    document.getElementById('add-name').value = '';
+                    document.getElementById('add-role').value = 'rel1';
+                    document.getElementById('add-relationship').value = '';
+                    document.getElementById('add-phone-type').value = 'mobile';
+                    // Refresh contacts table
+                    expandedContactIdx = null;
+                    contactHistoryCache = {};
+                    await loadContacts();
+                    renderContacts();
+                } else {
+                    showToast(data?.error || 'Unknown error adding contact', true);
+                }
+            } catch (err) {
+                console.error('Add contact error:', err);
+                showToast('Error: ' + err.message, true);
+            } finally {
+                addBtn.textContent = 'Add Contact';
+                addBtn.disabled = false;
+            }
+        }
+
+        // Helpers
+        function cleanPhoneNumber(input) {
+            if (!input) return null;
+            const digits = input.replace(/\D/g, '');
+            if (digits.length === 11 && digits.startsWith('1')) return digits.slice(1);
+            if (digits.length === 10) return digits;
+            return null;
+        }
+
+        function formatPhone(digits) {
+            if (!digits || digits.length !== 10) return digits || '-';
+            return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+        }
+
+        function formatDate(date) {
+            if (!date) return '-';
+            return new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function formatDateTime(date) {
+            if (!date) return '-';
+            return new Date(date).toLocaleString('en-US', {
+                month: 'short', day: 'numeric',
+                hour: 'numeric', minute: '2-digit'
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showToast(message, isError = false) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.className = 'toast' + (isError ? ' error' : '');
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>

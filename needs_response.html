@@ -1388,6 +1388,21 @@
         </div>
     </div>
 
+    <!-- Phone Lookup Modal -->
+    <div class="lookup-modal-overlay" id="lookup-modal">
+        <div class="lookup-modal">
+            <div class="lookup-modal-header">
+                <h3 id="lookup-title">Phone Lookup</h3>
+                <p id="lookup-phone-display">-</p>
+            </div>
+            <div class="lookup-modal-body" id="lookup-results">
+            </div>
+            <div class="lookup-modal-footer" id="lookup-footer">
+                <button class="lookup-btn-cancel" onclick="closeLookupModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Configuration
         const SUPABASE_URL = 'https://saksbjogtkagedmlsrsv.supabase.co';
@@ -2219,6 +2234,152 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // ==================== PHONE LOOKUP FUNCTIONS ====================
+
+        function cleanPhoneNumber(input) {
+            if (!input) return null;
+            const digits = input.replace(/\D/g, '');
+            if (digits.length === 11 && digits.startsWith('1')) return digits.slice(1);
+            if (digits.length === 10) return digits;
+            return null;
+        }
+
+        async function lookupPhone() {
+            const input = document.getElementById('lookup-input').value.trim();
+            if (!input) {
+                showToast('Enter a phone number to look up', true);
+                return;
+            }
+
+            const phoneDigits = cleanPhoneNumber(input);
+            if (!phoneDigits) {
+                showToast('Invalid phone number format', true);
+                return;
+            }
+
+            // Show modal with loading state
+            document.getElementById('lookup-phone-display').textContent = formatPhone(phoneDigits);
+            document.getElementById('lookup-results').innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted)">Searching...</div>';
+            document.getElementById('lookup-footer').innerHTML = '<button class="lookup-btn-cancel" onclick="closeLookupModal()">Close</button>';
+            document.getElementById('lookup-modal').classList.add('show');
+
+            try {
+                // Run three parallel queries
+                const [contactsRes, queueRes, convoRes] = await Promise.all([
+                    supabaseClient
+                        .from('v_agent_contact_context')
+                        .select('raw_row_id, phone_digits, case_number, auction_date, auction_type, property_address, city, county, full_name, role, likely_relationship, phone_type, dec, owners_name')
+                        .eq('phone_digits', phoneDigits),
+                    supabaseClient
+                        .from('outreach_queue')
+                        .select('queue_id, channel, status, template_key, next_action_at')
+                        .eq('phone_digits', phoneDigits)
+                        .in('status', ['queued', 'in_progress', 'sent']),
+                    supabaseClient
+                        .from('conversations')
+                        .select('conversation_id, phone_digits, status, resolution, inbound_sms_count, outbound_sms_count, last_inbound_at, last_outbound_at')
+                        .eq('phone_digits', phoneDigits)
+                ]);
+
+                const contacts = contactsRes.data || [];
+                const queueItems = queueRes.data || [];
+                const conversations = convoRes.data || [];
+
+                renderLookupResults(phoneDigits, contacts, queueItems, conversations);
+            } catch (err) {
+                console.error('Lookup error:', err);
+                document.getElementById('lookup-results').innerHTML =
+                    '<div style="text-align:center;padding:24px;color:var(--alert-red)">Error: ' + escapeHtml(err.message) + '</div>';
+            }
+        }
+
+        function renderLookupResults(phoneDigits, contacts, queueItems, conversations) {
+            const resultsDiv = document.getElementById('lookup-results');
+            const footerDiv = document.getElementById('lookup-footer');
+            const ctx = selectedItem?.context || {};
+
+            if (contacts.length === 0) {
+                // Not found
+                resultsDiv.innerHTML = `
+                    <div class="lookup-not-found">
+                        <div class="nf-icon">?</div>
+                        <p style="font-size:1rem;font-weight:500;margin-bottom:8px;">Not in system</p>
+                        <p style="font-size:0.85rem;">This phone number is not linked to any property in the database.</p>
+                    </div>
+                `;
+
+                // Footer: option to add to current property, or just close
+                let footerHtml = '<button class="lookup-btn-cancel" onclick="closeLookupModal()">Close</button>';
+                if (ctx.raw_row_id) {
+                    footerHtml += `<button class="lookup-btn-add" onclick="openAddToProperty('${ctx.raw_row_id}', '${phoneDigits}')">Add to This Property</button>`;
+                }
+                footerDiv.innerHTML = footerHtml;
+                return;
+            }
+
+            // Found - show contact details
+            let html = '';
+
+            contacts.forEach(contact => {
+                const queueForContact = queueItems.filter(q => true); // all queue items are for this phone
+                const convo = conversations[0] || null;
+
+                html += `<div class="lookup-result-card">`;
+                html += `<h4>${escapeHtml(contact.full_name || 'Unknown')} <span class="lookup-badge found">Found</span></h4>`;
+
+                html += `<div class="lookup-result-row"><span class="label">Property</span><span class="value">${escapeHtml(contact.property_address || '-')}</span></div>`;
+                html += `<div class="lookup-result-row"><span class="label">City / County</span><span class="value">${escapeHtml((contact.city || '') + (contact.county ? ', ' + contact.county : ''))}</span></div>`;
+                html += `<div class="lookup-result-row"><span class="label">Auction</span><span class="value">${formatDate(contact.auction_date)} (${escapeHtml(contact.auction_type || '-')})</span></div>`;
+                html += `<div class="lookup-result-row"><span class="label">Case #</span><span class="value">${escapeHtml(contact.case_number || '-')}</span></div>`;
+                html += `<div class="lookup-result-row"><span class="label">Role</span><span class="value">${escapeHtml(contact.role || '-')}${contact.likely_relationship ? ' (' + escapeHtml(contact.likely_relationship) + ')' : ''}</span></div>`;
+                html += `<div class="lookup-result-row"><span class="label">Owner</span><span class="value">${escapeHtml(contact.owners_name || '-')}</span></div>`;
+
+                if (queueForContact.length > 0) {
+                    html += `<div class="lookup-section-label">Active Outreach</div>`;
+                    queueForContact.forEach(q => {
+                        html += `<div class="lookup-result-row"><span class="label">${escapeHtml(q.channel)} - ${escapeHtml(q.template_key || '-')}</span><span class="value"><span class="lookup-badge active">${escapeHtml(q.status)}</span></span></div>`;
+                    });
+                }
+
+                if (convo) {
+                    html += `<div class="lookup-section-label">Conversation</div>`;
+                    html += `<div class="lookup-result-row"><span class="label">Status</span><span class="value">${escapeHtml(convo.status || '-')}${convo.resolution ? ' / ' + escapeHtml(convo.resolution) : ''}</span></div>`;
+                    html += `<div class="lookup-result-row"><span class="label">Messages</span><span class="value">${convo.outbound_sms_count || 0} out / ${convo.inbound_sms_count || 0} in</span></div>`;
+                    if (convo.last_inbound_at) {
+                        html += `<div class="lookup-result-row"><span class="label">Last inbound</span><span class="value">${formatDateTime(convo.last_inbound_at)}</span></div>`;
+                    }
+                }
+
+                html += `</div>`;
+            });
+
+            resultsDiv.innerHTML = html;
+
+            // Footer actions
+            let footerHtml = '<button class="lookup-btn-cancel" onclick="closeLookupModal()">Close</button>';
+
+            // "Suppress Current Contact" - suppress the person currently selected in the queue (not the looked-up phone)
+            if (selectedItem && ctx.raw_row_id) {
+                footerHtml += `<button class="lookup-btn-suppress" onclick="closeLookupModal(); dispo('suppress_person')">Suppress Current Contact</button>`;
+            }
+
+            // "View Property" for the looked-up phone's property
+            if (contacts[0]?.raw_row_id) {
+                footerHtml += `<button class="lookup-btn-view" onclick="window.open('property_detail.html?raw_row_id=${contacts[0].raw_row_id}','_blank')">View Property</button>`;
+            }
+
+            footerDiv.innerHTML = footerHtml;
+        }
+
+        function openAddToProperty(rawRowId, phoneDigits) {
+            closeLookupModal();
+            window.open(`property_detail.html?raw_row_id=${rawRowId}&add_phone=${phoneDigits}`, '_blank');
+        }
+
+        function closeLookupModal() {
+            document.getElementById('lookup-modal').classList.remove('show');
         }
 
         // Enter key to send
