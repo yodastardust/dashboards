@@ -614,6 +614,250 @@
             background: var(--bg-hover);
         }
 
+        /* Phone Lookup Bar */
+        .phone-lookup-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .phone-lookup-bar input {
+            flex: 1;
+            padding: 6px 10px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.8rem;
+            outline: none;
+        }
+
+        .phone-lookup-bar input:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .phone-lookup-bar input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .phone-lookup-bar button {
+            padding: 6px 12px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--accent-cyan);
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .phone-lookup-bar button:hover {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+        }
+
+        .phone-lookup-bar .lookup-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        /* Lookup Modal */
+        .lookup-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .lookup-modal-overlay.show {
+            display: flex;
+        }
+
+        .lookup-modal {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .lookup-modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .lookup-modal-header h3 {
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+
+        .lookup-modal-header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .lookup-modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 24px;
+        }
+
+        .lookup-not-found {
+            text-align: center;
+            padding: 24px 0;
+            color: var(--text-secondary);
+        }
+
+        .lookup-not-found .nf-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            opacity: 0.5;
+        }
+
+        .lookup-not-found p {
+            margin-bottom: 4px;
+        }
+
+        .lookup-result-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+        }
+
+        .lookup-result-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .lookup-result-card h4 {
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lookup-result-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            padding: 3px 0;
+        }
+
+        .lookup-result-row .label {
+            color: var(--text-muted);
+        }
+
+        .lookup-result-row .value {
+            color: var(--text-primary);
+            font-family: 'Roboto Mono', monospace;
+            text-align: right;
+        }
+
+        .lookup-badge {
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .lookup-badge.found { background: var(--success-green); color: black; }
+        .lookup-badge.not-found { background: var(--text-muted); color: white; }
+        .lookup-badge.active { background: var(--accent-cyan); color: black; }
+        .lookup-badge.suppressed { background: var(--alert-red); color: white; }
+
+        .lookup-section-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            margin-top: 16px;
+        }
+
+        .lookup-section-label:first-child {
+            margin-top: 0;
+        }
+
+        .lookup-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .lookup-modal-footer button {
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+        }
+
+        .lookup-btn-cancel {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .lookup-btn-cancel:hover {
+            background: var(--bg-hover);
+        }
+
+        .lookup-btn-suppress {
+            background: var(--alert-red);
+            color: white;
+            border-color: var(--alert-red);
+        }
+
+        .lookup-btn-suppress:hover {
+            opacity: 0.85;
+        }
+
+        .lookup-btn-view {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            border-color: var(--accent-cyan);
+        }
+
+        .lookup-btn-view:hover {
+            opacity: 0.85;
+        }
+
+        .lookup-btn-add {
+            background: var(--success-green);
+            color: var(--bg-primary);
+            border-color: var(--success-green);
+        }
+
+        .lookup-btn-add:hover {
+            opacity: 0.85;
+        }
+
         /* Booking Modal */
         .booking-modal-overlay {
             position: fixed;
@@ -1057,6 +1301,11 @@
                         <span id="conv-phone">-</span>
                         <span id="conv-property">-</span>
                         <span id="conv-auction">-</span>
+                    </div>
+                    <div class="phone-lookup-bar">
+                        <span class="lookup-label">Lookup phone</span>
+                        <input type="text" id="lookup-input" placeholder="Paste phone number..." onkeydown="if(event.key==='Enter')lookupPhone()">
+                        <button onclick="lookupPhone()">Search</button>
                     </div>
                 </div>
 
@@ -1657,8 +1906,15 @@
 
                 if (!response.ok) throw new Error('Failed to delay messages');
 
-                const result = await response.json();
-                if (!result.success) throw new Error(result.error || 'Unknown error');
+                // Handle empty or non-JSON responses gracefully
+                let result = { success: true };
+                try {
+                    const text = await response.text();
+                    if (text) result = JSON.parse(text);
+                } catch (e) {
+                    // Empty or non-JSON response is OK if HTTP status was success
+                }
+                if (result.success === false) throw new Error(result.error || 'Unknown error');
 
                 hideDelayModal();
                 showToast(`Messages postponed for ${days} day${days > 1 ? 's' : ''}`);
