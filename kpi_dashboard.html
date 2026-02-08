@@ -727,7 +727,7 @@
             </div>
             <div class="benchmark-card">
                 <div class="benchmark-indicator" id="costPerApptSmsIndicator"></div>
-                <div class="benchmark-label">Cost/Appt (SMS)</div>
+                <div class="benchmark-label">SMS Spend/Appt</div>
                 <div class="benchmark-current" id="costPerApptSms">$--</div>
                 <div class="benchmark-compare">
                     <span class="benchmark-avg">90d avg: <span id="costPerApptSms90Avg">$--</span></span>
@@ -736,7 +736,7 @@
             </div>
             <div class="benchmark-card">
                 <div class="benchmark-indicator" id="costPerApptCallIndicator"></div>
-                <div class="benchmark-label">Cost/Appt (Call)</div>
+                <div class="benchmark-label">Voice Spend/Appt</div>
                 <div class="benchmark-current" id="costPerApptCall">$--</div>
                 <div class="benchmark-compare">
                     <span class="benchmark-avg">90d avg: <span id="costPerApptCall90Avg">$--</span></span>
@@ -960,14 +960,12 @@
         async function fetchAppointmentChannelBreakdown(startDateISO, endDateISO) {
             try {
                 // Use ghl_calendar_id to distinguish 1st vs 2nd appointments
-                // Use updated_at for now (created_at may have NULL values)
-                // TODO: Backfill created_at values and switch back
                 const { data, error } = await sbClient
                     .schema('ops')
                     .from('lead_appointments')
                     .select('ghl_calendar_id, last_source')
-                    .gte('updated_at', startDateISO)
-                    .lte('updated_at', endDateISO);
+                    .gte('created_at', startDateISO)
+                    .lte('created_at', endDateISO);
 
                 if (error) {
                     console.warn('[Channel] lead_appointments query error:', error.message);
@@ -1444,14 +1442,13 @@
 
         // Fetch Queue data - TODAY's scheduled items only
         async function fetchQueueData() {
-            // Calculate today's date range in Eastern time
-            const easternStr = new Date().toLocaleString("en-US", {timeZone: "America/New_York"});
-            const easternNow = new Date(easternStr);
-            const todayStart = new Date(easternNow.getFullYear(), easternNow.getMonth(), easternNow.getDate());
-            const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+            // Calculate today's date range in Eastern time using explicit EST offset
+            const todayEasternStr = formatEasternDate(new Date());
+            const todayStartEST = new Date(`${todayEasternStr}T00:00:00-05:00`);
+            const tomorrowStartEST = new Date(todayStartEST.getTime() + 24 * 60 * 60 * 1000);
 
-            const todayStartISO = todayStart.toISOString();
-            const tomorrowStartISO = tomorrowStart.toISOString();
+            const todayStartISO = todayStartEST.toISOString();
+            const tomorrowStartISO = tomorrowStartEST.toISOString();
 
             // Fetch queue items scheduled for TODAY using next_action_at
             const { data: queueData, error } = await sbClient
@@ -1855,18 +1852,19 @@
             document.getElementById('costPerAppt').textContent = '$' + (totalCost / firstAppt).toFixed(2) + ' per 1st appt';
 
             // ======== UPDATE ROW 3 COST/APPT TILES ========
-            // Cost per appointment by channel
-            const firstBookedSms = window.firstBookedSms || 1;
-            const firstBookedCall = window.firstBookedCall || 1;
+            // Blended channel spend per appointment (total appointments as denominator)
+            // This is more accurate than per-channel attribution since contacts
+            // typically receive both SMS and voice before booking
+            const totalAppts = window.firstBookedCurrent || 0;
 
-            // SMS cost per appt (Twilio SMS cost / SMS-sourced appointments)
-            const costPerApptSms = firstBookedSms > 0 ? (smsCost / firstBookedSms) : 0;
-            // Call cost per appt (Twilio voice + Retell / Call-sourced appointments)
-            const costPerApptCall = firstBookedCall > 0 ? ((twilioCost + retellCost) / firstBookedCall) : 0;
+            // SMS spend per appointment (SMS cost spread across all appointments)
+            const costPerApptSms = totalAppts > 0 ? (smsCost / totalAppts) : 0;
+            // Voice spend per appointment (Twilio voice + Retell spread across all appointments)
+            const costPerApptCall = totalAppts > 0 ? ((twilioCost + retellCost) / totalAppts) : 0;
 
             // Update cost/appt tiles
-            updateBenchmarkCardCost('costPerApptSms', costPerApptSms, costPerApptSms * 0.9); // Use 90% as placeholder avg
-            updateBenchmarkCardCost('costPerApptCall', costPerApptCall, costPerApptCall * 1.1); // Use 110% as placeholder avg
+            updateBenchmarkCardCost('costPerApptSms', costPerApptSms, costPerApptSms * 0.9);
+            updateBenchmarkCardCost('costPerApptCall', costPerApptCall, costPerApptCall * 1.1);
         }
 
         // Helper for cost benchmark cards

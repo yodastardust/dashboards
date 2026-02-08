@@ -714,7 +714,7 @@
                 <div>
                     <div class="section-title">Send Order</div>
                     <div class="section-subtitle">Messages rotate: 10 per county → next county → cycle back (prevents carrier flagging)</div>
-                    <div class="rate-limit-badge">⚡ 6 msgs/min • 10/county rotation • 8 AM - 8 PM Eastern</div>
+                    <div class="rate-limit-badge">⚡ 3 SMS/min + 3 Voice/min • 10/county rotation • 8 AM - 8 PM Eastern</div>
                 </div>
                 <div class="filter-controls">
                     <button class="filter-btn active" data-filter="all">All</button>
@@ -1088,8 +1088,8 @@
             const pendingCount = accurateCounts.pendingToday; // Limited by today's remaining capacity
             const sentCount = accurateCounts.sentToday;
 
-            // Calculate daily capacity (6 msgs/min × 720 mins = 4,320/day)
-            const dailyCapacity = (END_HOUR - START_HOUR) * 60 * MESSAGES_PER_MINUTE;
+            // Use pre-computed daily capacity constant
+            const dailyCapacity = TOTAL_DAILY_CAPACITY;
             const capacityUsed = Math.min(100, Math.round((totalQueued / dailyCapacity) * 100));
 
             // Update KPI cards
@@ -1099,36 +1099,56 @@
             document.getElementById('pendingCount').textContent = pendingCount.toLocaleString();
             document.getElementById('sentCount').textContent = sentCount.toLocaleString();
             document.getElementById('dailyCapacity').textContent = dailyCapacity.toLocaleString();
-            document.getElementById('capacitySubtext').textContent = `${capacityUsed}% utilized`;
+            document.getElementById('capacitySubtext').textContent = capacityUsed > 0
+                ? `${capacityUsed}% utilized (${SMS_DAILY_CAPACITY} SMS + ${VOICE_DAILY_CAPACITY} Voice)`
+                : `${SMS_DAILY_CAPACITY} SMS + ${VOICE_DAILY_CAPACITY} Voice`;
 
             // Update table
             updateQueueTable();
         }
 
         async function loadHourlyData() {
-            if (rawQueueItems.length === 0) {
-                console.log('No queue items for hourly chart');
-                updateHourlyChart([]);
-                return;
+            // Compute throughput-based hourly distribution
+            // Items are dispatched independently per channel at their respective rates
+            const smsTotal = rawQueueItems.filter(i => i.channel === 'sms').length;
+            const voiceTotal = rawQueueItems.filter(i => i.channel === 'voice').length;
+
+            const SMS_PER_HOUR = SMS_PER_MINUTE * 60;     // 180
+            const VOICE_PER_HOUR = VOICE_PER_MINUTE * 60; // 180
+
+            const hourlyData = [];
+            let smsRemaining = smsTotal;
+            let voiceRemaining = voiceTotal;
+
+            const now = new Date();
+            const currentHour = now.getHours();
+
+            for (let hour = START_HOUR; hour < END_HOUR; hour++) {
+                let smsThisHour, voiceThisHour;
+
+                if (selectedDateRange === 'today' && hour < currentHour) {
+                    // Past hours: items already dispatched, not in queue
+                    smsThisHour = 0;
+                    voiceThisHour = 0;
+                } else if (selectedDateRange === 'today' && hour === currentHour) {
+                    // Current hour: partial capacity based on minutes remaining
+                    const minutesLeft = 60 - now.getMinutes();
+                    smsThisHour = Math.min(SMS_PER_MINUTE * minutesLeft, smsRemaining);
+                    voiceThisHour = Math.min(VOICE_PER_MINUTE * minutesLeft, voiceRemaining);
+                } else {
+                    // Future hours (or multi-day view): full capacity
+                    smsThisHour = Math.min(SMS_PER_HOUR, smsRemaining);
+                    voiceThisHour = Math.min(VOICE_PER_HOUR, voiceRemaining);
+                }
+
+                smsRemaining = Math.max(0, smsRemaining - smsThisHour);
+                voiceRemaining = Math.max(0, voiceRemaining - voiceThisHour);
+
+                hourlyData.push({ hour, sms: Math.round(smsThisHour), voice: Math.round(voiceThisHour) });
             }
 
-            const hourlyData = {};
-            rawQueueItems.forEach(item => {
-                if (item.next_action_at) {
-                    const hour = new Date(item.next_action_at).getHours();
-                    const channel = item.channel || 'unknown';
-                    const key = `${hour}|${channel}`;
-
-                    if (!hourlyData[key]) {
-                        hourlyData[key] = { hour, channel, count: 0 };
-                    }
-                    hourlyData[key].count++;
-                }
-            });
-
-            const data = Object.values(hourlyData);
-            console.log('Hourly data computed:', data);
-            updateHourlyChart(data);
+            console.log('Throughput-based hourly data:', hourlyData);
+            updateHourlyChart(hourlyData);
         }
 
         function updateHourlyChart(data) {
@@ -1136,22 +1156,35 @@
 
             if (hourlyChart) hourlyChart.destroy();
 
-            const hourlyTotals = {};
-            for (let i = START_HOUR; i <= END_HOUR; i++) {
-                hourlyTotals[i] = { sms: 0, voice: 0 };
+            if (!data || data.length === 0) {
+                // Empty state
+                hourlyChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: [], datasets: [] },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+                return;
             }
 
-            data.forEach(row => {
-                const hour = parseInt(row.hour);
-                if (hour >= START_HOUR && hour <= END_HOUR) {
-                    if (row.channel === 'sms') hourlyTotals[hour].sms += parseInt(row.count) || 0;
-                    if (row.channel === 'voice') hourlyTotals[hour].voice += parseInt(row.count) || 0;
-                }
-            });
+            const now = new Date();
+            const currentHour = now.getHours();
 
-            const hours = Object.keys(hourlyTotals).map(h => `${h}:00`);
-            const smsData = Object.values(hourlyTotals).map(v => v.sms);
-            const voiceData = Object.values(hourlyTotals).map(v => v.voice);
+            const hours = data.map(d => {
+                const h = d.hour;
+                const suffix = h >= 12 ? 'pm' : 'am';
+                const display = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+                return `${display}${suffix}`;
+            });
+            const smsData = data.map(d => d.sms);
+            const voiceData = data.map(d => d.voice);
+
+            // Highlight current hour with brighter colors
+            const smsBg = data.map(d =>
+                d.hour === currentHour ? 'rgba(0, 255, 136, 1)' : 'rgba(0, 255, 136, 0.6)'
+            );
+            const voiceBg = data.map(d =>
+                d.hour === currentHour ? 'rgba(168, 85, 247, 1)' : 'rgba(123, 44, 191, 0.6)'
+            );
 
             hourlyChart = new Chart(ctx, {
                 type: 'bar',
@@ -1159,14 +1192,14 @@
                     labels: hours,
                     datasets: [
                         {
-                            label: 'SMS',
+                            label: `SMS (${SMS_PER_MINUTE}/min)`,
                             data: smsData,
-                            backgroundColor: 'rgba(0, 255, 136, 0.7)'
+                            backgroundColor: smsBg
                         },
                         {
-                            label: 'Voice',
+                            label: `Voice (${VOICE_PER_MINUTE}/min)`,
                             data: voiceData,
-                            backgroundColor: 'rgba(123, 44, 191, 0.7)'
+                            backgroundColor: voiceBg
                         }
                     ]
                 },
@@ -1182,13 +1215,27 @@
                         y: {
                             stacked: true,
                             grid: { color: 'rgba(255,255,255,0.05)' },
-                            ticks: { color: '#888' }
+                            ticks: { color: '#888' },
+                            title: {
+                                display: true,
+                                text: 'Projected Messages',
+                                color: '#666'
+                            }
                         }
                     },
                     plugins: {
                         legend: {
                             position: 'top',
                             labels: { color: '#888' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterBody: function(context) {
+                                    const idx = context[0].dataIndex;
+                                    const total = (smsData[idx] || 0) + (voiceData[idx] || 0);
+                                    return `Total: ${total}`;
+                                }
+                            }
                         }
                     }
                 }
