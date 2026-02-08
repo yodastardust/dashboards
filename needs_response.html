@@ -1802,9 +1802,15 @@
                     throw new Error('Failed to update conversation');
                 }
 
-                // Webhook returns { success: true, message: "..." }
-                const result = await response.json();
-                if (!result.success) {
+                // Handle empty or non-JSON responses gracefully
+                let result = { success: true };
+                try {
+                    const text = await response.text();
+                    if (text) result = JSON.parse(text);
+                } catch (e) {
+                    // Empty or non-JSON response is OK if HTTP status was success
+                }
+                if (result.success === false) {
                     throw new Error(result.error || 'Unknown error');
                 }
 
