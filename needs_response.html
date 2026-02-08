@@ -456,15 +456,6 @@
             background: rgba(196, 30, 58, 0.1);
         }
 
-        .dispo-btn.bankruptcy {
-            border-color: var(--warning-orange);
-            color: var(--warning-orange);
-        }
-
-        .dispo-btn.bankruptcy:hover {
-            background: rgba(255, 136, 0, 0.1);
-        }
-
         .dispo-btn.book-appt {
             border-color: var(--accent-cyan);
             color: var(--accent-cyan);
@@ -472,6 +463,155 @@
 
         .dispo-btn.book-appt:hover {
             background: rgba(0, 188, 212, 0.1);
+        }
+
+        .dispo-btn.postpone {
+            border-color: var(--warning-yellow);
+            color: var(--warning-yellow);
+        }
+
+        .dispo-btn.postpone:hover {
+            background: rgba(255, 193, 7, 0.1);
+        }
+
+        /* Delay Day-Picker Modal */
+        .delay-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .delay-modal-overlay.show {
+            display: flex;
+        }
+
+        .delay-modal {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 420px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .delay-modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .delay-modal-header h3 {
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+
+        .delay-modal-header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .delay-modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 24px;
+        }
+
+        .delay-week {
+            margin-bottom: 16px;
+        }
+
+        .delay-week-title {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .delay-days-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .delay-day-btn {
+            padding: 10px 8px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            color: var(--text-primary);
+        }
+
+        .delay-day-btn:hover {
+            background: var(--warning-yellow);
+            color: var(--bg-primary);
+            border-color: var(--warning-yellow);
+        }
+
+        .delay-day-btn .day-name {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .delay-day-btn:hover .day-name {
+            color: var(--bg-primary);
+        }
+
+        .delay-day-btn .day-date {
+            font-size: 0.85rem;
+            font-weight: 500;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .delay-day-btn .day-offset {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            display: block;
+            margin-top: 2px;
+        }
+
+        .delay-day-btn:hover .day-offset {
+            color: var(--bg-primary);
+        }
+
+        .delay-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .delay-modal-footer button {
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .delay-cancel-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .delay-cancel-btn:hover {
+            background: var(--bg-hover);
         }
 
         /* Booking Modal */
@@ -947,9 +1087,6 @@
                         <button class="dispo-btn responded" onclick="dispo('responded')">
                             <span>✓</span> Responded
                         </button>
-                        <button class="dispo-btn bankruptcy" onclick="dispo('bankruptcy')">
-                            <span>⚖</span> Bankruptcy (Suppress Property)
-                        </button>
                         <button class="dispo-btn" onclick="dispo('wrong_number')">
                             <span>✕</span> Wrong Number
                         </button>
@@ -961,6 +1098,9 @@
                         </button>
                         <button class="dispo-btn suppress" onclick="dispo('suppress_person')">
                             <span>👤</span> Suppress Person
+                        </button>
+                        <button class="dispo-btn postpone" onclick="showDelayModal()">
+                            <span>⏸</span> Postpone
                         </button>
                     </div>
                 </div>
@@ -980,6 +1120,21 @@
             </div>
             <div class="booking-modal-footer">
                 <button class="booking-cancel-btn" onclick="hideBookingModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delay Day-Picker Modal -->
+    <div class="delay-modal-overlay" id="delay-modal">
+        <div class="delay-modal">
+            <div class="delay-modal-header">
+                <h3>Postpone Outreach</h3>
+                <p id="delay-contact-info">Select a day to resume messages</p>
+            </div>
+            <div class="delay-modal-body" id="delay-days-container">
+            </div>
+            <div class="delay-modal-footer">
+                <button class="delay-cancel-btn" onclick="hideDelayModal()">Cancel</button>
             </div>
         </div>
     </div>
@@ -1415,6 +1570,122 @@
             }
         }
 
+        // ==================== DELAY/POSTPONE FUNCTIONS ====================
+
+        function showDelayModal() {
+            if (!selectedItem) {
+                showToast('Please select a conversation first', true);
+                return;
+            }
+
+            const modal = document.getElementById('delay-modal');
+            const contactInfo = document.getElementById('delay-contact-info');
+            const container = document.getElementById('delay-days-container');
+
+            const ctx = selectedItem.context || {};
+            const name = ctx.full_name ? ctx.full_name.split('\n')[0] : 'Unknown';
+            contactInfo.textContent = `${name} - ${ctx.property_address || selectedItem.phone_digits}`;
+
+            // Build day buttons for next 30 days
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            let html = '';
+            let currentWeekLabel = '';
+
+            for (let i = 1; i <= 30; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() + i);
+
+                const dayOfWeek = date.getDay();
+                // Group by week (Sun-Sat)
+                const weekStart = new Date(date);
+                weekStart.setDate(weekStart.getDate() - dayOfWeek);
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                const weekLabel = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
+                    ' - ' + weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                if (weekLabel !== currentWeekLabel) {
+                    if (currentWeekLabel) html += '</div></div>';
+                    currentWeekLabel = weekLabel;
+                    html += `<div class="delay-week">
+                        <div class="delay-week-title">${weekLabel}</div>
+                        <div class="delay-days-grid">`;
+                }
+
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const dayDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const offsetLabel = i === 1 ? 'tomorrow' : `${i} days`;
+
+                html += `<button class="delay-day-btn" onclick="selectDelayDay(${i})">
+                    <span class="day-name">${dayName}</span>
+                    <span class="day-date">${dayDate}</span>
+                    <span class="day-offset">${offsetLabel}</span>
+                </button>`;
+            }
+            if (currentWeekLabel) html += '</div></div>';
+
+            container.innerHTML = html;
+            modal.classList.add('show');
+        }
+
+        function hideDelayModal() {
+            document.getElementById('delay-modal').classList.remove('show');
+        }
+
+        async function selectDelayDay(days) {
+            if (!selectedItem) return;
+
+            // Disable all day buttons
+            document.querySelectorAll('.delay-day-btn').forEach(btn => btn.disabled = true);
+
+            const phoneDigits = selectedItem.phone_digits;
+            const ctx = selectedItem.context || {};
+
+            try {
+                const response = await fetch(DISPO_WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone_digits: phoneDigits,
+                        action: 'delay_messages',
+                        delay_days: days,
+                        raw_row_id: ctx.raw_row_id || null,
+                        auction_date: ctx.auction_date || null
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to delay messages');
+
+                const result = await response.json();
+                if (!result.success) throw new Error(result.error || 'Unknown error');
+
+                hideDelayModal();
+                showToast(`Messages postponed for ${days} day${days > 1 ? 's' : ''}`);
+
+                // Remove from queue (resolved with delay)
+                queueData = queueData.filter(q => q.phone_digits !== phoneDigits);
+                selectedItem = null;
+
+                // Mobile: slide back
+                if (window.innerWidth <= 768) {
+                    document.querySelector('.queue-panel').classList.remove('hidden-mobile');
+                    document.querySelector('.main-content').classList.remove('show-mobile');
+                }
+
+                document.getElementById('conversation-view').style.display = 'none';
+                document.getElementById('no-selection').style.display = 'flex';
+                renderQueue();
+                updateStats();
+
+            } catch (err) {
+                console.error('Error delaying messages:', err);
+                showToast('Error: ' + err.message, true);
+                // Re-enable buttons
+                document.querySelectorAll('.delay-day-btn').forEach(btn => btn.disabled = false);
+            }
+        }
+
         // ==================== BOOKING FUNCTIONS ====================
 
         async function showBookingModal() {
@@ -1587,9 +1858,13 @@
             }
         }
 
-        // Close modal on overlay click
+        // Close modals on overlay click
         document.getElementById('booking-modal').addEventListener('click', function(e) {
             if (e.target === this) hideBookingModal();
+        });
+
+        document.getElementById('delay-modal').addEventListener('click', function(e) {
+            if (e.target === this) hideDelayModal();
         });
 
         // ==================== END BOOKING FUNCTIONS ====================
