@@ -329,6 +329,83 @@
             margin-top: 5px;
         }
 
+        /* Appointment Results Breakdown */
+        .appt-results {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+        .appt-results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .appt-results-title {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .appt-results-loading {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        .appt-results-loading.hidden { display: none; }
+        .appt-results-bars { display: flex; flex-direction: column; gap: 6px; }
+        .result-row { display: flex; align-items: center; gap: 8px; }
+        .result-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            min-width: 120px;
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .result-bar-track {
+            flex: 1;
+            height: 16px;
+            background: var(--bg-secondary);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .result-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+            min-width: 2px;
+        }
+        .result-count {
+            font-size: 0.7rem;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--text-primary);
+            min-width: 24px;
+            text-align: right;
+        }
+        .result-bar-fill.nurture { background: var(--warning-yellow); }
+        .result-bar-fill.second-booked { background: var(--success-green); }
+        .result-bar-fill.hot-lead { background: var(--success-green); }
+        .result-bar-fill.po-sent { background: #2196f3; }
+        .result-bar-fill.disqualified { background: var(--alert-red); }
+        .result-bar-fill.referral { background: #9c27b0; }
+        .result-bar-fill.dnc { background: #666; }
+        .result-bar-fill.unknown-result { background: var(--text-muted); }
+        .appt-results-empty {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 8px 0;
+        }
+        .appt-results-capped {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-align: right;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
         /* Cost Grid (Section 4) */
         .cost-grid {
             display: grid;
@@ -755,6 +832,13 @@
                         <div class="appt-stat-label">Show Rate</div>
                     </div>
                 </div>
+                <div class="appt-results" id="first_results">
+                    <div class="appt-results-header">
+                        <span class="appt-results-title">Appointment Results</span>
+                        <span class="appt-results-loading hidden" id="first_results_loading">Loading...</span>
+                    </div>
+                    <div class="appt-results-bars" id="first_results_bars"></div>
+                </div>
             </div>
             <div class="appt-card">
                 <div class="appt-title">2nd Appointments</div>
@@ -775,6 +859,13 @@
                         <div class="appt-stat-value rate" id="second_showrate">--%</div>
                         <div class="appt-stat-label">Show Rate</div>
                     </div>
+                </div>
+                <div class="appt-results" id="second_results">
+                    <div class="appt-results-header">
+                        <span class="appt-results-title">Appointment Results</span>
+                        <span class="appt-results-loading hidden" id="second_results_loading">Loading...</span>
+                    </div>
+                    <div class="appt-results-bars" id="second_results_bars"></div>
                 </div>
             </div>
         </div>
@@ -873,6 +964,7 @@
         const SUPABASE_URL = 'https://saksbjogtkagedmlsrsv.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTI1NTEwMywiZXhwIjoyMDg0NjE1MTAzfQ.X7fHo2v_7HZBYZzggydteFbMh_y_pgQN78yynby5sI4';
         const GHL_STATS_URL = 'https://n8n.stopmyauctionnow.com/webhook/ghl-appointment-stats';
+        const GHL_RESULTS_URL = 'https://n8n.stopmyauctionnow.com/webhook/ghl-appointment-results';
         const GHL_CAL_FIRST = 'gBD1ts4ZdRzWaMzti2Ck';
         const GHL_CAL_SECOND = 'WM8EhHF8mZjCPQAHXJxp';
 
@@ -1263,6 +1355,12 @@
             setText('second_noshow', secondNoshow);
             setText('second_showrate', secondShowRate.toFixed(0) + '%');
 
+            // Async result breakdown fetch (non-blocking, progressive enhancement)
+            const firstShowedIds = first.showedIds || [];
+            const secondShowedIds = second.showedIds || [];
+            fetchAppointmentResults(firstShowedIds, 'first', 'first_results_bars', 'first_results_loading');
+            fetchAppointmentResults(secondShowedIds, 'second', 'second_results_bars', 'second_results_loading');
+
             // Section 1: KPI cards for appointments
             const firstDailyAvg90 = firstBooked90 / 90;
             const secondDailyAvg90 = secondBooked90 / 90;
@@ -1278,6 +1376,92 @@
             setText('secondAppt90', secondDailyAvg90.toFixed(1));
             setKPIChange('secondApptChg', 'secondApptInd',
                 secondDailyAvg90 > 0 ? ((currentSecondDaily - secondDailyAvg90) / secondDailyAvg90 * 100) : 0, true);
+        }
+
+        // ============================================================
+        // Appointment Results Breakdown (async, progressive)
+        // ============================================================
+        const RESULT_LABEL_MAP = {
+            'SHOWED: 2ND APPOINTMENT BOOKED': { label: '2nd Appt Booked', cls: 'second-booked' },
+            'SHOWED: NURTURE':                { label: 'Nurture', cls: 'nurture' },
+            'SHOWED: WRONG PERSON (DISQUALIFIED)': { label: 'Wrong Person', cls: 'disqualified' },
+            'SHOWED: REFERRAL PROGRAM':       { label: 'Referral', cls: 'referral' },
+            'SHOWED: DO NOT CONTACT':         { label: 'Do Not Contact', cls: 'dnc' },
+            'SHOWED: HOT LEAD':              { label: 'Hot Lead', cls: 'hot-lead' },
+            'SHOWED: PO SENT':               { label: 'PO Sent', cls: 'po-sent' },
+            'SHOWED: DISQUALIFIED':          { label: 'Disqualified', cls: 'disqualified' },
+            'NO SHOW':                        { label: 'No Show', cls: 'disqualified' }
+        };
+
+        async function fetchAppointmentResults(showedIds, calendarType, containerId, loadingId) {
+            const loadingEl = document.getElementById(loadingId);
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            if (!showedIds || showedIds.length === 0) {
+                if (loadingEl) loadingEl.classList.add('hidden');
+                container.innerHTML = '<div class="appt-results-empty">No showed appointments in range</div>';
+                return;
+            }
+
+            if (loadingEl) loadingEl.classList.remove('hidden');
+
+            try {
+                const resp = await fetch(GHL_RESULTS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ appointmentIds: showedIds, calendarType })
+                });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const raw = await resp.json();
+                const data = Array.isArray(raw) ? raw[0] : raw;
+                if (loadingEl) loadingEl.classList.add('hidden');
+                renderResultBars(container, data.results || {}, data.total || 0, data.capped || false, data.unmatched || 0);
+            } catch (e) {
+                console.warn(`[AppointmentResults:${calendarType}]`, e.message);
+                if (loadingEl) loadingEl.classList.add('hidden');
+                container.innerHTML = '<div class="appt-results-empty">Could not load results</div>';
+            }
+        }
+
+        function renderResultBars(container, results, total, capped, unmatched) {
+            const entries = Object.entries(results).sort((a, b) => b[1] - a[1]);
+
+            if (entries.length === 0 && unmatched > 0) {
+                container.innerHTML = `<div class="appt-results-empty">${unmatched} showed - results not yet recorded</div>`;
+                return;
+            }
+            if (entries.length === 0) {
+                container.innerHTML = '<div class="appt-results-empty">No results recorded yet</div>';
+                return;
+            }
+
+            const maxCount = Math.max(...entries.map(e => e[1]));
+            let html = '';
+            for (const [rawLabel, count] of entries) {
+                const mapped = RESULT_LABEL_MAP[rawLabel] || { label: rawLabel.replace('SHOWED: ', ''), cls: 'unknown-result' };
+                const pct = maxCount > 0 ? (count / maxCount * 100) : 0;
+                html += `<div class="result-row">
+                    <span class="result-label" title="${rawLabel}">${mapped.label}</span>
+                    <div class="result-bar-track">
+                        <div class="result-bar-fill ${mapped.cls}" style="width: ${pct}%"></div>
+                    </div>
+                    <span class="result-count">${count}</span>
+                </div>`;
+            }
+            if (unmatched > 0) {
+                html += `<div class="result-row">
+                    <span class="result-label">Not Recorded</span>
+                    <div class="result-bar-track">
+                        <div class="result-bar-fill unknown-result" style="width: ${maxCount > 0 ? (unmatched / maxCount * 100) : 0}%"></div>
+                    </div>
+                    <span class="result-count">${unmatched}</span>
+                </div>`;
+            }
+            if (capped) {
+                html += '<div class="appt-results-capped">Showing first 50 appointments only</div>';
+            }
+            container.innerHTML = html;
         }
 
         // ============================================================
