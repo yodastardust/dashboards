@@ -1208,10 +1208,10 @@
             // 1. Booked counts from Supabase ops.lead_appointments
             const base = `${SUPABASE_URL}/rest/v1/lead_appointments`;
             const [firstBooked, secondBooked, firstBooked90, secondBooked90] = await Promise.all([
-                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_FIRST}&created_at=gte.${range.startISO}&created_at=lte.${range.endISO}&select=id`, 'ops'),
-                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_SECOND}&created_at=gte.${range.startISO}&created_at=lte.${range.endISO}&select=id`, 'ops'),
-                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_FIRST}&created_at=gte.${range.d90StartISO}&select=id`, 'ops'),
-                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_SECOND}&created_at=gte.${range.d90StartISO}&select=id`, 'ops')
+                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_FIRST}&created_at=gte.${range.startISO}&created_at=lte.${range.endISO}&select=lead_appointment_id`, 'ops'),
+                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_SECOND}&created_at=gte.${range.startISO}&created_at=lte.${range.endISO}&select=lead_appointment_id`, 'ops'),
+                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_FIRST}&created_at=gte.${range.d90StartISO}&select=lead_appointment_id`, 'ops'),
+                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_SECOND}&created_at=gte.${range.d90StartISO}&select=lead_appointment_id`, 'ops')
             ]);
 
             // Store for derived KPIs
