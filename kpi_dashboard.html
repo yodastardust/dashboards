@@ -1202,43 +1202,56 @@
         }
 
         // ============================================================
-        // Section 3: Appointments (ops.lead_appointments + GHL webhook)
+        // Section 3: Appointments (GHL API via n8n webhook)
         // ============================================================
         async function fetchAppointments(range, state) {
-            // 1. Booked counts from Supabase ops.lead_appointments
-            const base = `${SUPABASE_URL}/rest/v1/lead_appointments`;
-            const [firstBooked, secondBooked, firstBooked90, secondBooked90] = await Promise.all([
-                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_FIRST}&created_at=gte.${range.startISO}&created_at=lte.${range.endISO}&select=lead_appointment_id`, 'ops'),
-                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_SECOND}&created_at=gte.${range.startISO}&created_at=lte.${range.endISO}&select=lead_appointment_id`, 'ops'),
-                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_FIRST}&created_at=gte.${range.d90StartISO}&select=lead_appointment_id`, 'ops'),
-                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_SECOND}&created_at=gte.${range.d90StartISO}&select=lead_appointment_id`, 'ops')
-            ]);
-
-            // Store for derived KPIs
-            state.firstBooked = firstBooked;
-            state.firstBooked90 = firstBooked90;
-
-            // 2. Show/No-Show from GHL webhook
-            let ghlData = {};
+            // Fetch ALL appointment data from GHL via n8n webhook
+            // Two parallel calls: current range + 90-day range
+            let currentData = {}, ninetyData = {};
             try {
-                const todayStr = formatEasternDate(new Date());
-                const resp = await fetch(GHL_STATS_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ startDate: range.startStr, endDate: todayStr })
-                });
-                if (resp.ok) ghlData = await resp.json();
+                const [currentResp, ninetyResp] = await Promise.all([
+                    fetch(GHL_STATS_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ startDate: range.startStr, endDate: range.endStr })
+                    }),
+                    fetch(GHL_STATS_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ startDate: range.d90StartStr, endDate: range.endStr })
+                    })
+                ]);
+                if (currentResp.ok) currentData = await currentResp.json();
+                if (ninetyResp.ok) ninetyData = await ninetyResp.json();
             } catch (e) {
                 console.warn('[Appointments] GHL webhook failed:', e.message);
             }
 
-            const firstShowed = ghlData.appointments?.first?.showed || 0;
-            const firstNoshow = ghlData.appointments?.first?.noshow || 0;
-            const firstShowRate = firstBooked > 0 ? (firstShowed / firstBooked * 100) : 0;
+            // Current range stats
+            const first = currentData.appointments?.first || {};
+            const second = currentData.appointments?.second || {};
+            const firstBooked = first.total || 0;
+            const secondBooked = second.total || 0;
+            const firstShowed = first.showed || 0;
+            const firstNoshow = first.noshow || 0;
+            const secondShowed = second.showed || 0;
+            const secondNoshow = second.noshow || 0;
 
-            const secondShowed = ghlData.appointments?.second?.showed || 0;
-            const secondNoshow = ghlData.appointments?.second?.noshow || 0;
-            const secondShowRate = secondBooked > 0 ? (secondShowed / secondBooked * 100) : 0;
+            // Show rate: showed / (showed + noshow) — excludes confirmed/cancelled (future appts)
+            const firstResolved = firstShowed + firstNoshow;
+            const secondResolved = secondShowed + secondNoshow;
+            const firstShowRate = firstResolved > 0 ? (firstShowed / firstResolved * 100) : 0;
+            const secondShowRate = secondResolved > 0 ? (secondShowed / secondResolved * 100) : 0;
+
+            // 90-day stats for averages
+            const first90 = ninetyData.appointments?.first || {};
+            const second90 = ninetyData.appointments?.second || {};
+            const firstBooked90 = first90.total || 0;
+            const secondBooked90 = second90.total || 0;
+
+            // Store for derived KPIs (Cost/1st Appt)
+            state.firstBooked = firstBooked;
+            state.firstBooked90 = firstBooked90;
 
             // Section 3: Appointment cards
             setText('first_booked', firstBooked);
