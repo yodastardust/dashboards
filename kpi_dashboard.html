@@ -662,8 +662,8 @@
         <div class="header-controls">
             <select id="dateFilter" class="date-filter" onchange="refreshData()">
                 <option value="today">Today</option>
-                <option value="7d">Last 7 Days</option>
-                <option value="30d" selected>Last 30 Days</option>
+                <option value="7d" selected>Last 7 Days</option>
+                <option value="30d">Last 30 Days</option>
                 <option value="90d">Last 90 Days</option>
             </select>
             <button class="refresh-btn" onclick="refreshData()">Refresh</button>
@@ -1022,11 +1022,16 @@
                     daysBack = 90;
                     break;
                 case '30d':
-                default:
                     startDate = new Date(now - 30 * 86400000);
                     startStr = formatEasternDate(startDate);
                     endDate = now;
                     daysBack = 30;
+                    break;
+                default:
+                    startDate = new Date(now - 7 * 86400000);
+                    startStr = formatEasternDate(startDate);
+                    endDate = now;
+                    daysBack = 7;
             }
 
             // 90-day window for averages (always)
@@ -1297,6 +1302,12 @@
         // Section 3: Appointments (GHL API via n8n webhook)
         // ============================================================
         async function fetchAppointments(range, state) {
+            // Clear previous result breakdowns on each refresh
+            const fb = document.getElementById('first_results_bars');
+            const sb = document.getElementById('second_results_bars');
+            if (fb) fb.innerHTML = '';
+            if (sb) sb.innerHTML = '';
+
             // Fetch ALL appointment data from GHL via n8n webhook
             // Two parallel calls: current range + 90-day range
             let currentData = {}, ninetyData = {};
