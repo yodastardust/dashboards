@@ -749,17 +749,35 @@
                 .order('priority_rank', { ascending: true });
             currentContacts = data || [];
 
-            // Also load conversation status for each contact
             if (currentContacts.length > 0) {
                 const phones = currentContacts.map(c => c.phone_digits);
-                const { data: convos } = await supabaseClient
-                    .from('conversations')
-                    .select('phone_digits, status, resolution')
-                    .in('phone_digits', phones);
+
+                // Load conversation status and marketing suppressions in parallel
+                const phonesParam = phones.map(p => `"${p}"`).join(',');
+                const [convosResult, suppResponse] = await Promise.all([
+                    supabaseClient
+                        .from('conversations')
+                        .select('phone_digits, status, resolution')
+                        .in('phone_digits', phones),
+                    fetch(`${SUPABASE_URL}/rest/v1/marketing_suppressions?phone_digits=in.(${phonesParam})&active=eq.true&select=phone_digits,scope,reason,active`, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Accept-Profile': 'ops'
+                        }
+                    }).then(r => r.ok ? r.json() : []).catch(() => [])
+                ]);
 
                 const convoMap = {};
-                (convos || []).forEach(c => { convoMap[c.phone_digits] = c; });
-                currentContacts.forEach(c => { c._convo = convoMap[c.phone_digits] || null; });
+                (convosResult.data || []).forEach(c => { convoMap[c.phone_digits] = c; });
+
+                const suppMap = {};
+                (suppResponse || []).forEach(s => { suppMap[s.phone_digits] = s; });
+
+                currentContacts.forEach(c => {
+                    c._convo = convoMap[c.phone_digits] || null;
+                    c._suppression = suppMap[c.phone_digits] || null;
+                });
             }
         }
 
@@ -875,11 +893,25 @@
             currentContacts.forEach((c, idx) => {
                 const isExpanded = expandedContactIdx === idx;
                 const convo = c._convo;
+                const supp = c._suppression;
                 let statusBadge = '<span class="badge badge-active">Active</span>';
                 if (convo?.status === 'stopped') {
                     statusBadge = '<span class="badge badge-stopped">Stopped</span>';
+                } else if (supp?.active) {
+                    const reasonLabel = supp.reason === 'wrong_person' ? 'Wrong Number' : supp.reason === 'dnc' ? 'DNC' : 'Suppressed';
+                    statusBadge = `<span class="badge badge-suppressed">${reasonLabel}</span>`;
+                } else if (convo?.resolution === 'wrong_number') {
+                    statusBadge = '<span class="badge badge-suppressed">Wrong Number</span>';
+                } else if (convo?.resolution === 'not_interested') {
+                    statusBadge = '<span class="badge badge-suppressed">Not Interested</span>';
                 } else if (convo?.resolution === 'suppress_person' || convo?.resolution === 'suppress_property') {
                     statusBadge = '<span class="badge badge-suppressed">Suppressed</span>';
+                } else if (convo?.resolution === 'appointment_booked') {
+                    statusBadge = '<span class="badge badge-active" style="background:var(--primary)">Appointment</span>';
+                } else if (convo?.resolution === 'responded') {
+                    statusBadge = '<span class="badge badge-active">Responded</span>';
+                } else if (convo?.resolution === 'delayed') {
+                    statusBadge = '<span class="badge badge-active" style="background:#f59e0b">Delayed</span>';
                 }
 
                 html += `<tr class="contact-row ${isExpanded ? 'expanded' : ''}" onclick="toggleHistory(${idx})">
