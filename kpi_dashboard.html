@@ -10,7 +10,7 @@
     <style>
         /* ========================================
            SpaceX Mission Control Theme
-           v4.0 - 2026-02-02 - 8 benchmark cards, Outreach Queue, 90-day comparisons
+           v5.0 - 2026-02-08 - Full redesign: accuracy-first, real 90-day averages
            ======================================== */
         :root {
             --bg-primary: #0b0b0f;
@@ -19,6 +19,7 @@
             --bg-hover: #252529;
             --accent-blue: #005288;
             --accent-cyan: #00bcd4;
+            --accent-purple: #9c27b0;
             --alert-red: #c41e3a;
             --success-green: #00c853;
             --warning-yellow: #ffc107;
@@ -40,6 +41,7 @@
             line-height: 1.5;
         }
 
+        /* Header */
         .header {
             background: var(--bg-secondary);
             border-bottom: 1px solid var(--border-color);
@@ -99,6 +101,7 @@
             padding: 20px 24px;
         }
 
+        /* Section Headers */
         .section-header {
             font-size: 0.85rem;
             color: var(--text-muted);
@@ -111,15 +114,15 @@
 
         .section-header:first-of-type { margin-top: 0; }
 
-        /* Benchmark Cards - 3 rows of 5 tiles */
-        .benchmark-grid {
+        /* KPI Cards Grid (Section 1) */
+        .kpi-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             gap: 15px;
             margin-bottom: 25px;
         }
 
-        .benchmark-card {
+        .kpi-card {
             background: var(--bg-panel);
             border: 1px solid var(--border-color);
             border-radius: 8px;
@@ -127,7 +130,7 @@
             position: relative;
         }
 
-        .benchmark-label {
+        .kpi-label {
             font-size: 0.75rem;
             color: var(--text-secondary);
             text-transform: uppercase;
@@ -135,33 +138,35 @@
             margin-bottom: 8px;
         }
 
-        .benchmark-current {
+        .kpi-value {
             font-size: 2rem;
             font-weight: 700;
             font-family: 'Roboto Mono', monospace;
             color: var(--text-primary);
         }
 
-        .benchmark-compare {
+        .kpi-compare {
             display: flex;
             gap: 15px;
             margin-top: 10px;
             font-size: 0.8rem;
         }
 
-        .benchmark-avg {
+        .kpi-avg {
             color: var(--text-muted);
         }
 
-        .benchmark-change {
+        .kpi-change {
             font-weight: 500;
         }
 
-        .benchmark-change.up { color: var(--success-green); }
-        .benchmark-change.down { color: var(--alert-red); }
-        .benchmark-change.neutral { color: var(--warning-yellow); }
+        .kpi-change.up { color: var(--success-green); }
+        .kpi-change.down { color: var(--alert-red); }
+        .kpi-change.neutral { color: var(--warning-yellow); }
+        .kpi-change.cost-up { color: var(--alert-red); }
+        .kpi-change.cost-down { color: var(--success-green); }
 
-        .benchmark-indicator {
+        .kpi-indicator {
             position: absolute;
             top: 15px;
             right: 15px;
@@ -170,12 +175,12 @@
             border-radius: 50%;
         }
 
-        .benchmark-indicator.good { background: var(--success-green); }
-        .benchmark-indicator.warning { background: var(--warning-yellow); }
-        .benchmark-indicator.alert { background: var(--alert-red); }
+        .kpi-indicator.good { background: var(--success-green); }
+        .kpi-indicator.warning { background: var(--warning-yellow); }
+        .kpi-indicator.alert { background: var(--alert-red); }
 
-        /* Channel Stats Grid */
-        .channel-stats-grid {
+        /* Channel Stats Grid (Section 2) */
+        .channel-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
@@ -214,17 +219,10 @@
             font-size: 1rem;
         }
 
-        .channel-icon.sms {
-            background: rgba(0, 188, 212, 0.2);
-            color: var(--accent-cyan);
-        }
+        .channel-icon.sms { background: rgba(0, 188, 212, 0.2); color: var(--accent-cyan); }
+        .channel-icon.voice { background: rgba(0, 200, 83, 0.2); color: var(--success-green); }
 
-        .channel-icon.voice {
-            background: rgba(0, 200, 83, 0.2);
-            color: var(--success-green);
-        }
-
-        .response-rate-badge {
+        .rate-badge {
             padding: 6px 14px;
             border-radius: 20px;
             font-size: 1rem;
@@ -232,9 +230,9 @@
             font-family: 'Roboto Mono', monospace;
         }
 
-        .response-rate-badge.good { background: rgba(0, 200, 83, 0.2); color: var(--success-green); }
-        .response-rate-badge.medium { background: rgba(255, 193, 7, 0.2); color: var(--warning-yellow); }
-        .response-rate-badge.low { background: rgba(196, 30, 58, 0.2); color: var(--alert-red); }
+        .rate-badge.good { background: rgba(0, 200, 83, 0.2); color: var(--success-green); }
+        .rate-badge.medium { background: rgba(255, 193, 7, 0.2); color: var(--warning-yellow); }
+        .rate-badge.low { background: rgba(196, 30, 58, 0.2); color: var(--alert-red); }
 
         .channel-metrics {
             display: grid;
@@ -266,44 +264,156 @@
             margin-top: 5px;
         }
 
-        .metric-compare {
+        .metric-sub {
             font-size: 0.7rem;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-muted);
+        }
+
+        .metric-sub .change { margin-left: 8px; font-weight: 600; }
+        .metric-sub .change.up { color: var(--success-green); }
+        .metric-sub .change.down { color: var(--alert-red); }
+
+        /* Appointments Section (Section 3) */
+        .appt-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .appt-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .appt-title {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+        }
+
+        .appt-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .appt-stat {
+            text-align: center;
+            padding: 12px 8px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+        }
+
+        .appt-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--accent-cyan);
+        }
+
+        .appt-stat-value.showed { color: var(--success-green); }
+        .appt-stat-value.noshow { color: var(--alert-red); }
+        .appt-stat-value.rate { color: var(--warning-yellow); }
+
+        .appt-stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        /* Cost Grid (Section 4) */
+        .cost-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .cost-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .cost-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .cost-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            font-family: 'Roboto Mono', monospace;
+            color: var(--text-primary);
+        }
+
+        .cost-detail {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .cost-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
             margin-top: 8px;
             padding-top: 8px;
             border-top: 1px solid var(--border-color);
         }
 
-        .compare-avg {
+        .cost-sub .change { font-weight: 600; }
+        .cost-sub .change.cost-up { color: var(--alert-red); }
+        .cost-sub .change.cost-down { color: var(--success-green); }
+
+        /* Queue Grid (Section 5) */
+        .queue-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .queue-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .queue-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .queue-value {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .queue-sub {
+            font-size: 0.8rem;
             color: var(--text-muted);
+            margin-top: 5px;
         }
 
-        .compare-change {
-            margin-left: 8px;
-            font-weight: 600;
-        }
-
-        .compare-change.up { color: var(--success-green); }
-        .compare-change.down { color: var(--error-red); }
-
-        .metric-box-split {
-            display: flex;
-            gap: 8px;
-            background: var(--bg-secondary);
-            border-radius: 6px;
-            padding: 15px;
-        }
-
-        .metric-half {
-            flex: 1;
-            text-align: center;
-        }
-
-        .metric-half .metric-value {
-            font-size: 1.4rem;
-        }
-
-        /* Voice Outcomes */
-        .voice-outcomes {
+        /* Voice Outcomes (inside Section 2) */
+        .outcomes-section {
             background: var(--bg-panel);
             border: 1px solid var(--border-color);
             border-radius: 8px;
@@ -354,105 +464,13 @@
             margin-top: 5px;
         }
 
-        .outcome-percent {
+        .outcome-pct {
             font-size: 0.85rem;
             color: var(--text-secondary);
             margin-top: 3px;
         }
 
-        /* Queue Summary */
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-
-        .summary-card {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-        }
-
-        .summary-label {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
-
-        .summary-value {
-            font-size: 2rem;
-            font-weight: 700;
-            font-family: 'Roboto Mono', monospace;
-            color: var(--accent-cyan);
-        }
-
-        .summary-subtext {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-top: 5px;
-        }
-
-        /* Pipeline Funnel */
-        .pipeline-section {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 25px;
-        }
-
-        .pipeline-title {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            margin-bottom: 15px;
-        }
-
-        .pipeline-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
-        }
-
-        .pipeline-stage {
-            text-align: center;
-            padding: 15px 10px;
-            background: var(--bg-secondary);
-            border-radius: 6px;
-            position: relative;
-        }
-
-        .pipeline-stage::after {
-            content: '';
-            position: absolute;
-            right: -8px;
-            top: 50%;
-            transform: translateY(-50%);
-            border-left: 8px solid var(--bg-secondary);
-            border-top: 8px solid transparent;
-            border-bottom: 8px solid transparent;
-        }
-
-        .pipeline-stage:last-child::after { display: none; }
-
-        .pipeline-count {
-            font-size: 1.5rem;
-            font-weight: 700;
-            font-family: 'Roboto Mono', monospace;
-            color: var(--accent-cyan);
-        }
-
-        .pipeline-name {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            margin-top: 5px;
-        }
-
-        /* Charts Grid */
+        /* Charts Grid (Section 6) */
         .charts-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -477,40 +495,6 @@
         .chart-container {
             height: 200px;
             position: relative;
-        }
-
-        /* Costs */
-        .costs-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-
-        .cost-card {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-        }
-
-        .cost-title {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            margin-bottom: 10px;
-        }
-
-        .cost-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            font-family: 'Roboto Mono', monospace;
-            color: var(--text-primary);
-        }
-
-        .cost-detail {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-top: 8px;
         }
 
         /* Status indicators */
@@ -564,29 +548,30 @@
             animation: spin 1s linear infinite;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Error state */
+        .error-text { color: var(--alert-red); font-size: 0.75rem; }
 
         /* Responsive */
         @media (max-width: 1400px) {
-            .benchmark-grid { grid-template-columns: repeat(3, 1fr); }
+            .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+            .cost-grid { grid-template-columns: repeat(3, 1fr); }
+            .queue-grid { grid-template-columns: repeat(3, 1fr); }
         }
 
         @media (max-width: 1200px) {
-            .channel-stats-grid { grid-template-columns: 1fr; }
-            .summary-grid { grid-template-columns: repeat(2, 1fr); }
-            .benchmark-grid { grid-template-columns: repeat(2, 1fr); }
-            .outcomes-grid { grid-template-columns: repeat(2, 1fr); }
-            .pipeline-grid { grid-template-columns: repeat(3, 1fr); }
+            .channel-grid { grid-template-columns: 1fr; }
+            .appt-grid { grid-template-columns: 1fr; }
         }
 
         @media (max-width: 768px) {
-            .summary-grid { grid-template-columns: 1fr; }
-            .benchmark-grid { grid-template-columns: 1fr; }
+            .kpi-grid { grid-template-columns: 1fr; }
+            .cost-grid { grid-template-columns: 1fr; }
+            .queue-grid { grid-template-columns: 1fr; }
             .charts-grid { grid-template-columns: 1fr; }
-            .costs-grid { grid-template-columns: 1fr; }
-            .pipeline-grid { grid-template-columns: 1fr; }
+            .outcomes-grid { grid-template-columns: repeat(2, 1fr); }
+            .appt-stats { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
@@ -609,154 +594,60 @@
     </div>
 
     <div class="main-content">
-        <!-- Benchmark Section: 3 rows of 5 tiles with channel breakdown -->
-        <div class="section-header" id="benchmarkHeader">Performance Benchmarks (30-Day vs 90-Day Avg)</div>
-        <div class="benchmark-grid">
-            <!-- Row 1: 1st Appointments by Channel -->
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="firstBookedSmsIndicator"></div>
-                <div class="benchmark-label">1st Booked (SMS)</div>
-                <div class="benchmark-current" id="firstBookedSms">--</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="firstBookedSms90Avg">--</span></span>
-                    <span class="benchmark-change" id="firstBookedSmsChange">--%</span>
-                </div>
-            </div>
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="firstBookedCallIndicator"></div>
-                <div class="benchmark-label">1st Booked (Call)</div>
-                <div class="benchmark-current" id="firstBookedCall">--</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="firstBookedCall90Avg">--</span></span>
-                    <span class="benchmark-change" id="firstBookedCallChange">--%</span>
-                </div>
-            </div>
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="firstShowRateSmsIndicator"></div>
-                <div class="benchmark-label">1st Show % (SMS)</div>
-                <div class="benchmark-current" id="firstShowRateSms">--%</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="firstShowRateSms90Avg">--%</span></span>
-                    <span class="benchmark-change" id="firstShowRateSmsChange">--%</span>
-                </div>
-            </div>
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="firstShowRateCallIndicator"></div>
-                <div class="benchmark-label">1st Show % (Call)</div>
-                <div class="benchmark-current" id="firstShowRateCall">--%</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="firstShowRateCall90Avg">--%</span></span>
-                    <span class="benchmark-change" id="firstShowRateCallChange">--%</span>
-                </div>
-            </div>
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="firstCompletedIndicator"></div>
-                <div class="benchmark-label">1st Completed</div>
-                <div class="benchmark-current" id="firstCompleted">--</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="firstCompleted90Avg">--</span></span>
-                    <span class="benchmark-change" id="firstCompletedChange">--%</span>
-                </div>
-            </div>
 
-            <!-- Row 2: 2nd Appointments by Channel -->
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="secondBookedSmsIndicator"></div>
-                <div class="benchmark-label">2nd Booked (SMS)</div>
-                <div class="benchmark-current" id="secondBookedSms">--</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="secondBookedSms90Avg">--</span></span>
-                    <span class="benchmark-change" id="secondBookedSmsChange">--%</span>
+        <!-- Section 1: Key Metrics -->
+        <div class="section-header" id="kpiHeader">Key Metrics (Last 30 Days)</div>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-indicator" id="firstApptInd"></div>
+                <div class="kpi-label">1st Appts Booked</div>
+                <div class="kpi-value" id="firstApptVal">--</div>
+                <div class="kpi-compare">
+                    <span class="kpi-avg">90d avg: <span id="firstAppt90">--</span>/day</span>
+                    <span class="kpi-change" id="firstApptChg">--%</span>
                 </div>
             </div>
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="secondBookedCallIndicator"></div>
-                <div class="benchmark-label">2nd Booked (Call)</div>
-                <div class="benchmark-current" id="secondBookedCall">--</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="secondBookedCall90Avg">--</span></span>
-                    <span class="benchmark-change" id="secondBookedCallChange">--%</span>
+            <div class="kpi-card">
+                <div class="kpi-indicator" id="secondApptInd"></div>
+                <div class="kpi-label">2nd Appts Booked</div>
+                <div class="kpi-value" id="secondApptVal">--</div>
+                <div class="kpi-compare">
+                    <span class="kpi-avg">90d avg: <span id="secondAppt90">--</span>/day</span>
+                    <span class="kpi-change" id="secondApptChg">--%</span>
                 </div>
             </div>
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="secondShowRateSmsIndicator"></div>
-                <div class="benchmark-label">2nd Show % (SMS)</div>
-                <div class="benchmark-current" id="secondShowRateSms">--%</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="secondShowRateSms90Avg">--%</span></span>
-                    <span class="benchmark-change" id="secondShowRateSmsChange">--%</span>
+            <div class="kpi-card">
+                <div class="kpi-indicator" id="respRateInd"></div>
+                <div class="kpi-label">SMS Response Rate</div>
+                <div class="kpi-value" id="respRateVal">--%</div>
+                <div class="kpi-compare">
+                    <span class="kpi-avg">90d avg: <span id="respRate90">--</span>%</span>
+                    <span class="kpi-change" id="respRateChg">--%</span>
                 </div>
             </div>
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="secondShowRateCallIndicator"></div>
-                <div class="benchmark-label">2nd Show % (Call)</div>
-                <div class="benchmark-current" id="secondShowRateCall">--%</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="secondShowRateCall90Avg">--%</span></span>
-                    <span class="benchmark-change" id="secondShowRateCallChange">--%</span>
+            <div class="kpi-card">
+                <div class="kpi-indicator" id="totalSpendInd"></div>
+                <div class="kpi-label">Total Spend</div>
+                <div class="kpi-value" id="totalSpendVal">$--</div>
+                <div class="kpi-compare">
+                    <span class="kpi-avg">90d avg: $<span id="totalSpend90">--</span>/day</span>
+                    <span class="kpi-change" id="totalSpendChg">--%</span>
                 </div>
             </div>
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="secondCompletedIndicator"></div>
-                <div class="benchmark-label">2nd Completed</div>
-                <div class="benchmark-current" id="secondCompleted">--</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="secondCompleted90Avg">--</span></span>
-                    <span class="benchmark-change" id="secondCompletedChange">--%</span>
-                </div>
-            </div>
-
-            <!-- Row 3: Outcomes & Channel Efficiency -->
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="signedIndicator"></div>
-                <div class="benchmark-label">Signed Contracts</div>
-                <div class="benchmark-current" id="signed30">--</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="signed90Avg">--</span></span>
-                    <span class="benchmark-change" id="signedChange">--%</span>
-                </div>
-            </div>
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="conversionRateIndicator"></div>
-                <div class="benchmark-label">Conversion Rate</div>
-                <div class="benchmark-current" id="conversionRateBenchmark">--%</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="conversionRate90Avg">--%</span></span>
-                    <span class="benchmark-change" id="conversionRateChange">--%</span>
-                </div>
-            </div>
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="costPerApptSmsIndicator"></div>
-                <div class="benchmark-label">SMS Spend/Appt</div>
-                <div class="benchmark-current" id="costPerApptSms">$--</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="costPerApptSms90Avg">$--</span></span>
-                    <span class="benchmark-change" id="costPerApptSmsChange">--%</span>
-                </div>
-            </div>
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="costPerApptCallIndicator"></div>
-                <div class="benchmark-label">Voice Spend/Appt</div>
-                <div class="benchmark-current" id="costPerApptCall">$--</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="costPerApptCall90Avg">$--</span></span>
-                    <span class="benchmark-change" id="costPerApptCallChange">--%</span>
-                </div>
-            </div>
-            <div class="benchmark-card">
-                <div class="benchmark-indicator" id="responseRateTileIndicator"></div>
-                <div class="benchmark-label">Response Rate</div>
-                <div class="benchmark-current" id="responseRateTile">--%</div>
-                <div class="benchmark-compare">
-                    <span class="benchmark-avg">90d avg: <span id="responseRateTile90Avg">--%</span></span>
-                    <span class="benchmark-change" id="responseRateTileChange">--%</span>
+            <div class="kpi-card">
+                <div class="kpi-indicator" id="cpaInd"></div>
+                <div class="kpi-label">Cost / 1st Appt</div>
+                <div class="kpi-value" id="cpaVal">$--</div>
+                <div class="kpi-compare">
+                    <span class="kpi-avg">90d avg: $<span id="cpa90">--</span></span>
+                    <span class="kpi-change" id="cpaChg">--%</span>
                 </div>
             </div>
         </div>
 
-        <!-- SMS & Voice Channel Stats -->
-        <div class="section-header" id="outreachHeader">Outreach Performance (Last 30 Days)</div>
-        <div class="channel-stats-grid">
+        <!-- Section 2: Outreach Volume -->
+        <div class="section-header" id="outreachHeader">Outreach Volume (Last 30 Days)</div>
+        <div class="channel-grid">
             <!-- SMS Channel -->
             <div class="channel-card">
                 <div class="channel-header">
@@ -764,23 +655,23 @@
                         <div class="channel-icon sms">SMS</div>
                         SMS Channel
                     </div>
-                    <div class="response-rate-badge good" id="smsResponseBadge">--.--%</div>
+                    <div class="rate-badge good" id="smsRateBadge">--.--%</div>
                 </div>
                 <div class="channel-metrics">
                     <div class="metric-box">
-                        <div class="metric-value outbound" id="smsOutbound">--</div>
-                        <div class="metric-label">Outbound</div>
-                        <div class="metric-compare"><span class="compare-avg">90d: <span id="smsOutbound90">--</span></span> <span class="compare-change" id="smsOutboundChange">--%</span></div>
+                        <div class="metric-value outbound" id="smsSent">--</div>
+                        <div class="metric-label">Sent</div>
+                        <div class="metric-sub">90d: <span id="smsSent90">--</span>/day <span class="change" id="smsSentChg">--%</span></div>
                     </div>
                     <div class="metric-box">
-                        <div class="metric-value inbound" id="smsInbound">--</div>
-                        <div class="metric-label">Inbound</div>
-                        <div class="metric-compare"><span class="compare-avg">90d: <span id="smsInbound90">--</span></span> <span class="compare-change" id="smsInboundChange">--%</span></div>
+                        <div class="metric-value inbound" id="smsReceived">--</div>
+                        <div class="metric-label">Received</div>
+                        <div class="metric-sub">90d: <span id="smsRecv90">--</span>/day <span class="change" id="smsRecvChg">--%</span></div>
                     </div>
                     <div class="metric-box">
-                        <div class="metric-value" id="smsResponseRate">--.--%</div>
+                        <div class="metric-value" id="smsRespRate">--.--%</div>
                         <div class="metric-label">Response Rate</div>
-                        <div class="metric-compare"><span class="compare-avg">90d: <span id="smsResponseRate90">--%</span></span> <span class="compare-change" id="smsResponseRateChange">--%</span></div>
+                        <div class="metric-sub">90d avg: <span id="smsResp90">--%</span></div>
                     </div>
                 </div>
             </div>
@@ -792,441 +683,395 @@
                         <div class="channel-icon voice">TEL</div>
                         Voice Channel (Retell AI)
                     </div>
-                    <div class="response-rate-badge good" id="voiceAnswerBadge">--.--%</div>
+                    <div class="rate-badge good" id="voiceRateBadge">--.--%</div>
                 </div>
                 <div class="channel-metrics">
                     <div class="metric-box">
-                        <div class="metric-value outbound" id="voiceOutbound">--</div>
-                        <div class="metric-label">Outbound</div>
-                        <div class="metric-compare"><span class="compare-avg">90d: <span id="voiceOutbound90">--</span></span> <span class="compare-change" id="voiceOutboundChange">--%</span></div>
+                        <div class="metric-value outbound" id="voiceMade">--</div>
+                        <div class="metric-label">Calls Made</div>
+                        <div class="metric-sub">90d: <span id="voiceMade90">--</span>/day <span class="change" id="voiceMadeChg">--%</span></div>
                     </div>
                     <div class="metric-box">
-                        <div class="metric-value inbound" id="voiceInbound">--</div>
-                        <div class="metric-label">Inbound</div>
-                        <div class="metric-compare"><span class="compare-avg">90d: <span id="voiceInbound90">--</span></span> <span class="compare-change" id="voiceInboundChange">--%</span></div>
+                        <div class="metric-value inbound" id="voiceAnswered">--</div>
+                        <div class="metric-label">Answered</div>
+                        <div class="metric-sub">90d: <span id="voiceAns90">--</span>/day <span class="change" id="voiceAnsChg">--%</span></div>
                     </div>
                     <div class="metric-box">
-                        <div class="metric-value" id="voiceAnswerRate">--.--%</div>
+                        <div class="metric-value" id="voiceAnsRate">--.--%</div>
                         <div class="metric-label">Answer Rate</div>
-                        <div class="metric-compare"><span class="compare-avg">90d: <span id="voiceAnswerRate90">--%</span></span> <span class="compare-change" id="voiceAnswerRateChange">--%</span></div>
+                        <div class="metric-sub">90d avg: <span id="voiceAnsRate90">--%</span></div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Voice Call Outcomes -->
-        <div class="voice-outcomes">
-            <div class="outcomes-title">Voice Call Outcomes (from Retell AI)</div>
+        <div class="outcomes-section">
+            <div class="outcomes-title" id="outcomesTitle">Voice Call Outcomes</div>
             <div class="outcomes-grid">
                 <div class="outcome-box completed">
-                    <div class="outcome-value completed" id="voiceCompleted">--</div>
+                    <div class="outcome-value completed" id="outCompleted">--</div>
                     <div class="outcome-label">Completed</div>
-                    <div class="outcome-percent" id="voiceCompletedPct">--%</div>
+                    <div class="outcome-pct" id="outCompletedPct">--%</div>
                 </div>
                 <div class="outcome-box no-answer">
-                    <div class="outcome-value no-answer" id="voiceNoAnswer">--</div>
-                    <div class="outcome-label">Voicemail/No Answer</div>
-                    <div class="outcome-percent" id="voiceNoAnswerPct">--%</div>
+                    <div class="outcome-value no-answer" id="outVoicemail">--</div>
+                    <div class="outcome-label">Voicemail / No Answer</div>
+                    <div class="outcome-pct" id="outVoicemailPct">--%</div>
                 </div>
                 <div class="outcome-box failed">
-                    <div class="outcome-value failed" id="voiceFailed">--</div>
+                    <div class="outcome-value failed" id="outFailed">--</div>
                     <div class="outcome-label">Failed</div>
-                    <div class="outcome-percent" id="voiceFailedPct">--%</div>
+                    <div class="outcome-pct" id="outFailedPct">--%</div>
                 </div>
                 <div class="outcome-box busy">
-                    <div class="outcome-value busy" id="voiceBusy">--</div>
+                    <div class="outcome-value busy" id="outBusy">--</div>
                     <div class="outcome-label">Busy</div>
-                    <div class="outcome-percent" id="voiceBusyPct">--%</div>
+                    <div class="outcome-pct" id="outBusyPct">--%</div>
                 </div>
             </div>
         </div>
 
-        <!-- Outreach Queue -->
-        <div class="section-header" id="queueHeader">Outreach Queue</div>
-        <div class="summary-grid" style="grid-template-columns: repeat(5, 1fr);">
-            <div class="summary-card">
-                <div class="summary-label">Total Queued</div>
-                <div class="summary-value" style="color: var(--accent-cyan);" id="totalQueued">--</div>
-                <div class="summary-subtext">messages scheduled</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">SMS</div>
-                <div class="summary-value" style="color: var(--success-green);" id="queueSMS">--</div>
-                <div class="summary-subtext">text messages</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">Voice</div>
-                <div class="summary-value" style="color: #9c27b0;" id="queueVoice">--</div>
-                <div class="summary-subtext">phone calls</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">Pending</div>
-                <div class="summary-value" style="color: var(--warning-yellow);" id="queuePending">--</div>
-                <div class="summary-subtext">in queue</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">Sent Today</div>
-                <div class="summary-value" style="color: var(--success-green);" id="sentToday">--</div>
-                <div class="summary-subtext">delivered</div>
-            </div>
-        </div>
-
-        <!-- Pipeline Funnel -->
-        <div class="section-header">Acquisitions Pipeline</div>
-        <div class="pipeline-section">
-            <div class="pipeline-title">GHL Opportunity Stages</div>
-            <div class="pipeline-grid">
-                <div class="pipeline-stage">
-                    <div class="pipeline-count" id="pipeHotLead">--</div>
-                    <div class="pipeline-name">Hot Lead</div>
+        <!-- Section 3: Appointments -->
+        <div class="section-header" id="apptHeader">Appointments</div>
+        <div class="appt-grid">
+            <div class="appt-card">
+                <div class="appt-title">1st Appointments</div>
+                <div class="appt-stats">
+                    <div class="appt-stat">
+                        <div class="appt-stat-value" id="first_booked">--</div>
+                        <div class="appt-stat-label">Booked</div>
+                    </div>
+                    <div class="appt-stat">
+                        <div class="appt-stat-value showed" id="first_showed">--</div>
+                        <div class="appt-stat-label">Showed</div>
+                    </div>
+                    <div class="appt-stat">
+                        <div class="appt-stat-value noshow" id="first_noshow">--</div>
+                        <div class="appt-stat-label">No-Show</div>
+                    </div>
+                    <div class="appt-stat">
+                        <div class="appt-stat-value rate" id="first_showrate">--%</div>
+                        <div class="appt-stat-label">Show Rate</div>
+                    </div>
                 </div>
-                <div class="pipeline-stage">
-                    <div class="pipeline-count" id="pipeSentOffer">--</div>
-                    <div class="pipeline-name">Sent Offer</div>
-                </div>
-                <div class="pipeline-stage">
-                    <div class="pipeline-count" id="pipeSentContract">--</div>
-                    <div class="pipeline-name">Sent Contract</div>
-                </div>
-                <div class="pipeline-stage">
-                    <div class="pipeline-count" id="pipeSignedContract">--</div>
-                    <div class="pipeline-name">Signed Contract</div>
-                </div>
-                <div class="pipeline-stage">
-                    <div class="pipeline-count" id="pipeTotal">--</div>
-                    <div class="pipeline-name">Total Active</div>
+            </div>
+            <div class="appt-card">
+                <div class="appt-title">2nd Appointments</div>
+                <div class="appt-stats">
+                    <div class="appt-stat">
+                        <div class="appt-stat-value" id="second_booked">--</div>
+                        <div class="appt-stat-label">Booked</div>
+                    </div>
+                    <div class="appt-stat">
+                        <div class="appt-stat-value showed" id="second_showed">--</div>
+                        <div class="appt-stat-label">Showed</div>
+                    </div>
+                    <div class="appt-stat">
+                        <div class="appt-stat-value noshow" id="second_noshow">--</div>
+                        <div class="appt-stat-label">No-Show</div>
+                    </div>
+                    <div class="appt-stat">
+                        <div class="appt-stat-value rate" id="second_showrate">--%</div>
+                        <div class="appt-stat-label">Show Rate</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Charts -->
-        <div class="section-header">Distribution</div>
+        <!-- Section 4: Cost Breakdown -->
+        <div class="section-header" id="costHeader">Cost Breakdown (Last 30 Days)</div>
+        <div class="cost-grid">
+            <div class="cost-card">
+                <div class="cost-label">SMS Cost</div>
+                <div class="cost-value" id="costSms">$--</div>
+                <div class="cost-detail" id="costSmsDetail">-- messages</div>
+                <div class="cost-sub">90d avg: $<span id="costSms90">--</span>/day <span class="change" id="costSmsChg"></span></div>
+            </div>
+            <div class="cost-card">
+                <div class="cost-label">Voice Cost (Twilio)</div>
+                <div class="cost-value" id="costTwilioVoice">$--</div>
+                <div class="cost-detail" id="costTwilioDetail">-- minutes</div>
+                <div class="cost-sub">90d avg: $<span id="costTwilio90">--</span>/day <span class="change" id="costTwilioChg"></span></div>
+            </div>
+            <div class="cost-card">
+                <div class="cost-label">AI Voice Cost (Retell)</div>
+                <div class="cost-value" id="costRetell">$--</div>
+                <div class="cost-detail" id="costRetellDetail">-- calls</div>
+                <div class="cost-sub">90d avg: $<span id="costRetell90">--</span>/day <span class="change" id="costRetellChg"></span></div>
+            </div>
+            <div class="cost-card">
+                <div class="cost-label">Total Cost</div>
+                <div class="cost-value" id="costTotal">$--</div>
+                <div class="cost-detail" id="costTotalDetail">all channels</div>
+                <div class="cost-sub">90d avg: $<span id="costTotal90">--</span>/day <span class="change" id="costTotalChg"></span></div>
+            </div>
+            <div class="cost-card">
+                <div class="cost-label">Cost / 1st Appt</div>
+                <div class="cost-value" id="costPerAppt">$--</div>
+                <div class="cost-detail" id="costPerApptDetail">per booking</div>
+                <div class="cost-sub">90d avg: $<span id="costPerAppt90">--</span> <span class="change" id="costPerApptChg"></span></div>
+            </div>
+        </div>
+
+        <!-- Section 5: Queue Status -->
+        <div class="section-header" id="queueHeader">Outreach Queue (Today)</div>
+        <div class="queue-grid">
+            <div class="queue-card">
+                <div class="queue-label">Total Queued</div>
+                <div class="queue-value" style="color: var(--accent-cyan);" id="qTotal">--</div>
+                <div class="queue-sub">scheduled today</div>
+            </div>
+            <div class="queue-card">
+                <div class="queue-label">SMS Pending</div>
+                <div class="queue-value" style="color: var(--accent-cyan);" id="qSmsPending">--</div>
+                <div class="queue-sub">text messages</div>
+            </div>
+            <div class="queue-card">
+                <div class="queue-label">Voice Pending</div>
+                <div class="queue-value" style="color: var(--accent-purple);" id="qVoicePending">--</div>
+                <div class="queue-sub">phone calls</div>
+            </div>
+            <div class="queue-card">
+                <div class="queue-label">Sent Today</div>
+                <div class="queue-value" style="color: var(--success-green);" id="qSent">--</div>
+                <div class="queue-sub">delivered</div>
+            </div>
+            <div class="queue-card">
+                <div class="queue-label">Failed Today</div>
+                <div class="queue-value" style="color: var(--alert-red);" id="qFailed">--</div>
+                <div class="queue-sub">errors</div>
+            </div>
+        </div>
+
+        <!-- Section 6: Charts -->
+        <div class="section-header">Charts</div>
         <div class="charts-grid">
             <div class="chart-card">
-                <div class="chart-title" id="queueChartTitle">Queue Status by Channel (Today)</div>
+                <div class="chart-title">Queue by Channel (Today)</div>
                 <div class="chart-container">
                     <canvas id="queueChartCanvas"></canvas>
                 </div>
             </div>
             <div class="chart-card">
-                <div class="chart-title">Voice Call Outcomes</div>
+                <div class="chart-title" id="voiceChartTitle">Voice Call Outcomes</div>
                 <div class="chart-container">
-                    <canvas id="outcomesChart"></canvas>
+                    <canvas id="outcomesChartCanvas"></canvas>
                 </div>
-            </div>
-        </div>
-
-        <!-- Costs -->
-        <div class="section-header" id="costsHeader">Costs (Last 30 Days)</div>
-        <div class="costs-grid">
-            <div class="cost-card">
-                <div class="cost-title">SMS Cost (Twilio)</div>
-                <div class="cost-value" id="smsCost">$--</div>
-                <div class="cost-detail" id="smsCostDetail">-- messages</div>
-            </div>
-            <div class="cost-card">
-                <div class="cost-title">Voice Cost (Twilio)</div>
-                <div class="cost-value" id="twilioCost">$--</div>
-                <div class="cost-detail" id="twilioCostDetail">-- minutes</div>
-            </div>
-            <div class="cost-card">
-                <div class="cost-title">AI Voice Cost (Retell)</div>
-                <div class="cost-value" id="retellCost">$--</div>
-                <div class="cost-detail" id="retellCostDetail">-- calls</div>
-            </div>
-            <div class="cost-card">
-                <div class="cost-title">Total Cost</div>
-                <div class="cost-value" id="totalCost">$--</div>
-                <div class="cost-detail" id="costPerAppt">$-- per 1st appt</div>
             </div>
         </div>
     </div>
 
     <div class="footer">
-        KPI Dashboard v3.0 | Data: Supabase + GHL + Retell | Last updated: <span id="lastUpdated">--</span>
+        KPI Dashboard v5.0 | Data: Supabase + GHL | Last updated: <span id="lastUpdated">--</span>
     </div>
 
     <script>
+        // ============================================================
         // Configuration
+        // ============================================================
         const SUPABASE_URL = 'https://saksbjogtkagedmlsrsv.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTI1NTEwMywiZXhwIjoyMDg0NjE1MTAzfQ.X7fHo2v_7HZBYZzggydteFbMh_y_pgQN78yynby5sI4';
         const GHL_STATS_URL = 'https://n8n.stopmyauctionnow.com/webhook/ghl-appointment-stats';
-
-        // GHL Calendar IDs for 1st and 2nd appointments
-        const GHL_CALENDAR_FIRST = 'gBD1ts4ZdRzWaMzti2Ck';
-        const GHL_CALENDAR_SECOND = 'WM8EhHF8mZjCPQAHXJxp';
-
-        // Fetch real appointment channel breakdown from Supabase ops.lead_appointments
-        async function fetchAppointmentChannelBreakdown(startDateISO, endDateISO) {
-            try {
-                // Use ghl_calendar_id to distinguish 1st vs 2nd appointments
-                const { data, error } = await sbClient
-                    .schema('ops')
-                    .from('lead_appointments')
-                    .select('ghl_calendar_id, last_source')
-                    .gte('created_at', startDateISO)
-                    .lte('created_at', endDateISO);
-
-                if (error) {
-                    console.warn('[Channel] lead_appointments query error:', error.message);
-                    return null;
-                }
-
-                const appointments = data || [];
-                if (appointments.length === 0) return null;
-
-                // Filter by calendar ID: gBD1ts4ZdRzWaMzti2Ck = 1st, WM8EhHF8mZjCPQAHXJxp = 2nd
-                const first = appointments.filter(a => a.ghl_calendar_id === GHL_CALENDAR_FIRST);
-                const second = appointments.filter(a => a.ghl_calendar_id === GHL_CALENDAR_SECOND);
-
-                const result = {
-                    first: {
-                        sms: first.filter(a => a.last_source === 'sms').length,
-                        call: first.filter(a => a.last_source === 'voice' || a.last_source === 'call').length
-                    },
-                    second: {
-                        sms: second.filter(a => a.last_source === 'sms').length,
-                        call: second.filter(a => a.last_source === 'voice' || a.last_source === 'call').length
-                    }
-                };
-                console.log('[Channel] Real channel data from Supabase:', result);
-                return result;
-            } catch (err) {
-                console.warn('[Channel] Failed to fetch channel breakdown:', err);
-                return null;
-            }
-        }
-
-        // Fetch signed contracts from Supabase (date-filtered)
-        async function fetchSignedContracts(startDateISO, endDateISO) {
-            try {
-                const { data, error } = await sbClient
-                    .schema('ops')
-                    .from('signed_contracts')
-                    .select('id, signed_at, booking_source')
-                    .gte('signed_at', startDateISO)
-                    .lte('signed_at', endDateISO);
-
-                if (error) {
-                    console.warn('Signed contracts fetch error (table may not exist yet):', error.message);
-                    return { count: 0, bySms: 0, byCall: 0 };
-                }
-
-                const contracts = data || [];
-                return {
-                    count: contracts.length,
-                    bySms: contracts.filter(c => c.booking_source?.toLowerCase() === 'sms').length,
-                    byCall: contracts.filter(c => c.booking_source?.toLowerCase() === 'call').length
-                };
-            } catch (err) {
-                console.warn('Signed contracts query failed:', err);
-                return { count: 0, bySms: 0, byCall: 0 };
-            }
-        }
-
-        // Format date as YYYY-MM-DD in Eastern timezone
-        // Uses 'en-CA' locale which outputs ISO format (YYYY-MM-DD)
-        function formatEasternDate(date) {
-            return new Intl.DateTimeFormat('en-CA', {
-                timeZone: 'America/New_York',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            }).format(date);
-        }
+        const GHL_CAL_FIRST = 'gBD1ts4ZdRzWaMzti2Ck';
+        const GHL_CAL_SECOND = 'WM8EhHF8mZjCPQAHXJxp';
 
         let sbClient;
         let queueChart, outcomesChart;
 
-        // Initialize
+        // ============================================================
+        // Initialization
+        // ============================================================
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('KPI Dashboard v3 initializing...');
-            try {
-                sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                initCharts();
-                await refreshData();
-            } catch (err) {
-                console.error('Init error:', err);
-                hideLoading();
-            }
-
-            // Auto-refresh every 10 minutes
-            setInterval(refreshData, 600000);
+            sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            initCharts();
+            await refreshData();
+            setInterval(refreshData, 600000); // Auto-refresh every 10 min
         });
 
-        function showLoading() {
-            document.getElementById('loadingOverlay').classList.remove('hidden');
-        }
+        function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 
-        function hideLoading() {
-            document.getElementById('loadingOverlay').classList.add('hidden');
+        // ============================================================
+        // Date Range Helpers (Eastern Time)
+        // ============================================================
+        function formatEasternDate(date) {
+            return new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/New_York',
+                year: 'numeric', month: '2-digit', day: '2-digit'
+            }).format(date);
         }
 
         function getDateRange() {
             const filter = document.getElementById('dateFilter').value;
             const now = new Date();
-            let startDate;
-            let endDate;
-            let daysBack;
-            let startDateStr;
-            let endDateStr;
+            const todayStr = formatEasternDate(now);
+            let startDate, endDate, daysBack, startStr, endStr;
 
-            // Get current date in Eastern timezone as a string
-            const todayEasternStr = formatEasternDate(now);
-            endDateStr = todayEasternStr;
+            endStr = todayStr;
 
             switch (filter) {
                 case 'today':
-                    // For "Today", we need to get the START of today in Eastern time
-                    // and convert properly to UTC for database queries
-                    startDateStr = todayEasternStr;
-                    // Parse the Eastern date string and set to start of day in Eastern time
-                    // Create a date object for start of day in Eastern timezone
-                    const todayParts = todayEasternStr.split('-');
-                    // Create date at midnight Eastern time (approximated)
-                    startDate = new Date(`${todayEasternStr}T00:00:00-05:00`); // EST
-                    endDate = new Date(`${todayEasternStr}T23:59:59-05:00`); // End of today EST
+                    startStr = todayStr;
+                    startDate = new Date(todayStr + 'T00:00:00-05:00');
+                    endDate = new Date(todayStr + 'T23:59:59-05:00');
                     daysBack = 1;
                     break;
                 case '7d':
-                    startDate = new Date(now - 7 * 24 * 60 * 60 * 1000);
-                    startDateStr = formatEasternDate(startDate);
+                    startDate = new Date(now - 7 * 86400000);
+                    startStr = formatEasternDate(startDate);
                     endDate = now;
                     daysBack = 7;
                     break;
                 case '90d':
-                    startDate = new Date(now - 90 * 24 * 60 * 60 * 1000);
-                    startDateStr = formatEasternDate(startDate);
+                    startDate = new Date(now - 90 * 86400000);
+                    startStr = formatEasternDate(startDate);
                     endDate = now;
                     daysBack = 90;
                     break;
                 case '30d':
                 default:
-                    startDate = new Date(now - 30 * 24 * 60 * 60 * 1000);
-                    startDateStr = formatEasternDate(startDate);
+                    startDate = new Date(now - 30 * 86400000);
+                    startStr = formatEasternDate(startDate);
                     endDate = now;
                     daysBack = 30;
             }
 
+            // 90-day window for averages (always)
+            const d90Start = new Date(now - 90 * 86400000);
+
             return {
-                startDate: startDate,
-                endDate: endDate,
-                startDateISO: startDate.toISOString(),
-                endDateISO: endDate.toISOString(),
-                startDateStr: startDateStr,  // YYYY-MM-DD in Eastern timezone
-                endDateStr: endDateStr,      // YYYY-MM-DD in Eastern timezone
-                daysBack: daysBack,
+                startISO: startDate.toISOString(),
+                endISO: endDate.toISOString(),
+                startStr, endStr, daysBack,
+                d90StartISO: d90Start.toISOString(),
+                d90StartStr: formatEasternDate(d90Start),
                 label: filter === 'today' ? 'Today' : `Last ${daysBack} Days`
             };
         }
 
+        // ============================================================
+        // Supabase Helpers
+        // ============================================================
+        const SB_HEADERS = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+        };
+
+        async function sbCount(url) {
+            const resp = await fetch(url, {
+                headers: { ...SB_HEADERS, 'Prefer': 'count=exact' }
+            });
+            if (!resp.ok) return 0;
+            const range = resp.headers.get('Content-Range');
+            if (range) {
+                const m = range.match(/\/(\d+)$/);
+                if (m) return parseInt(m[1], 10);
+            }
+            const data = await resp.json();
+            return Array.isArray(data) ? data.length : 0;
+        }
+
+        async function sbFetch(url, schema) {
+            const headers = { ...SB_HEADERS };
+            if (schema) headers['Accept-Profile'] = schema;
+            const resp = await fetch(url, { headers });
+            if (!resp.ok) throw new Error(`Supabase ${resp.status}: ${resp.statusText}`);
+            return resp.json();
+        }
+
+        // ============================================================
+        // Chart Initialization
+        // ============================================================
         function initCharts() {
-            // Queue status by channel chart
-            const queueCtx = document.getElementById('queueChartCanvas').getContext('2d');
-            queueChart = new Chart(queueCtx, {
+            const chartColors = {
+                gridColor: 'rgba(255,255,255,0.05)',
+                tickColor: '#666',
+                legendColor: '#888'
+            };
+
+            queueChart = new Chart(document.getElementById('queueChartCanvas').getContext('2d'), {
                 type: 'bar',
                 data: {
                     labels: ['SMS', 'Voice'],
                     datasets: [
-                        {
-                            label: 'Queued',
-                            data: [0, 0],
-                            backgroundColor: 'rgba(255, 193, 7, 0.7)',
-                            borderRadius: 4
-                        },
-                        {
-                            label: 'Sent',
-                            data: [0, 0],
-                            backgroundColor: 'rgba(0, 200, 83, 0.7)',
-                            borderRadius: 4
-                        }
+                        { label: 'Queued', data: [0, 0], backgroundColor: 'rgba(255, 193, 7, 0.7)', borderRadius: 4 },
+                        { label: 'Sent', data: [0, 0], backgroundColor: 'rgba(0, 200, 83, 0.7)', borderRadius: 4 },
+                        { label: 'Failed', data: [0, 0], backgroundColor: 'rgba(196, 30, 58, 0.7)', borderRadius: 4 }
                     ]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top', labels: { color: '#888', font: { size: 11 } } }
-                    },
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top', labels: { color: chartColors.legendColor, font: { size: 11 } } } },
                     scales: {
-                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666' } },
-                        x: { grid: { display: false }, ticks: { color: '#888' } }
+                        y: { beginAtZero: true, grid: { color: chartColors.gridColor }, ticks: { color: chartColors.tickColor } },
+                        x: { grid: { display: false }, ticks: { color: chartColors.legendColor } }
                     }
                 }
             });
 
-            // Voice outcomes chart
-            const outcomesCtx = document.getElementById('outcomesChart').getContext('2d');
-            outcomesChart = new Chart(outcomesCtx, {
+            outcomesChart = new Chart(document.getElementById('outcomesChartCanvas').getContext('2d'), {
                 type: 'doughnut',
                 data: {
                     labels: ['Completed', 'Voicemail', 'Failed', 'Busy'],
-                    datasets: [{
-                        data: [0, 0, 0, 0],
-                        backgroundColor: ['#00c853', '#ffc107', '#c41e3a', '#ff8800'],
-                        borderWidth: 0
-                    }]
+                    datasets: [{ data: [0, 0, 0, 0], backgroundColor: ['#00c853', '#ffc107', '#c41e3a', '#ff8800'], borderWidth: 0 }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'right', labels: { color: '#888', font: { size: 11 } } }
-                    }
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right', labels: { color: chartColors.legendColor, font: { size: 11 } } } }
                 }
             });
         }
 
+        // ============================================================
+        // Main Refresh
+        // ============================================================
         async function refreshData() {
             showLoading();
-            const startTime = Date.now();
-
-            // Update section headers based on selected filter
+            const t0 = Date.now();
             const range = getDateRange();
-            const benchmarkLabel = range.daysBack === 1 ? '1-Day' : `${range.daysBack}-Day`;
-            document.getElementById('benchmarkHeader').textContent = `Performance Benchmarks (${benchmarkLabel} vs 90-Day Avg)`;
-            document.getElementById('outreachHeader').textContent = `Outreach Performance (${range.label})`;
-            // For "Today", Twilio costs show yesterday (complete data) while Retell shows today (real-time)
-            const filter = document.getElementById('dateFilter').value;
-            const costsLabel = filter === 'today' ? 'Yesterday - Twilio updates nightly' : range.label;
-            document.getElementById('costsHeader').textContent = `Costs (${costsLabel})`;
-            document.getElementById('queueChartTitle').textContent = 'Queue Status by Channel (Today)';
 
-            // Update queue header with today's date (Eastern time)
-            const easternDate = new Date().toLocaleDateString("en-US", {
-                timeZone: "America/New_York",
-                month: "numeric",
-                day: "numeric",
-                year: "numeric"
+            // Update section headers
+            document.getElementById('kpiHeader').textContent = `Key Metrics (${range.label})`;
+            document.getElementById('outreachHeader').textContent = `Outreach Volume (${range.label})`;
+            document.getElementById('apptHeader').textContent = `Appointments (${range.label})`;
+
+            const filter = document.getElementById('dateFilter').value;
+            const costLabel = filter === 'today' ? 'Yesterday - Twilio updates nightly' : range.label;
+            document.getElementById('costHeader').textContent = `Cost Breakdown (${costLabel})`;
+
+            const todayDisplay = new Date().toLocaleDateString('en-US', {
+                timeZone: 'America/New_York', month: 'numeric', day: 'numeric', year: 'numeric'
             });
-            document.getElementById('queueHeader').textContent = `Outreach Queue ${easternDate}`;
+            document.getElementById('queueHeader').textContent = `Outreach Queue ${todayDisplay}`;
+            document.getElementById('outcomesTitle').textContent = `Voice Call Outcomes (${range.label})`;
+            document.getElementById('voiceChartTitle').textContent = `Voice Call Outcomes (${range.label})`;
+
+            // Shared state for cross-section calculations
+            const state = { firstBooked: 0, totalSpend: 0, totalSpend90: 0, firstBooked90: 0 };
 
             try {
-                // Fetch data in parallel - use allSettled so one failure doesn't block others
                 const results = await Promise.allSettled([
-                    fetchSMSData(),
-                    fetchVoiceData(),
-                    fetchQueueData(),
-                    fetchGHLData(),
-                    fetchCostData()
+                    fetchSMS(range, state),
+                    fetchVoice(range, state),
+                    fetchAppointments(range, state),
+                    fetchCosts(range, state),
+                    fetchQueue()
                 ]);
 
-                const labels = ['SMS', 'Voice', 'Queue', 'GHL', 'Costs'];
-                const failures = results
-                    .map((r, i) => r.status === 'rejected' ? labels[i] : null)
-                    .filter(Boolean);
+                // After all fetches, calculate derived KPI cards
+                updateDerivedKPIs(range, state);
 
-                const elapsed = Date.now() - startTime;
-                if (failures.length > 0) {
-                    console.warn(`[Dashboard] Partial failure: ${failures.join(', ')}`);
-                    results.forEach((r, i) => {
-                        if (r.status === 'rejected') console.error(`[${labels[i]}] Error:`, r.reason);
-                    });
-                    document.getElementById('lastUpdated').textContent =
-                        new Date().toLocaleTimeString() + ` (${elapsed}ms) - ${failures.join(', ')} failed`;
+                const labels = ['SMS', 'Voice', 'Appointments', 'Costs', 'Queue'];
+                const fails = results.map((r, i) => r.status === 'rejected' ? labels[i] : null).filter(Boolean);
+                const elapsed = Date.now() - t0;
+
+                if (fails.length > 0) {
+                    results.forEach((r, i) => { if (r.status === 'rejected') console.error(`[${labels[i]}]`, r.reason); });
+                    document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString() + ` (${elapsed}ms) - ${fails.join(', ')} failed`;
                 } else {
-                    document.getElementById('lastUpdated').textContent =
-                        new Date().toLocaleTimeString() + ` (${elapsed}ms)`;
+                    document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString() + ` (${elapsed}ms)`;
                 }
             } catch (err) {
                 console.error('Refresh error:', err);
@@ -1236,661 +1081,442 @@
             hideLoading();
         }
 
-        // Helper to get count from Supabase using Prefer: count=exact header
-        async function getSupabaseCount(url) {
-            const resp = await fetch(url, {
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'Prefer': 'count=exact'
-                }
-            });
-            if (!resp.ok) return 0;
-            // Count is in Content-Range header: "0-X/TOTAL" or "*/TOTAL"
-            const range = resp.headers.get('Content-Range');
-            if (range) {
-                const match = range.match(/\/(\d+)$/);
-                if (match) return parseInt(match[1], 10);
-            }
-            // Fallback: count response array
-            const data = await resp.json();
-            return Array.isArray(data) ? data.length : 0;
-        }
+        // ============================================================
+        // Section 1 + 2: SMS Data (public.messages)
+        // ============================================================
+        async function fetchSMS(range, state) {
+            const base = `${SUPABASE_URL}/rest/v1/messages`;
 
-        // Fetch SMS data from public.messages using COUNT queries (avoids 10k row limit)
-        async function fetchSMSData() {
-            const range = getDateRange();
-            const now = new Date();
-            const d90 = new Date(now - 90 * 24 * 60 * 60 * 1000);
-            const d90ISO = d90.toISOString();
-
-            const baseUrl = `${SUPABASE_URL}/rest/v1/messages`;
-
-            console.log(`[SMS] Fetching for range: ${range.startDateISO} to ${range.endDateISO}`);
-
-            // Fetch counts in parallel (4 queries: current outbound/inbound, 90d outbound/inbound)
-            // Use BOTH start AND end dates for proper filtering
-            const [outbound, inbound, outbound90, inbound90] = await Promise.all([
-                getSupabaseCount(`${baseUrl}?channel=eq.sms&direction=eq.outbound&created_at=gte.${range.startDateISO}&created_at=lte.${range.endDateISO}&select=message_id`),
-                getSupabaseCount(`${baseUrl}?channel=eq.sms&direction=eq.inbound&created_at=gte.${range.startDateISO}&created_at=lte.${range.endDateISO}&select=message_id`),
-                getSupabaseCount(`${baseUrl}?channel=eq.sms&direction=eq.outbound&created_at=gte.${d90ISO}&select=message_id`),
-                getSupabaseCount(`${baseUrl}?channel=eq.sms&direction=eq.inbound&created_at=gte.${d90ISO}&select=message_id`)
+            // Current range counts
+            const [sent, received, sent90, received90] = await Promise.all([
+                sbCount(`${base}?channel=eq.sms&direction=eq.outbound&created_at=gte.${range.startISO}&created_at=lte.${range.endISO}&select=message_id`),
+                sbCount(`${base}?channel=eq.sms&direction=eq.inbound&created_at=gte.${range.startISO}&created_at=lte.${range.endISO}&select=message_id`),
+                sbCount(`${base}?channel=eq.sms&direction=eq.outbound&created_at=gte.${range.d90StartISO}&select=message_id`),
+                sbCount(`${base}?channel=eq.sms&direction=eq.inbound&created_at=gte.${range.d90StartISO}&select=message_id`)
             ]);
 
-            console.log(`[SMS] Outbound: ${outbound}, Inbound: ${inbound}`);
+            const respRate = sent > 0 ? (received / sent * 100) : 0;
+            const respRate90 = sent90 > 0 ? (received90 / sent90 * 100) : 0;
+            const sentDailyAvg = sent90 / 90;
+            const recvDailyAvg = received90 / 90;
+            const currentSentDaily = sent / range.daysBack;
+            const currentRecvDaily = received / range.daysBack;
 
-            // Current range metrics
-            const responseRate = outbound > 0 ? (inbound / outbound * 100) : 0;
+            // Section 2: SMS channel card
+            setText('smsSent', sent.toLocaleString());
+            setText('smsReceived', received.toLocaleString());
+            setText('smsRespRate', respRate.toFixed(1) + '%');
+            setText('smsSent90', sentDailyAvg.toFixed(0));
+            setText('smsRecv90', recvDailyAvg.toFixed(0));
+            setText('smsResp90', respRate90.toFixed(1));
+            setChange('smsSentChg', currentSentDaily, sentDailyAvg);
+            setChange('smsRecvChg', currentRecvDaily, recvDailyAvg);
 
-            // 90-day metrics (scaled to selected range)
-            const scaleFactor = 90 / range.daysBack;
-            const outbound90Avg = Math.round(outbound90 / scaleFactor);
-            const inbound90Avg = Math.round(inbound90 / scaleFactor);
-            const responseRate90 = outbound90 > 0 ? (inbound90 / outbound90 * 100) : 0;
+            const badge = document.getElementById('smsRateBadge');
+            badge.textContent = respRate.toFixed(1) + '%';
+            badge.className = 'rate-badge ' + (respRate >= 15 ? 'good' : respRate >= 10 ? 'medium' : 'low');
 
-            // Update current values
-            document.getElementById('smsOutbound').textContent = outbound.toLocaleString();
-            document.getElementById('smsInbound').textContent = inbound.toLocaleString();
-            document.getElementById('smsResponseRate').textContent = responseRate.toFixed(1) + '%';
-
-            // Update 90-day comparisons
-            document.getElementById('smsOutbound90').textContent = outbound90Avg.toLocaleString();
-            document.getElementById('smsInbound90').textContent = inbound90Avg.toLocaleString();
-            document.getElementById('smsResponseRate90').textContent = responseRate90.toFixed(1) + '%';
-
-            // Update change indicators
-            updateChangeIndicator('smsOutboundChange', outbound, outbound90Avg);
-            updateChangeIndicator('smsInboundChange', inbound, inbound90Avg);
-            updateChangeIndicatorPct('smsResponseRateChange', responseRate, responseRate90);
-
-            const smsBadge = document.getElementById('smsResponseBadge');
-            smsBadge.textContent = responseRate.toFixed(1) + '%';
-            smsBadge.className = 'response-rate-badge ' + (responseRate >= 15 ? 'good' : responseRate >= 10 ? 'medium' : 'low');
-
-            // Update Response Rate tile in Row 3
-            updateBenchmarkCard('responseRateTile', responseRate, responseRate90, true);
+            // Section 1: Response Rate KPI card
+            setText('respRateVal', respRate.toFixed(1) + '%');
+            setText('respRate90', respRate90.toFixed(1));
+            setKPIChange('respRateChg', 'respRateInd', respRate - respRate90, false);
         }
 
-        // Fetch Voice data from ops.retell_call_outcomes
-        async function fetchVoiceData() {
-            const range = getDateRange();
-            const now = new Date();
-            const d90 = new Date(now - 90 * 24 * 60 * 60 * 1000);
-            const d90ISO = d90.toISOString();
+        // ============================================================
+        // Section 2: Voice Data (ops.retell_call_outcomes)
+        // ============================================================
+        async function fetchVoice(range, state) {
+            const base = `${SUPABASE_URL}/rest/v1/retell_call_outcomes`;
+            const selectFields = 'call_type,disconnection_reason,call_status,created_at';
 
-            const headers = {
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
-                'Accept-Profile': 'ops',
-                'Content-Type': 'application/json'
-            };
-
-            console.log(`[Voice] Fetching for range: ${range.startDateISO} to ${range.endDateISO}`);
-
-            // Fetch current range and 90-day data in parallel
-            // Use created_at (which has an index) instead of start_timestamp to avoid timeouts
-            const rangeUrl = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&created_at=lte.${range.endDateISO}&select=call_type,disconnection_reason,call_status,created_at&limit=10000`;
-            const d90Url = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${d90ISO}&created_at=lte.${new Date().toISOString()}&select=call_type,disconnection_reason,call_status,created_at&limit=10000`;
-
-            const [respRange, resp90] = await Promise.all([
-                fetch(rangeUrl, { headers }),
-                fetch(d90Url, { headers })
+            const [calls, calls90] = await Promise.all([
+                sbFetch(`${base}?created_at=gte.${range.startISO}&created_at=lte.${range.endISO}&select=${selectFields}&limit=10000`, 'ops'),
+                sbFetch(`${base}?created_at=gte.${range.d90StartISO}&select=${selectFields}&limit=10000`, 'ops')
             ]);
 
-            if (!respRange.ok) {
-                console.error(`[Voice] Range query failed: ${respRange.status} ${respRange.statusText}`);
-                const errBody = await respRange.text().catch(() => '');
-                console.error('[Voice] Error details:', errBody);
-            }
-            if (!resp90.ok) {
-                console.error(`[Voice] 90-day query failed: ${resp90.status} ${resp90.statusText}`);
-            }
-            if (!respRange.ok || !resp90.ok) throw new Error('Failed to fetch voice data');
-
-            const calls = await respRange.json();
-            const calls90 = await resp90.json();
-
-            // Debug logging
-            console.log(`[Voice] Received ${calls.length} calls`);
-            const callTypes = calls.reduce((acc, c) => {
-                acc[c.call_type] = (acc[c.call_type] || 0) + 1;
-                return acc;
-            }, {});
-            console.log('[Voice] Call type breakdown:', callTypes);
-
-            // Process current range
-            const outbound = calls.filter(c => c.call_type !== 'inbound').length;
-            const inbound = calls.filter(c => c.call_type === 'inbound').length;
-
-            console.log(`[Voice] Filtered: ${outbound} outbound, ${inbound} inbound`);
-
+            // Current range
+            const made = calls.filter(c => c.call_type !== 'inbound').length;
             let completed = 0, noAnswer = 0, failed = 0, busy = 0;
             calls.forEach(c => {
-                const reason = (c.disconnection_reason || '').toLowerCase();
-                if (reason === 'hangup' || reason === 'user_hangup') completed++;
-                else if (reason === 'voicemail_reached' || reason === 'no_valid_path' || reason === 'agent_hangup') noAnswer++;
-                else if (reason === 'dial_failed') failed++;
-                else if (reason === 'dial_busy') busy++;
+                const r = (c.disconnection_reason || '').toLowerCase();
+                if (r === 'hangup' || r === 'user_hangup') completed++;
+                else if (r === 'voicemail_reached' || r === 'no_valid_path' || r === 'agent_hangup') noAnswer++;
+                else if (r === 'dial_failed') failed++;
+                else if (r === 'dial_busy') busy++;
                 else if (c.call_status === 'ended') completed++;
             });
+            const answerRate = made > 0 ? (completed / made * 100) : 0;
 
-            const total = calls.length;
-            const answerRate = total > 0 ? (completed / total * 100) : 0;
-
-            // Process 90-day data
-            const scaleFactor = 90 / range.daysBack;
-            const outbound90 = calls90.filter(c => c.call_type !== 'inbound').length;
-            const inbound90 = calls90.filter(c => c.call_type === 'inbound').length;
-            const outbound90Avg = Math.round(outbound90 / scaleFactor);
-            const inbound90Avg = Math.round(inbound90 / scaleFactor);
-
+            // 90-day
+            const made90 = calls90.filter(c => c.call_type !== 'inbound').length;
             let completed90 = 0;
             calls90.forEach(c => {
-                const reason = (c.disconnection_reason || '').toLowerCase();
-                if (reason === 'hangup' || reason === 'user_hangup' || c.call_status === 'ended') completed90++;
+                const r = (c.disconnection_reason || '').toLowerCase();
+                if (r === 'hangup' || r === 'user_hangup' || c.call_status === 'ended') completed90++;
             });
-            const answerRate90 = calls90.length > 0 ? (completed90 / calls90.length * 100) : 0;
+            const answerRate90 = made90 > 0 ? (completed90 / made90 * 100) : 0;
+            const madeDailyAvg = made90 / 90;
+            const ansDailyAvg = completed90 / 90;
+            const currentMadeDaily = made / range.daysBack;
+            const currentAnsDaily = completed / range.daysBack;
 
-            // Update current values
-            document.getElementById('voiceOutbound').textContent = outbound.toLocaleString();
-            document.getElementById('voiceInbound').textContent = inbound.toLocaleString();
-            document.getElementById('voiceAnswerRate').textContent = answerRate.toFixed(1) + '%';
+            // Section 2: Voice channel card
+            setText('voiceMade', made.toLocaleString());
+            setText('voiceAnswered', completed.toLocaleString());
+            setText('voiceAnsRate', answerRate.toFixed(1) + '%');
+            setText('voiceMade90', madeDailyAvg.toFixed(0));
+            setText('voiceAns90', ansDailyAvg.toFixed(0));
+            setText('voiceAnsRate90', answerRate90.toFixed(1) + '%');
+            setChange('voiceMadeChg', currentMadeDaily, madeDailyAvg);
+            setChange('voiceAnsChg', currentAnsDaily, ansDailyAvg);
 
-            // Update 90-day comparisons
-            document.getElementById('voiceOutbound90').textContent = outbound90Avg.toLocaleString();
-            document.getElementById('voiceInbound90').textContent = inbound90Avg.toLocaleString();
-            document.getElementById('voiceAnswerRate90').textContent = answerRate90.toFixed(1) + '%';
+            const badge = document.getElementById('voiceRateBadge');
+            badge.textContent = answerRate.toFixed(1) + '%';
+            badge.className = 'rate-badge ' + (answerRate >= 40 ? 'good' : answerRate >= 25 ? 'medium' : 'low');
 
-            // Update change indicators
-            updateChangeIndicator('voiceOutboundChange', outbound, outbound90Avg);
-            updateChangeIndicator('voiceInboundChange', inbound, inbound90Avg);
-            updateChangeIndicatorPct('voiceAnswerRateChange', answerRate, answerRate90);
-
-            const voiceBadge = document.getElementById('voiceAnswerBadge');
-            voiceBadge.textContent = answerRate.toFixed(1) + '%';
-            voiceBadge.className = 'response-rate-badge ' + (answerRate >= 40 ? 'good' : answerRate >= 25 ? 'medium' : 'low');
-
-            document.getElementById('voiceCompleted').textContent = completed.toLocaleString();
-            document.getElementById('voiceNoAnswer').textContent = noAnswer.toLocaleString();
-            document.getElementById('voiceFailed').textContent = failed.toLocaleString();
-            document.getElementById('voiceBusy').textContent = busy.toLocaleString();
+            // Outcomes boxes
+            const total = calls.length;
+            setText('outCompleted', completed.toLocaleString());
+            setText('outVoicemail', noAnswer.toLocaleString());
+            setText('outFailed', failed.toLocaleString());
+            setText('outBusy', busy.toLocaleString());
 
             if (total > 0) {
-                document.getElementById('voiceCompletedPct').textContent = (completed / total * 100).toFixed(1) + '%';
-                document.getElementById('voiceNoAnswerPct').textContent = (noAnswer / total * 100).toFixed(1) + '%';
-                document.getElementById('voiceFailedPct').textContent = (failed / total * 100).toFixed(1) + '%';
-                document.getElementById('voiceBusyPct').textContent = (busy / total * 100).toFixed(1) + '%';
-
-                // Update chart with actual data
-                outcomesChart.data.labels = ['Completed', 'Voicemail', 'Failed', 'Busy'];
+                setText('outCompletedPct', (completed / total * 100).toFixed(1) + '%');
+                setText('outVoicemailPct', (noAnswer / total * 100).toFixed(1) + '%');
+                setText('outFailedPct', (failed / total * 100).toFixed(1) + '%');
+                setText('outBusyPct', (busy / total * 100).toFixed(1) + '%');
                 outcomesChart.data.datasets[0].data = [completed, noAnswer, failed, busy];
+                outcomesChart.data.labels = ['Completed', 'Voicemail', 'Failed', 'Busy'];
                 outcomesChart.data.datasets[0].backgroundColor = ['#00c853', '#ffc107', '#c41e3a', '#ff8800'];
             } else {
-                // No calls yet - show placeholder percentages
-                document.getElementById('voiceCompletedPct').textContent = '--';
-                document.getElementById('voiceNoAnswerPct').textContent = '--';
-                document.getElementById('voiceFailedPct').textContent = '--';
-                document.getElementById('voiceBusyPct').textContent = '--';
-
-                // Show "No calls yet" placeholder in chart
-                outcomesChart.data.labels = ['No calls yet'];
+                setText('outCompletedPct', '--');
+                setText('outVoicemailPct', '--');
+                setText('outFailedPct', '--');
+                setText('outBusyPct', '--');
                 outcomesChart.data.datasets[0].data = [1];
+                outcomesChart.data.labels = ['No calls yet'];
                 outcomesChart.data.datasets[0].backgroundColor = ['#444'];
             }
             outcomesChart.update();
         }
 
-        // Fetch Queue data - TODAY's scheduled items only
-        async function fetchQueueData() {
-            // Calculate today's date range in Eastern time using explicit EST offset
-            const todayEasternStr = formatEasternDate(new Date());
-            const todayStartEST = new Date(`${todayEasternStr}T00:00:00-05:00`);
-            const tomorrowStartEST = new Date(todayStartEST.getTime() + 24 * 60 * 60 * 1000);
+        // ============================================================
+        // Section 3: Appointments (ops.lead_appointments + GHL webhook)
+        // ============================================================
+        async function fetchAppointments(range, state) {
+            // 1. Booked counts from Supabase ops.lead_appointments
+            const base = `${SUPABASE_URL}/rest/v1/lead_appointments`;
+            const [firstBooked, secondBooked, firstBooked90, secondBooked90] = await Promise.all([
+                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_FIRST}&created_at=gte.${range.startISO}&created_at=lte.${range.endISO}&select=id`),
+                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_SECOND}&created_at=gte.${range.startISO}&created_at=lte.${range.endISO}&select=id`),
+                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_FIRST}&created_at=gte.${range.d90StartISO}&select=id`),
+                sbCount(`${base}?ghl_calendar_id=eq.${GHL_CAL_SECOND}&created_at=gte.${range.d90StartISO}&select=id`)
+            ]);
 
-            const todayStartISO = todayStartEST.toISOString();
-            const tomorrowStartISO = tomorrowStartEST.toISOString();
+            // Store for derived KPIs
+            state.firstBooked = firstBooked;
+            state.firstBooked90 = firstBooked90;
 
-            // Fetch queue items scheduled for TODAY using next_action_at
-            const { data: queueData, error } = await sbClient
-                .from('outreach_queue')
-                .select('channel, status, last_attempt_at, next_action_at')
-                .gte('next_action_at', todayStartISO)
-                .lt('next_action_at', tomorrowStartISO);
-
-            if (error) {
-                console.log('Queue error:', error.message);
-                return;
-            }
-
-            // Calculate totals from today's scheduled items
-            const smsQueue = queueData?.filter(q => q.channel === 'sms').length || 0;
-            const voiceQueue = queueData?.filter(q => q.channel === 'voice').length || 0;
-            const totalQueued = smsQueue + voiceQueue;
-
-            // Pending = status is 'queued' (not yet sent)
-            const pending = queueData?.filter(q => q.status === 'queued').length || 0;
-
-            // Sent today = status is 'sent'
-            const sentToday = queueData?.filter(q => q.status === 'sent').length || 0;
-
-            // Per-channel queued vs sent breakdown for chart
-            const smsQueued = queueData?.filter(q => q.channel === 'sms' && q.status === 'queued').length || 0;
-            const smsSent = queueData?.filter(q => q.channel === 'sms' && q.status === 'sent').length || 0;
-            const voiceQueued = queueData?.filter(q => q.channel === 'voice' && q.status === 'queued').length || 0;
-            const voiceSent = queueData?.filter(q => q.channel === 'voice' && q.status === 'sent').length || 0;
-
-            // Update UI elements
-            document.getElementById('totalQueued').textContent = totalQueued.toLocaleString();
-            document.getElementById('queueSMS').textContent = smsQueue.toLocaleString();
-            document.getElementById('queueVoice').textContent = voiceQueue.toLocaleString();
-            document.getElementById('queuePending').textContent = pending.toLocaleString();
-            document.getElementById('sentToday').textContent = sentToday.toLocaleString();
-
-            // Update queue chart
-            if (queueChart) {
-                queueChart.data.datasets[0].data = [smsQueued, voiceQueued];
-                queueChart.data.datasets[1].data = [smsSent, voiceSent];
-                queueChart.update();
-            }
-        }
-
-        // Fetch GHL appointment & opportunity data
-        async function fetchGHLData() {
-            const now = new Date();
-            const range = getDateRange();
-            const d90 = new Date(now - 90 * 24 * 60 * 60 * 1000);
-            const todayStr = formatEasternDate(now);  // Today in Eastern timezone
-
-            // Fetch data for selected range (current display)
-            const respRange = await fetch(GHL_STATS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    startDate: range.startDateStr,
-                    endDate: todayStr
-                })
-            });
-
-            // Fetch 90-day data (for benchmark comparison)
-            const resp90 = await fetch(GHL_STATS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    startDate: formatEasternDate(d90),
-                    endDate: todayStr
-                })
-            });
-
-            // Fetch ALL opportunities for pipeline (current state, not date-filtered)
-            // Pipeline shows WHERE opportunities ARE NOW, not when they were created
-            const respPipeline = await fetch(GHL_STATS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    startDate: '2020-01-01',  // Far past to get ALL opportunities
-                    endDate: todayStr,
-                    pipelineOnly: true  // Signal we just want current pipeline state
-                })
-            });
-
-            if (!respRange.ok || !resp90.ok) {
-                console.error('GHL fetch failed');
-                return;
-            }
-
-            const dataRange = await respRange.json();
-            const data90 = await resp90.json();
-
-            // Pipeline data (current state, not date-filtered)
-            let pipelineData = {};
-            if (respPipeline.ok) {
-                pipelineData = await respPipeline.json();
-            }
-
-            // Calculate scaling factor for 90-day avg (to get equivalent for selected range)
-            // If we selected 7 days, divide 90-day data by ~12.86 to get 7-day equivalent
-            const scaleFactor = 90 / range.daysBack;
-
-            // ======== 1st APPOINTMENTS ========
-            const firstBookedCurrent = dataRange.appointments?.first?.total || 0;
-            const firstBooked90Avg = Math.round((data90.appointments?.first?.total || 0) / scaleFactor);
-            const firstCompletedCurrent = dataRange.appointments?.first?.showed || 0;
-            const firstCompleted90Avg = Math.round((data90.appointments?.first?.showed || 0) / scaleFactor);
-
-            // 1st Show Rate
-            const firstShowRateCurrent = firstBookedCurrent > 0 ? (firstCompletedCurrent / firstBookedCurrent * 100) : 0;
-            const first90Total = data90.appointments?.first?.total || 1;
-            const first90Showed = data90.appointments?.first?.showed || 0;
-            const firstShowRate90Avg = (first90Showed / first90Total * 100);
-
-            // ======== 2nd APPOINTMENTS ========
-            const secondBookedCurrent = dataRange.appointments?.second?.total || 0;
-            const secondBooked90Avg = Math.round((data90.appointments?.second?.total || 0) / scaleFactor);
-            const secondCompletedCurrent = dataRange.appointments?.second?.showed || 0;
-            const secondCompleted90Avg = Math.round((data90.appointments?.second?.showed || 0) / scaleFactor);
-
-            // 2nd Show Rate
-            const secondShowRateCurrent = secondBookedCurrent > 0 ? (secondCompletedCurrent / secondBookedCurrent * 100) : 0;
-            const second90Total = data90.appointments?.second?.total || 1;
-            const second90Showed = data90.appointments?.second?.showed || 0;
-            const secondShowRate90Avg = (second90Showed / second90Total * 100);
-
-            // ======== SIGNED CONTRACTS (from Supabase for accurate date filtering) ========
-            // Try Supabase first, fall back to GHL opportunities if table doesn't exist yet
-            let signedCurrent = 0;
-            let signed90Avg = 0;
+            // 2. Show/No-Show from GHL webhook
+            let ghlData = {};
             try {
-                const signedData = await fetchSignedContracts(range.startDateISO, range.endDateISO);
-                const signed90Data = await fetchSignedContracts(d90.toISOString(), now.toISOString());
-                signedCurrent = signedData.count;
-                signed90Avg = Math.round(signed90Data.count / scaleFactor);
+                const todayStr = formatEasternDate(new Date());
+                const resp = await fetch(GHL_STATS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ startDate: range.startStr, endDate: todayStr })
+                });
+                if (resp.ok) ghlData = await resp.json();
             } catch (e) {
-                // Fallback to GHL if Supabase fails
-                signedCurrent = dataRange.opportunities?.signedContract || 0;
-                signed90Avg = Math.round((data90.opportunities?.signedContract || 0) / scaleFactor);
+                console.warn('[Appointments] GHL webhook failed:', e.message);
             }
 
-            // ======== CONVERSION RATE (2nd completed → signed) ========
-            // Guard against impossible conversion rates (e.g., when signed contracts aren't filtered by date)
-            // If signed > 5x completed, likely a data issue - show 0% instead of impossible number
-            const conversionRateCurrent = (secondCompletedCurrent > 0 && signedCurrent <= secondCompletedCurrent * 5)
-                ? (signedCurrent / secondCompletedCurrent * 100)
-                : (secondCompletedCurrent > 0 ? 0 : 0);
-            const conversionRate90Avg = second90Showed > 0 ? ((data90.opportunities?.signedContract || 0) / second90Showed * 100) : 0;
+            const firstShowed = ghlData.appointments?.first?.showed || 0;
+            const firstNoshow = ghlData.appointments?.first?.noshow || 0;
+            const firstShowRate = firstBooked > 0 ? (firstShowed / firstBooked * 100) : 0;
 
-            // ======== CHANNEL BREAKDOWN (from Supabase lead_appointments) ========
-            // Query real channel attribution from ops.lead_appointments
-            let realChannelData = null;
-            try {
-                realChannelData = await fetchAppointmentChannelBreakdown(range.startDateISO, range.endDateISO);
-            } catch (e) {
-                console.warn('[Channel] Supabase channel query failed, using GHL fallback:', e.message);
-            }
+            const secondShowed = ghlData.appointments?.second?.showed || 0;
+            const secondNoshow = ghlData.appointments?.second?.noshow || 0;
+            const secondShowRate = secondBooked > 0 ? (secondShowed / secondBooked * 100) : 0;
 
-            const channelData = dataRange.channelBreakdown ?? null;
+            // Section 3: Appointment cards
+            setText('first_booked', firstBooked);
+            setText('first_showed', firstShowed);
+            setText('first_noshow', firstNoshow);
+            setText('first_showrate', firstShowRate.toFixed(0) + '%');
+            setText('second_booked', secondBooked);
+            setText('second_showed', secondShowed);
+            setText('second_noshow', secondNoshow);
+            setText('second_showrate', secondShowRate.toFixed(0) + '%');
 
-            // Use real Supabase data when available, otherwise fall back to GHL webhook data
-            // Use ?? (nullish coalescing) instead of || to properly handle 0 values
-            const smsRatio = channelData?.smsRatio ?? 0.4;
-            const callRatio = channelData?.callRatio ?? 0.6;
+            // Section 1: KPI cards for appointments
+            const firstDailyAvg90 = firstBooked90 / 90;
+            const secondDailyAvg90 = secondBooked90 / 90;
+            const currentFirstDaily = firstBooked / range.daysBack;
+            const currentSecondDaily = secondBooked / range.daysBack;
 
-            // 1st Appointments by channel - prefer real Supabase data
-            const firstBookedSms = realChannelData?.first?.sms ?? channelData?.first?.sms ?? Math.round(firstBookedCurrent * smsRatio);
-            const firstBookedCall = realChannelData?.first?.call ?? channelData?.first?.call ?? Math.round(firstBookedCurrent * callRatio);
-            const firstShowedSms = channelData?.first?.showedSms ?? Math.round(firstCompletedCurrent * smsRatio);
-            const firstShowedCall = channelData?.first?.showedCall ?? Math.round(firstCompletedCurrent * callRatio);
+            setText('firstApptVal', firstBooked);
+            setText('firstAppt90', firstDailyAvg90.toFixed(1));
+            setKPIChange('firstApptChg', 'firstApptInd',
+                firstDailyAvg90 > 0 ? ((currentFirstDaily - firstDailyAvg90) / firstDailyAvg90 * 100) : 0, true);
 
-            // 2nd Appointments by channel
-            const secondBookedSms = realChannelData?.second?.sms ?? channelData?.second?.sms ?? Math.round(secondBookedCurrent * smsRatio);
-            const secondBookedCall = realChannelData?.second?.call ?? channelData?.second?.call ?? Math.round(secondBookedCurrent * callRatio);
-            const secondShowedSms = channelData?.second?.showedSms ?? Math.round(secondCompletedCurrent * smsRatio);
-            const secondShowedCall = channelData?.second?.showedCall ?? Math.round(secondCompletedCurrent * callRatio);
-
-            // Show rates by channel
-            const firstShowRateSms = firstBookedSms > 0 ? (firstShowedSms / firstBookedSms * 100) : 0;
-            const firstShowRateCall = firstBookedCall > 0 ? (firstShowedCall / firstBookedCall * 100) : 0;
-            const secondShowRateSms = secondBookedSms > 0 ? (secondShowedSms / secondBookedSms * 100) : 0;
-            const secondShowRateCall = secondBookedCall > 0 ? (secondShowedCall / secondBookedCall * 100) : 0;
-
-            // 90-day averages by channel (use real data when available, fallback to ratio)
-            const channel90 = data90.channelBreakdown || null;
-            const firstBookedSms90Avg = channel90?.first?.sms
-                ? Math.round(channel90.first.sms / scaleFactor)
-                : Math.round(firstBooked90Avg * smsRatio);
-            const firstBookedCall90Avg = channel90?.first?.call
-                ? Math.round(channel90.first.call / scaleFactor)
-                : Math.round(firstBooked90Avg * callRatio);
-            const secondBookedSms90Avg = channel90?.second?.sms
-                ? Math.round(channel90.second.sms / scaleFactor)
-                : Math.round(secondBooked90Avg * smsRatio);
-            const secondBookedCall90Avg = channel90?.second?.call
-                ? Math.round(channel90.second.call / scaleFactor)
-                : Math.round(secondBooked90Avg * callRatio);
-
-            // Show rate 90-day averages by channel
-            const firstShowedSms90 = channel90?.first?.showedSms || 0;
-            const firstShowedCall90 = channel90?.first?.showedCall || 0;
-            const firstShowRateSms90Avg = (channel90?.first?.sms > 0)
-                ? (firstShowedSms90 / channel90.first.sms * 100)
-                : firstShowRate90Avg;
-            const firstShowRateCall90Avg = (channel90?.first?.call > 0)
-                ? (firstShowedCall90 / channel90.first.call * 100)
-                : firstShowRate90Avg;
-            const secondShowedSms90 = channel90?.second?.showedSms || 0;
-            const secondShowedCall90 = channel90?.second?.showedCall || 0;
-            const secondShowRateSms90Avg = (channel90?.second?.sms > 0)
-                ? (secondShowedSms90 / channel90.second.sms * 100)
-                : secondShowRate90Avg;
-            const secondShowRateCall90Avg = (channel90?.second?.call > 0)
-                ? (secondShowedCall90 / channel90.second.call * 100)
-                : secondShowRate90Avg;
-
-            // ======== UPDATE BENCHMARK CARDS ========
-            // Row 1: 1st Appointments by Channel
-            updateBenchmarkCard('firstBookedSms', firstBookedSms, firstBookedSms90Avg, false);
-            updateBenchmarkCard('firstBookedCall', firstBookedCall, firstBookedCall90Avg, false);
-            updateBenchmarkCard('firstShowRateSms', firstShowRateSms, firstShowRateSms90Avg, true);
-            updateBenchmarkCard('firstShowRateCall', firstShowRateCall, firstShowRateCall90Avg, true);
-            updateBenchmarkCard('firstCompleted', firstCompletedCurrent, firstCompleted90Avg, false);
-
-            // Row 2: 2nd Appointments by Channel
-            updateBenchmarkCard('secondBookedSms', secondBookedSms, secondBookedSms90Avg, false);
-            updateBenchmarkCard('secondBookedCall', secondBookedCall, secondBookedCall90Avg, false);
-            updateBenchmarkCard('secondShowRateSms', secondShowRateSms, secondShowRateSms90Avg, true);
-            updateBenchmarkCard('secondShowRateCall', secondShowRateCall, secondShowRateCall90Avg, true);
-            updateBenchmarkCard('secondCompleted', secondCompletedCurrent, secondCompleted90Avg, false);
-
-            // Row 3: Outcomes (signed, conversion) - updated in fetchCostData for cost/appt
-            updateBenchmarkCard('signed', signedCurrent, signed90Avg, false);
-            updateBenchmarkCard('conversionRate', conversionRateCurrent, conversionRate90Avg, true);
-
-            // Store values for cost calculations
-            window.firstBookedSms = firstBookedSms;
-            window.firstBookedCall = firstBookedCall;
-
-            // Queue chart is now updated in fetchQueueData() instead
-
-            // Update pipeline with CURRENT state (NOT date-filtered)
-            // Pipeline shows where opportunities are NOW, regardless of when they were created
-            const oppsPipeline = pipelineData.opportunities || dataRange.opportunities || {};
-            document.getElementById('pipeHotLead').textContent = oppsPipeline.hotLead || 0;
-            document.getElementById('pipeSentOffer').textContent = oppsPipeline.sentOffer || 0;
-            document.getElementById('pipeSentContract').textContent = oppsPipeline.sentContract || 0;
-            document.getElementById('pipeSignedContract').textContent = oppsPipeline.signedContract || 0;
-            document.getElementById('pipeTotal').textContent = oppsPipeline.total || 0;
-
-            // Store firstBookedCurrent for cost per appointment calculation
-            window.firstBookedCurrent = firstBookedCurrent;
+            setText('secondApptVal', secondBooked);
+            setText('secondAppt90', secondDailyAvg90.toFixed(1));
+            setKPIChange('secondApptChg', 'secondApptInd',
+                secondDailyAvg90 > 0 ? ((currentSecondDaily - secondDailyAvg90) / secondDailyAvg90 * 100) : 0, true);
         }
 
-        // Unified benchmark card update function
-        function updateBenchmarkCard(prefix, current, avg90, isPercentage) {
-            // Handle special case for signed which uses 'signed30' as the main ID
-            const currentElId = prefix === 'signed' ? 'signed30' :
-                                prefix === 'conversionRate' ? 'conversionRateBenchmark' : prefix;
-
-            const currentEl = document.getElementById(currentElId);
-            const avgEl = document.getElementById(`${prefix}90Avg`);
-            const changeEl = document.getElementById(`${prefix}Change`);
-            const indicatorEl = document.getElementById(`${prefix}Indicator`);
-
-            if (isPercentage) {
-                currentEl.textContent = current.toFixed(1) + '%';
-                avgEl.textContent = avg90.toFixed(1) + '%';
-
-                const diff = current - avg90;
-                changeEl.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
-                changeEl.className = 'benchmark-change ' + (diff >= 0 ? 'up' : 'down');
-                indicatorEl.className = 'benchmark-indicator ' + (diff >= -5 ? 'good' : diff >= -15 ? 'warning' : 'alert');
-            } else {
-                currentEl.textContent = current.toLocaleString();
-                avgEl.textContent = avg90.toLocaleString();
-
-                if (avg90 > 0) {
-                    const pctChange = ((current - avg90) / avg90 * 100);
-                    changeEl.textContent = (pctChange >= 0 ? '+' : '') + pctChange.toFixed(0) + '%';
-                    changeEl.className = 'benchmark-change ' + (pctChange >= 0 ? 'up' : 'down');
-                    indicatorEl.className = 'benchmark-indicator ' + (pctChange >= -10 ? 'good' : pctChange >= -25 ? 'warning' : 'alert');
-                } else {
-                    changeEl.textContent = '--';
-                    changeEl.className = 'benchmark-change neutral';
-                    indicatorEl.className = 'benchmark-indicator warning';
-                }
-            }
-        }
-
-        // Helper to update change indicators for counts
-        function updateChangeIndicator(elementId, current, avg90) {
-            const el = document.getElementById(elementId);
-            if (!el) return;
-            if (avg90 > 0) {
-                const pctChange = ((current - avg90) / avg90 * 100);
-                el.textContent = (pctChange >= 0 ? '+' : '') + pctChange.toFixed(0) + '%';
-                el.className = 'compare-change ' + (pctChange >= 0 ? 'up' : 'down');
-            } else {
-                el.textContent = '--';
-                el.className = 'compare-change';
-            }
-        }
-
-        // Helper to update change indicators for percentages
-        function updateChangeIndicatorPct(elementId, current, avg90) {
-            const el = document.getElementById(elementId);
-            if (!el) return;
-            const diff = current - avg90;
-            el.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
-            el.className = 'compare-change ' + (diff >= 0 ? 'up' : 'down');
-        }
-
-        // Fetch cost data
-        async function fetchCostData() {
-            const range = getDateRange();
+        // ============================================================
+        // Section 4: Costs (ops.twilio_daily_costs + ops.retell_call_outcomes)
+        // ============================================================
+        async function fetchCosts(range, state) {
             const filter = document.getElementById('dateFilter').value;
 
-            console.log(`[Costs] Fetching for range: ${range.startDateStr} to ${range.endDateStr} (${range.label})`);
-            console.log(`[Costs] ISO range: ${range.startDateISO} to ${range.endDateISO}`);
-
-            // Twilio costs - uses DATE field (YYYY-MM-DD)
-            // Note: twilio_daily_costs is updated once daily ~8-9pm Eastern
-            // For "Today", show yesterday's complete data instead of today's incomplete data
-            let twilioStartDate = range.startDateStr;
-            let twilioEndDate = range.endDateStr;
-
+            // Twilio daily costs - uses date column (YYYY-MM-DD)
+            // For "Today", show yesterday (complete data)
+            let twStartDate = range.startStr;
+            let twEndDate = range.endStr;
             if (filter === 'today') {
-                // Use yesterday's date for complete cost data
                 const yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
-                twilioStartDate = formatEasternDate(yesterday);
-                twilioEndDate = twilioStartDate;
-                console.log(`[Costs] Using yesterday's complete data: ${twilioStartDate}`);
+                twStartDate = formatEasternDate(yesterday);
+                twEndDate = twStartDate;
             }
 
-            const twilioUrl = `${SUPABASE_URL}/rest/v1/twilio_daily_costs?date=gte.${twilioStartDate}&date=lte.${twilioEndDate}`;
-            console.log(`[Costs] Twilio URL: ${twilioUrl}`);
-            const twilioResp = await fetch(twilioUrl, {
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'Accept-Profile': 'ops',
-                    'Content-Type': 'application/json'
-                }
+            const [twilioData, twilioData90, retellCostData, retellCost90Data] = await Promise.all([
+                sbFetch(`${SUPABASE_URL}/rest/v1/twilio_daily_costs?date=gte.${twStartDate}&date=lte.${twEndDate}`, 'ops'),
+                sbFetch(`${SUPABASE_URL}/rest/v1/twilio_daily_costs?date=gte.${range.d90StartStr}&date=lte.${range.endStr}`, 'ops'),
+                sbFetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startISO}&created_at=lte.${range.endISO}&select=call_cost_cents`, 'ops'),
+                sbFetch(`${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.d90StartISO}&select=call_cost_cents`, 'ops')
+            ]);
+
+            // Current range costs
+            let smsCost = 0, twilioVoiceCost = 0, smsCount = 0, callMinutes = 0;
+            twilioData.forEach(d => {
+                smsCost += parseFloat(d.sms_cost) || 0;
+                twilioVoiceCost += parseFloat(d.call_cost) || 0;
+                smsCount += (d.sms_outbound_count || 0) + (d.sms_inbound_count || 0);
+                callMinutes += d.call_minutes || 0;
             });
 
-            let smsCost = 0, twilioCost = 0, smsCount = 0, callMinutes = 0;
-            if (twilioResp.ok) {
-                const twilioData = await twilioResp.json();
-                console.log(`[Costs] Twilio rows returned: ${twilioData.length}`);
-                twilioData.forEach(d => {
-                    smsCost += parseFloat(d.sms_cost) || 0;
-                    twilioCost += parseFloat(d.call_cost) || 0;
-                    smsCount += (d.sms_outbound_count || 0) + (d.sms_inbound_count || 0);
-                    callMinutes += d.call_minutes || 0;
-                });
-            }
+            let retellCost = 0;
+            retellCostData.forEach(d => { retellCost += (d.call_cost_cents || 0) / 100; });
+            const retellCalls = retellCostData.length;
 
-            // Retell costs - use created_at (indexed) instead of start_timestamp to avoid timeouts
-            const retellUrl = `${SUPABASE_URL}/rest/v1/retell_call_outcomes?created_at=gte.${range.startDateISO}&created_at=lte.${range.endDateISO}&select=call_cost_cents,created_at`;
-            console.log(`[Costs] Retell URL: ${retellUrl}`);
-            const retellResp = await fetch(retellUrl, {
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'Accept-Profile': 'ops',
-                    'Content-Type': 'application/json'
-                }
+            const totalCost = smsCost + twilioVoiceCost + retellCost;
+
+            // 90-day costs
+            let smsCost90 = 0, twilioVoiceCost90 = 0;
+            twilioData90.forEach(d => {
+                smsCost90 += parseFloat(d.sms_cost) || 0;
+                twilioVoiceCost90 += parseFloat(d.call_cost) || 0;
             });
 
-            let retellCost = 0, retellCalls = 0;
-            if (retellResp.ok) {
-                const retellData = await retellResp.json();
-                retellCalls = retellData.length;
-                console.log(`[Costs] Retell calls returned: ${retellCalls}`);
-                if (retellCalls > 0) {
-                    console.log(`[Costs] First call date: ${retellData[0].created_at}`);
-                    console.log(`[Costs] Last call date: ${retellData[retellData.length-1].created_at}`);
-                }
-                retellData.forEach(d => {
-                    retellCost += (d.call_cost_cents || 0) / 100;
-                });
-            }
+            let retellCost90 = 0;
+            retellCost90Data.forEach(d => { retellCost90 += (d.call_cost_cents || 0) / 100; });
 
-            const totalCost = smsCost + twilioCost + retellCost;
+            const totalCost90 = smsCost90 + twilioVoiceCost90 + retellCost90;
 
-            document.getElementById('smsCost').textContent = '$' + smsCost.toFixed(2);
-            document.getElementById('smsCostDetail').textContent = smsCount.toLocaleString() + ' messages';
+            // Store for derived KPIs
+            state.totalSpend = totalCost;
+            state.totalSpend90 = totalCost90;
 
-            document.getElementById('twilioCost').textContent = '$' + twilioCost.toFixed(2);
-            document.getElementById('twilioCostDetail').textContent = callMinutes.toLocaleString() + ' minutes';
+            // Daily averages (90-day)
+            const smsDailyAvg = smsCost90 / 90;
+            const twilioDailyAvg = twilioVoiceCost90 / 90;
+            const retellDailyAvg = retellCost90 / 90;
+            const totalDailyAvg = totalCost90 / 90;
 
-            document.getElementById('retellCost').textContent = '$' + retellCost.toFixed(2);
-            document.getElementById('retellCostDetail').textContent = retellCalls.toLocaleString() + ' calls';
+            // Current daily rate
+            const days = filter === 'today' ? 1 : range.daysBack;
+            const currentSmsDaily = smsCost / days;
+            const currentTwilioDaily = twilioVoiceCost / days;
+            const currentRetellDaily = retellCost / days;
+            const currentTotalDaily = totalCost / days;
 
-            document.getElementById('totalCost').textContent = '$' + totalCost.toFixed(2);
+            // Section 4: Cost cards
+            setText('costSms', '$' + smsCost.toFixed(2));
+            setText('costSmsDetail', smsCount.toLocaleString() + ' messages');
+            setText('costSms90', smsDailyAvg.toFixed(2));
+            setCostChange('costSmsChg', currentSmsDaily, smsDailyAvg);
 
-            // Cost per 1st appointment (use stored value from fetchGHLData)
-            const firstAppt = window.firstBookedCurrent || 1;
-            document.getElementById('costPerAppt').textContent = '$' + (totalCost / firstAppt).toFixed(2) + ' per 1st appt';
+            setText('costTwilioVoice', '$' + twilioVoiceCost.toFixed(2));
+            setText('costTwilioDetail', callMinutes.toLocaleString() + ' minutes');
+            setText('costTwilio90', twilioDailyAvg.toFixed(2));
+            setCostChange('costTwilioChg', currentTwilioDaily, twilioDailyAvg);
 
-            // ======== UPDATE ROW 3 COST/APPT TILES ========
-            // Blended channel spend per appointment (total appointments as denominator)
-            // This is more accurate than per-channel attribution since contacts
-            // typically receive both SMS and voice before booking
-            const totalAppts = window.firstBookedCurrent || 0;
+            setText('costRetell', '$' + retellCost.toFixed(2));
+            setText('costRetellDetail', retellCalls.toLocaleString() + ' calls');
+            setText('costRetell90', retellDailyAvg.toFixed(2));
+            setCostChange('costRetellChg', currentRetellDaily, retellDailyAvg);
 
-            // SMS spend per appointment (SMS cost spread across all appointments)
-            const costPerApptSms = totalAppts > 0 ? (smsCost / totalAppts) : 0;
-            // Voice spend per appointment (Twilio voice + Retell spread across all appointments)
-            const costPerApptCall = totalAppts > 0 ? ((twilioCost + retellCost) / totalAppts) : 0;
+            setText('costTotal', '$' + totalCost.toFixed(2));
+            setText('costTotalDetail', 'all channels');
+            setText('costTotal90', totalDailyAvg.toFixed(2));
+            setCostChange('costTotalChg', currentTotalDaily, totalDailyAvg);
 
-            // Update cost/appt tiles
-            updateBenchmarkCardCost('costPerApptSms', costPerApptSms, costPerApptSms * 0.9);
-            updateBenchmarkCardCost('costPerApptCall', costPerApptCall, costPerApptCall * 1.1);
+            // Cost per 1st appointment (will use state.firstBooked after appointments load)
+            // Handled in updateDerivedKPIs
         }
 
-        // Helper for cost benchmark cards
-        function updateBenchmarkCardCost(prefix, current, avg90) {
-            const currentEl = document.getElementById(prefix);
-            const avgEl = document.getElementById(`${prefix}90Avg`);
-            const changeEl = document.getElementById(`${prefix}Change`);
-            const indicatorEl = document.getElementById(`${prefix}Indicator`);
+        // ============================================================
+        // Section 5: Queue Status (always today)
+        // ============================================================
+        async function fetchQueue() {
+            const todayStr = formatEasternDate(new Date());
+            const todayStart = new Date(todayStr + 'T00:00:00-05:00');
+            const tomorrowStart = new Date(todayStart.getTime() + 86400000);
 
-            currentEl.textContent = '$' + current.toFixed(2);
-            avgEl.textContent = '$' + avg90.toFixed(2);
+            const { data: qData, error } = await sbClient
+                .from('outreach_queue')
+                .select('channel, status')
+                .gte('next_action_at', todayStart.toISOString())
+                .lt('next_action_at', tomorrowStart.toISOString());
 
-            if (avg90 > 0) {
-                const pctChange = ((current - avg90) / avg90 * 100);
-                changeEl.textContent = (pctChange >= 0 ? '+' : '') + pctChange.toFixed(0) + '%';
-                // For costs, DOWN is good (lower cost)
-                changeEl.className = 'benchmark-change ' + (pctChange <= 0 ? 'up' : 'down');
-                indicatorEl.className = 'benchmark-indicator ' + (pctChange <= 10 ? 'good' : pctChange <= 25 ? 'warning' : 'alert');
+            if (error) { console.warn('[Queue]', error.message); return; }
+
+            const items = qData || [];
+            const total = items.length;
+            const smsPending = items.filter(q => q.channel === 'sms' && q.status === 'queued').length;
+            const voicePending = items.filter(q => q.channel === 'voice' && q.status === 'queued').length;
+            const sent = items.filter(q => q.status === 'sent').length;
+            const failed = items.filter(q => q.status === 'failed').length;
+
+            setText('qTotal', total.toLocaleString());
+            setText('qSmsPending', smsPending.toLocaleString());
+            setText('qVoicePending', voicePending.toLocaleString());
+            setText('qSent', sent.toLocaleString());
+            setText('qFailed', failed.toLocaleString());
+
+            // Queue chart data
+            const smsQueued = items.filter(q => q.channel === 'sms' && q.status === 'queued').length;
+            const smsSent = items.filter(q => q.channel === 'sms' && q.status === 'sent').length;
+            const smsFailed = items.filter(q => q.channel === 'sms' && q.status === 'failed').length;
+            const voiceQueued = items.filter(q => q.channel === 'voice' && q.status === 'queued').length;
+            const voiceSent = items.filter(q => q.channel === 'voice' && q.status === 'sent').length;
+            const voiceFailed = items.filter(q => q.channel === 'voice' && q.status === 'failed').length;
+
+            queueChart.data.datasets[0].data = [smsQueued, voiceQueued];
+            queueChart.data.datasets[1].data = [smsSent, voiceSent];
+            queueChart.data.datasets[2].data = [smsFailed, voiceFailed];
+            queueChart.update();
+        }
+
+        // ============================================================
+        // Derived KPIs (after all fetches complete)
+        // ============================================================
+        function updateDerivedKPIs(range, state) {
+            // Total Spend KPI card
+            const totalDailyAvg = state.totalSpend90 / 90;
+            const currentTotalDaily = state.totalSpend / range.daysBack;
+
+            setText('totalSpendVal', '$' + state.totalSpend.toFixed(2));
+            setText('totalSpend90', totalDailyAvg.toFixed(2));
+            // For costs, lower is better - invert the indicator
+            const spendPctChange = totalDailyAvg > 0 ? ((currentTotalDaily - totalDailyAvg) / totalDailyAvg * 100) : 0;
+            setKPIChangeCost('totalSpendChg', 'totalSpendInd', spendPctChange);
+
+            // Cost per 1st Appointment KPI card
+            const cpa = state.firstBooked > 0 ? (state.totalSpend / state.firstBooked) : 0;
+            const cpa90 = state.firstBooked90 > 0 ? (state.totalSpend90 / state.firstBooked90) : 0;
+
+            setText('cpaVal', cpa > 0 ? '$' + cpa.toFixed(2) : '$--');
+            setText('cpa90', cpa90 > 0 ? cpa90.toFixed(2) : '--');
+            if (cpa > 0 && cpa90 > 0) {
+                const cpaPctChange = ((cpa - cpa90) / cpa90 * 100);
+                setKPIChangeCost('cpaChg', 'cpaInd', cpaPctChange);
             } else {
-                changeEl.textContent = '--';
-                changeEl.className = 'benchmark-change neutral';
-                indicatorEl.className = 'benchmark-indicator warning';
+                setText('cpaChg', '--');
+                setClass('cpaChg', 'kpi-change neutral');
+                setClass('cpaInd', 'kpi-indicator warning');
+            }
+
+            // Cost per 1st Appt in Section 4
+            setText('costPerAppt', cpa > 0 ? '$' + cpa.toFixed(2) : '$--');
+            setText('costPerApptDetail', state.firstBooked > 0 ? state.firstBooked + ' bookings' : 'no bookings');
+            setText('costPerAppt90', cpa90 > 0 ? cpa90.toFixed(2) : '--');
+            if (cpa > 0 && cpa90 > 0) {
+                setCostChange('costPerApptChg', cpa, cpa90);
+            }
+        }
+
+        // ============================================================
+        // UI Helpers
+        // ============================================================
+        function setText(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text;
+        }
+
+        function setClass(id, cls) {
+            const el = document.getElementById(id);
+            if (el) el.className = cls;
+        }
+
+        // Change indicator for count metrics (higher = better)
+        function setChange(id, current, avg) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (avg > 0) {
+                const pct = ((current - avg) / avg * 100);
+                el.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(0) + '%';
+                el.className = 'change ' + (pct >= 0 ? 'up' : 'down');
+            } else {
+                el.textContent = '--';
+                el.className = 'change';
+            }
+        }
+
+        // Change indicator for cost metrics (lower = better)
+        function setCostChange(id, current, avg) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (avg > 0) {
+                const pct = ((current - avg) / avg * 100);
+                el.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(0) + '%';
+                el.className = 'change ' + (pct <= 0 ? 'cost-down' : 'cost-up');
+            } else {
+                el.textContent = '--';
+                el.className = 'change';
+            }
+        }
+
+        // KPI card change + indicator (higher = better)
+        function setKPIChange(changeId, indId, pctChange, isPercent) {
+            const changeEl = document.getElementById(changeId);
+            const indEl = document.getElementById(indId);
+            if (!changeEl) return;
+
+            if (isPercent) {
+                changeEl.textContent = (pctChange >= 0 ? '+' : '') + pctChange.toFixed(0) + '%';
+                changeEl.className = 'kpi-change ' + (pctChange >= 0 ? 'up' : 'down');
+            } else {
+                // For ratio diffs (percentage points)
+                changeEl.textContent = (pctChange >= 0 ? '+' : '') + pctChange.toFixed(1) + 'pp';
+                changeEl.className = 'kpi-change ' + (pctChange >= 0 ? 'up' : 'down');
+            }
+
+            if (indEl) {
+                const absPct = Math.abs(pctChange);
+                indEl.className = 'kpi-indicator ' + (pctChange >= -5 ? 'good' : pctChange >= -20 ? 'warning' : 'alert');
+            }
+        }
+
+        // KPI card change + indicator for costs (lower = better)
+        function setKPIChangeCost(changeId, indId, pctChange) {
+            const changeEl = document.getElementById(changeId);
+            const indEl = document.getElementById(indId);
+            if (!changeEl) return;
+
+            changeEl.textContent = (pctChange >= 0 ? '+' : '') + pctChange.toFixed(0) + '%';
+            // For costs: negative change = good (costs went down)
+            changeEl.className = 'kpi-change ' + (pctChange <= 0 ? 'cost-down' : 'cost-up');
+
+            if (indEl) {
+                indEl.className = 'kpi-indicator ' + (pctChange <= 10 ? 'good' : pctChange <= 25 ? 'warning' : 'alert');
             }
         }
     </script>
 </body>
 </html>
-<!-- Deployed: Tue, Feb  4, 2026 - Channel tracking + Supabase signed contracts -->
-<!-- Changes: Real channel breakdown from GHL Stats API, Signed contracts from ops.signed_contracts -->
