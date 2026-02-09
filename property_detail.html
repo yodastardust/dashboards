@@ -273,6 +273,25 @@
         .badge-foreclosure { background: var(--warning-orange); color: black; }
         .badge-taxdeed { background: var(--accent-blue); color: white; }
 
+        /* Property-level suppression */
+        .property-suppressed-banner {
+            background: var(--alert-red);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-weight: 500;
+            text-align: center;
+        }
+        .property-suppressed-banner .suppressed-meta {
+            display: block;
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+        .contacts-suppressed .contact-row { opacity: 0.5; }
+        .contacts-suppressed .contact-row:hover { opacity: 0.7; }
+
         /* Contacts Table */
         .contacts-table {
             width: 100%;
@@ -573,6 +592,9 @@
                 </div>
             </div>
 
+            <!-- Property Suppression Banner (hidden by default) -->
+            <div class="property-suppressed-banner" id="property-suppressed-banner" style="display:none"></div>
+
             <!-- Contacts Card -->
             <div class="card" id="contacts-card">
                 <div class="card-header">
@@ -665,6 +687,7 @@
         let currentRawRowId = null;
         let expandedContactIdx = null; // Which contact row is expanded
         let contactHistoryCache = {};  // Cache loaded histories by phone_digits
+        let propertySuppressionData = null; // Property-level suppression (scope='raw_row')
 
         // Initialize
         async function init() {
@@ -748,6 +771,22 @@
                 .eq('raw_row_id', currentRawRowId)
                 .order('priority_rank', { ascending: true });
             currentContacts = data || [];
+
+            // Fetch property-level suppression (scope='raw_row') for the whole property
+            propertySuppressionData = null;
+            try {
+                const propSuppResp = await fetch(`${SUPABASE_URL}/rest/v1/marketing_suppressions?raw_row_id=eq.${currentRawRowId}&scope=eq.raw_row&active=eq.true&select=phone_digits,scope,reason,active,source_system,created_at&limit=1`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Accept-Profile': 'ops'
+                    }
+                });
+                if (propSuppResp.ok) {
+                    const propSupps = await propSuppResp.json();
+                    if (propSupps.length > 0) propertySuppressionData = propSupps[0];
+                }
+            } catch (e) { /* silently fail */ }
 
             if (currentContacts.length > 0) {
                 const phones = currentContacts.map(c => c.phone_digits);
@@ -883,6 +922,26 @@
         function renderContacts() {
             document.getElementById('contacts-title').textContent = `Contacts (${currentContacts.length})`;
             const tbody = document.getElementById('contacts-body');
+            const banner = document.getElementById('property-suppressed-banner');
+            const contactsCard = document.getElementById('contacts-card');
+            const addContactCard = document.getElementById('add-contact-card');
+
+            // Property-level suppression banner
+            if (propertySuppressionData) {
+                const suppDate = propertySuppressionData.created_at
+                    ? new Date(propertySuppressionData.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : 'Unknown date';
+                const source = propertySuppressionData.source_system || 'unknown';
+                const reason = propertySuppressionData.reason || 'suppressed';
+                banner.innerHTML = `PROPERTY SUPPRESSED &mdash; All contacts blocked from outreach<span class="suppressed-meta">Suppressed on ${escapeHtml(suppDate)} via ${escapeHtml(source)} &mdash; Reason: ${escapeHtml(reason)}</span>`;
+                banner.style.display = 'block';
+                contactsCard.querySelector('.card-body').classList.add('contacts-suppressed');
+                addContactCard.style.display = 'none';
+            } else {
+                banner.style.display = 'none';
+                contactsCard.querySelector('.card-body').classList.remove('contacts-suppressed');
+                addContactCard.style.display = '';
+            }
 
             if (currentContacts.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">No contacts found for this property</td></tr>';
@@ -894,9 +953,13 @@
                 const isExpanded = expandedContactIdx === idx;
                 const convo = c._convo;
                 const supp = c._suppression;
+
+                // If property is suppressed, show SUPPRESSED badge for all contacts (unless wrong number or stopped)
                 let statusBadge = '<span class="badge badge-active">Active</span>';
                 if (convo?.status === 'stopped') {
                     statusBadge = '<span class="badge badge-stopped">Stopped</span>';
+                } else if (propertySuppressionData && convo?.resolution !== 'wrong_number') {
+                    statusBadge = '<span class="badge badge-suppressed">SUPPRESSED</span>';
                 } else if (supp?.active) {
                     const reasonLabel = supp.reason === 'wrong_person' ? 'Wrong Number' : supp.reason === 'dnc' ? 'DNC' : 'Suppressed';
                     statusBadge = `<span class="badge badge-suppressed">${reasonLabel}</span>`;
