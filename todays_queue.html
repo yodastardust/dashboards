@@ -292,7 +292,7 @@
     <div class="two-col">
         <div class="panel">
             <div class="panel-title">Hourly Sends (Actual)</div>
-            <div style="position:relative;height:220px"><canvas id="hourlyChart"></canvas></div>
+            <div style="position:relative;height:220px;overflow:hidden"><canvas id="hourlyChart"></canvas></div>
         </div>
         <div class="panel">
             <div class="panel-title">Pipeline Health</div>
@@ -598,18 +598,21 @@ function updateHourlyChart(sentItems) {
         }
     }
 
+    // Update existing chart data in-place (no destroy/recreate)
+    if (hourlyChart) {
+        hourlyChart.data.datasets[0].data = smsByHour;
+        hourlyChart.data.datasets[1].data = voiceByHour;
+        hourlyChart.update('none');
+        return;
+    }
+
     const labels = hours.map(h => {
         const ampm = h >= 12 ? 'pm' : 'am';
         const h12 = h > 12 ? h - 12 : h;
         return `${h12}${ampm}`;
     });
 
-    const currentHourEST = nowEST().getHours();
-    const barColors = hours.map(h => h === currentHourEST ? 'rgba(0,188,212,0.3)' : 'transparent');
-
     const ctx = document.getElementById('hourlyChart').getContext('2d');
-    if (hourlyChart) hourlyChart.destroy();
-
     hourlyChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -632,6 +635,7 @@ function updateHourlyChart(sentItems) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: false,
             plugins: {
                 legend: {
                     position: 'top',
