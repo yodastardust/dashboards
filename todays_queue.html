@@ -669,7 +669,7 @@ function updateHourlyChart(sentItems) {
 // ============================================================
 function buildAggregates(queuedItems, sentTodayItems) {
     // Parse queue items for aggregation
-    const queued = queuedItems.filter(r => r.status === 'queued');
+    const queued = queuedItems; // already filtered by status=eq.queued in sbFetch
     const sent = sentTodayItems;
 
     // Helper to parse template_key
