@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deal Analysis - Mission Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0b0b0f;
+            --bg-secondary: #1a1a1e;
+            --bg-panel: #141418;
+            --bg-hover: #252529;
+            --accent-blue: #005288;
+            --accent-cyan: #00bcd4;
+            --alert-red: #c41e3a;
+            --success-green: #00c853;
+            --warning-yellow: #ffc107;
+            --warning-orange: #ff8800;
+            --text-primary: #ffffff;
+            --text-secondary: #9e9e9e;
+            --text-muted: #666666;
+            --border-color: #2a2a2e;
+            --shadow: 0 4px 20px rgba(0,0,0,0.5);
+            --lever-border: #00bcd4;
+            --lever-bg: rgba(0,188,212,0.05);
+            --fixed-bg: rgba(102,102,102,0.1);
+            --ltv-green: #00c853;
+            --ltv-orange: #ff8800;
+            --ltv-red: #c41e3a;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Roboto',sans-serif; background:var(--bg-primary); color:var(--text-primary); min-height:100vh; }
+
+        /* Header */
+        .header { background:var(--bg-secondary); border-bottom:1px solid var(--border-color); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+        .logo { display:flex; align-items:center; gap:12px; }
+        .logo-icon { width:40px; height:40px; background:linear-gradient(135deg,var(--accent-cyan),var(--accent-blue)); border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; }
+        .logo-text { font-weight:500; font-size:18px; }
+        .logo-text span { color:var(--text-secondary); font-weight:300; }
+        .header-center { display:flex; align-items:center; gap:8px; flex:1; max-width:500px; margin:0 24px; position:relative; }
+        .header-search { width:100%; padding:8px 12px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:6px; color:var(--text-primary); font-size:14px; outline:none; }
+        .header-search:focus { border-color:var(--accent-cyan); }
+        .header-search::placeholder { color:var(--text-muted); }
+        .search-results { position:absolute; top:100%; left:0; right:0; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:0 0 6px 6px; max-height:300px; overflow-y:auto; display:none; z-index:200; }
+        .search-result-item { padding:10px 12px; cursor:pointer; border-bottom:1px solid var(--border-color); font-size:13px; }
+        .search-result-item:hover { background:var(--bg-hover); }
+        .search-result-item .sr-address { color:var(--text-primary); font-weight:500; }
+        .search-result-item .sr-meta { color:var(--text-muted); font-size:12px; margin-top:2px; }
+        .header-actions { display:flex; gap:8px; align-items:center; }
+        .btn { padding:8px 16px; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:500; transition:all 0.2s; }
+        .btn-primary { background:var(--accent-cyan); color:#000; }
+        .btn-primary:hover { background:#26c6da; }
+        .btn-secondary { background:var(--bg-hover); color:var(--text-primary); border:1px solid var(--border-color); }
+        .btn-secondary:hover { border-color:var(--accent-cyan); }
+        .btn-help { width:36px; height:36px; border-radius:50%; background:var(--bg-hover); border:1px solid var(--border-color); color:var(--accent-cyan); font-size:18px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+        .btn-help:hover { border-color:var(--accent-cyan); background:rgba(0,188,212,0.1); }
+        .status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+        .status-dot.green { background:var(--success-green); }
+        .status-dot.red { background:var(--alert-red); }
+        .conn-status { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+
+        /* Main Layout */
+        .main { max-width:1300px; margin:0 auto; padding:24px; }
+
+        /* Cards */
+        .card { background:var(--bg-panel); border:1px solid var(--border-color); border-radius:8px; margin-bottom:20px; overflow:hidden; }
+        .card-header { padding:14px 20px; border-bottom:1px solid var(--border-color); font-size:13px; font-weight:500; letter-spacing:1px; text-transform:uppercase; color:var(--accent-cyan); display:flex; align-items:center; justify-content:space-between; }
+        .card-body { padding:20px; }
+
+        /* Property Summary */
+        .property-summary { display:none; padding:16px 20px; background:var(--bg-secondary); border-radius:6px; margin-bottom:0; }
+        .property-summary.visible { display:block; }
+        .ps-address { font-size:18px; font-weight:500; margin-bottom:6px; }
+        .ps-meta { display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--text-secondary); }
+        .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:500; text-transform:uppercase; }
+        .badge-fc { background:rgba(0,188,212,0.15); color:var(--accent-cyan); }
+        .badge-td { background:rgba(255,136,0,0.15); color:var(--warning-orange); }
+        .badge-dec { background:rgba(196,30,58,0.15); color:var(--alert-red); }
+        .badge-llc { background:rgba(156,39,176,0.15); color:#ce93d8; }
+        .badge-passed { background:rgba(196,30,58,0.2); color:var(--alert-red); }
+        .empty-state { text-align:center; padding:40px; color:var(--text-muted); }
+        .empty-state .icon { font-size:48px; margin-bottom:12px; }
+
+        /* Two-Column Grid */
+        .two-col { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+        @media(max-width:900px) { .two-col { grid-template-columns:1fr; } }
+
+        /* Form Groups */
+        .form-group { margin-bottom:12px; }
+        .form-label { display:block; font-size:12px; color:var(--text-secondary); margin-bottom:4px; font-weight:400; }
+        .form-label.lever-label::after { content:' \2699'; color:var(--accent-cyan); font-size:10px; }
+        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+        .form-section-title { font-size:12px; font-weight:500; color:var(--accent-cyan); text-transform:uppercase; letter-spacing:0.8px; margin:16px 0 8px; padding-bottom:4px; border-bottom:1px solid var(--border-color); }
+        .form-section-title:first-child { margin-top:0; }
+
+        /* Inputs */
+        input[type="text"], input[type="number"], select, textarea {
+            width:100%; padding:8px 10px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:4px;
+            color:var(--text-primary); font-family:'Roboto Mono',monospace; font-size:13px; outline:none;
+        }
+        input:focus, select:focus, textarea:focus { border-color:var(--accent-cyan); }
+        textarea { resize:vertical; min-height:60px; font-family:'Roboto',sans-serif; }
+
+        .lever-input { background:var(--lever-bg); border:1px solid rgba(0,188,212,0.3); border-left:3px solid var(--lever-border); }
+        .lever-input:focus { border-color:var(--accent-cyan); box-shadow:0 0 8px rgba(0,188,212,0.2); }
+        .fixed-input { background:var(--fixed-bg); color:var(--text-muted); cursor:not-allowed; }
+        .readonly-input { background:transparent; border-color:transparent; color:var(--text-secondary); cursor:default; padding-left:0; }
+
+        /* Checkbox */
+        .checkbox-row { display:flex; align-items:center; gap:8px; }
+        .checkbox-row input[type="checkbox"] { width:16px; height:16px; accent-color:var(--accent-cyan); }
+
+        /* Analysis Panel */
+        .analysis-panel { position:sticky; top:80px; }
+        .metric-card { background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:6px; padding:12px 16px; margin-bottom:10px; }
+        .metric-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
+        .metric-value { font-family:'Roboto Mono',monospace; font-size:24px; font-weight:700; }
+        .metric-value.green { color:var(--success-green); }
+        .metric-value.orange { color:var(--warning-orange); }
+        .metric-value.red { color:var(--alert-red); }
+        .metric-value.cyan { color:var(--accent-cyan); }
+        .metric-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+
+        /* LTV Bar */
+        .ltv-bar-container { height:28px; background:linear-gradient(90deg, var(--ltv-green) 0%, var(--ltv-green) 45%, var(--ltv-orange) 50%, var(--ltv-red) 55%, var(--ltv-red) 100%); border-radius:4px; position:relative; margin-top:8px; overflow:visible; }
+        .ltv-marker { position:absolute; top:-4px; bottom:-4px; width:3px; background:#fff; border-radius:2px; box-shadow:0 0 6px rgba(255,255,255,0.8); transition:left 0.3s; z-index:2; }
+        .ltv-threshold { position:absolute; left:55%; top:0; bottom:0; width:2px; background:rgba(255,255,255,0.5); border-left:1px dashed rgba(255,255,255,0.3); }
+        .ltv-labels { display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-top:4px; }
+
+        /* Cost Rows */
+        .cost-section { margin-bottom:16px; }
+        .cost-section-header { font-size:12px; font-weight:500; color:var(--accent-cyan); text-transform:uppercase; letter-spacing:0.8px; padding:8px 0; margin-bottom:4px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; }
+        .cost-section-header .toggle { transition:transform 0.2s; font-size:10px; }
+        .cost-section-header .toggle.collapsed { transform:rotate(-90deg); }
+        .cost-section-body { overflow:hidden; }
+        .cost-section-body.collapsed { display:none; }
+        .cost-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(42,42,46,0.5); font-size:13px; }
+        .cost-row:last-child { border-bottom:none; }
+        .cost-row.total { border-top:2px solid var(--accent-cyan); padding-top:10px; margin-top:4px; border-bottom:none; }
+        .cost-row .cost-label { color:var(--text-secondary); }
+        .cost-row .cost-value { font-family:'Roboto Mono',monospace; font-weight:500; }
+        .cost-row.total .cost-value { font-size:16px; font-weight:700; color:var(--accent-cyan); }
+        .cost-row .cost-input { width:120px; text-align:right; }
+        .cost-row .fixed-val { color:var(--text-muted); font-family:'Roboto Mono',monospace; }
+        .cost-row .calc-val { color:var(--text-primary); font-family:'Roboto Mono',monospace; }
+
+        /* Slider */
+        .slider-row { display:flex; align-items:center; gap:12px; }
+        .slider-row input[type="range"] { flex:1; accent-color:var(--accent-cyan); }
+        .slider-row .slider-val { font-family:'Roboto Mono',monospace; font-size:14px; min-width:50px; text-align:right; }
+
+        /* Tabs */
+        .tabs { display:flex; border-bottom:2px solid var(--border-color); margin-bottom:20px; }
+        .tab { padding:12px 24px; cursor:pointer; color:var(--text-secondary); border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.2s; font-size:13px; font-weight:500; text-transform:uppercase; letter-spacing:0.5px; }
+        .tab:hover { color:var(--text-primary); }
+        .tab.active { color:var(--accent-cyan); border-bottom-color:var(--accent-cyan); }
+        .tab-content { display:none; }
+        .tab-content.active { display:block; }
+
+        /* Scenario Cards */
+        .scenario-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(42,42,46,0.5); font-size:13px; }
+        .scenario-row:last-child { border-bottom:none; }
+        .scenario-row .sc-label { color:var(--text-secondary); }
+        .scenario-row .sc-value { font-family:'Roboto Mono',monospace; font-weight:500; }
+        .scenario-row.total { border-top:2px solid var(--accent-cyan); padding-top:10px; margin-top:4px; }
+        .scenario-row.total .sc-value { font-size:18px; font-weight:700; color:var(--accent-cyan); }
+        .scenario-row.highlight { background:rgba(0,188,212,0.05); margin:0 -20px; padding:8px 20px; }
+        .scenario-section-title { font-size:11px; font-weight:500; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin:20px 0 8px; }
+        .scenario-section-title:first-child { margin-top:0; }
+
+        .warning-banner { background:rgba(196,30,58,0.15); border:1px solid var(--alert-red); border-radius:6px; padding:10px 16px; margin-bottom:16px; font-size:13px; color:var(--alert-red); display:none; }
+        .warning-banner.visible { display:block; }
+        .escrow-note { font-size:11px; color:var(--text-muted); font-style:italic; margin-top:4px; }
+
+        /* MAO Display */
+        .mao-display { text-align:center; padding:24px; background:var(--bg-secondary); border-radius:8px; margin-top:16px; }
+        .mao-label { font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+        .mao-value { font-family:'Roboto Mono',monospace; font-size:36px; font-weight:700; }
+
+        /* Summary */
+        .summary-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
+        .summary-metric { background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px; padding:16px; text-align:center; }
+        .summary-metric .sm-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+        .summary-metric .sm-value { font-family:'Roboto Mono',monospace; font-size:28px; font-weight:700; }
+        .gauge-container { max-width:300px; margin:0 auto 24px; position:relative; }
+        .gauge-center-text { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); text-align:center; }
+        .gauge-center-text .gc-value { font-family:'Roboto Mono',monospace; font-size:32px; font-weight:700; }
+        .gauge-center-text .gc-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; }
+
+        .save-section { display:flex; gap:12px; align-items:flex-start; margin-top:20px; }
+        .save-section .notes-area { flex:1; }
+        .save-section .save-actions { display:flex; flex-direction:column; gap:8px; }
+        .status-select { padding:8px 10px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:4px; color:var(--text-primary); font-size:13px; }
+
+        .prev-analyses { margin-top:20px; }
+        .prev-item { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--bg-secondary); border-radius:4px; margin-bottom:6px; cursor:pointer; font-size:13px; }
+        .prev-item:hover { background:var(--bg-hover); }
+        .prev-item .pi-date { color:var(--text-secondary); }
+        .prev-item .pi-status { font-size:11px; text-transform:uppercase; }
+
+        .save-toast { position:fixed; bottom:24px; right:24px; background:var(--success-green); color:#000; padding:12px 24px; border-radius:8px; font-weight:500; display:none; z-index:300; animation:slideUp 0.3s; }
+        @keyframes slideUp { from { transform:translateY(20px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+
+        /* Help Panel */
+        .help-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:500; display:none; }
+        .help-backdrop.open { display:block; }
+        .help-panel { position:fixed; top:0; right:-420px; width:400px; height:100vh; background:var(--bg-panel); border-left:1px solid var(--border-color); z-index:510; transition:right 0.3s ease; overflow-y:auto; }
+        .help-panel.open { right:0; }
+        .help-header { padding:16px 20px; border-bottom:1px solid var(--border-color); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:var(--bg-panel); z-index:1; }
+        .help-header h2 { font-size:16px; font-weight:500; color:var(--accent-cyan); }
+        .help-close { background:none; border:none; color:var(--text-muted); font-size:24px; cursor:pointer; padding:4px; }
+        .help-close:hover { color:var(--text-primary); }
+        .help-content { padding:20px; }
+        .help-section { margin-bottom:24px; }
+        .help-section h3 { font-size:14px; font-weight:500; color:var(--accent-cyan); margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid var(--border-color); }
+        .help-section p, .help-section li { font-size:13px; color:var(--text-secondary); line-height:1.6; }
+        .help-section ul { padding-left:20px; margin-top:4px; }
+        .help-section .hl { color:var(--accent-cyan); font-weight:500; }
+        .help-section .lever-example { display:inline-block; padding:2px 8px; background:var(--lever-bg); border-left:3px solid var(--lever-border); border-radius:2px; font-family:'Roboto Mono',monospace; font-size:12px; margin:2px 0; }
+        .help-section .fixed-example { display:inline-block; padding:2px 8px; background:var(--fixed-bg); border:1px solid var(--border-color); border-radius:2px; font-family:'Roboto Mono',monospace; font-size:12px; color:var(--text-muted); margin:2px 0; }
+        .help-section dt { font-weight:500; color:var(--text-primary); margin-top:8px; }
+        .help-section dd { color:var(--text-secondary); margin-left:16px; margin-bottom:4px; }
+
+        /* Print */
+        @media print {
+            body { background:#fff !important; color:#000 !important; }
+            .header, .help-backdrop, .help-panel, .save-section, .search-results, .save-toast { display:none !important; }
+            .card { break-inside:avoid; border:1px solid #ddd !important; background:#fff !important; }
+            .card-header { color:#005288 !important; }
+            .tab-content { display:block !important; }
+            .metric-value, .cost-row .cost-value, .sc-value { color:#000 !important; }
+            .lever-input, .fixed-input, .readonly-input, input, select { border:1px solid #ccc !important; background:#f9f9f9 !important; color:#000 !important; }
+        }
+
+        /* Loading */
+        .loading-overlay { position:fixed; inset:0; background:rgba(11,11,15,0.8); display:flex; align-items:center; justify-content:center; z-index:400; }
+        .loading-overlay.hidden { display:none; }
+        .spinner { width:40px; height:40px; border:3px solid var(--border-color); border-top-color:var(--accent-cyan); border-radius:50%; animation:spin 0.8s linear infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">DA</div>
+            <div class="logo-text">Deal Analysis <span>/ Mission Control</span></div>
+        </div>
+        <div class="header-center">
+            <input type="text" class="header-search" id="propertySearch" placeholder="Search by case number or property address..." autocomplete="off">
+            <div class="search-results" id="searchResults"></div>
+        </div>
+        <div class="header-actions">
+            <button class="btn-help" id="helpBtn" title="Help">?</button>
+            <button class="btn btn-primary" id="saveBtn" onclick="saveDeal()">Save Deal</button>
+            <div class="conn-status"><div class="status-dot" id="connDot"></div><span id="connText">CONNECTING</span></div>
+        </div>
+    </header>
+
+    <!-- Help Panel -->
+    <div class="help-backdrop" id="helpBackdrop"></div>
+    <div class="help-panel" id="helpPanel">
+        <div class="help-header">
+            <h2>How to Use Deal Analysis</h2>
+            <button class="help-close" id="helpClose">&times;</button>
+        </div>
+        <div class="help-content">
+            <div class="help-section">
+                <h3>Overview</h3>
+                <p>This dashboard helps you underwrite real estate deals by calculating acquisition costs, lender costs, and program scenarios. It connects to the property pipeline in Supabase to auto-populate property data.</p>
+            </div>
+            <div class="help-section">
+                <h3>How to Use</h3>
+                <ul>
+                    <li><span class="hl">Step 1:</span> Search for a property by case number or address in the top search bar.</li>
+                    <li><span class="hl">Step 2:</span> Review auto-populated fields and fill in manual fields like AS IS Value, Market Rent, Mortgage Payments, etc.</li>
+                    <li><span class="hl">Step 3:</span> Adjust levers (cyan-bordered inputs) to model different scenarios. All calculations update in real-time.</li>
+                    <li><span class="hl">Step 4:</span> Review the four program scenarios (Save &amp; Stay, Save &amp; Sell, STR, Wholesaler) to find the best strategy.</li>
+                    <li><span class="hl">Step 5:</span> Add notes, set a status, and click "Save Deal" to store the analysis.</li>
+                </ul>
+            </div>
+            <div class="help-section">
+                <h3>Levers vs Fixed Costs</h3>
+                <p><span class="lever-example">$5,000</span> <strong>Levers</strong> are adjustable inputs you can change per deal. They have a cyan left border.</p>
+                <p style="margin-top:8px;"><span class="fixed-example">$675</span> <strong>Fixed costs</strong> are standard fees that don't change. They appear grayed out.</p>
+            </div>
+            <div class="help-section">
+                <h3>LTV Guide</h3>
+                <p><strong>LTV (Loan-to-Value)</strong> = Final Judgment / AS IS Value. This is the primary go/no-go metric.</p>
+                <ul>
+                    <li style="color:var(--ltv-green);">Below 50% - Good deal range</li>
+                    <li style="color:var(--ltv-orange);">50-55% - Caution zone (orange to red)</li>
+                    <li style="color:var(--ltv-red);">Above 55% - Deal-breaker, too risky</li>
+                </ul>
+                <p style="margin-top:8px;">The maximum LTV for Save &amp; Stay or Save &amp; Sell programs is <strong>55%</strong>. Target is 50% or below.</p>
+            </div>
+            <div class="help-section">
+                <h3>Cost Breakdown</h3>
+                <ul>
+                    <li><span class="hl">Acquisition:</span> Auction amount (judgment + taxes) + cash to seller + notary</li>
+                    <li><span class="hl">Closing:</span> Fixed transaction fees + proportional costs (title, stamps, taxes)</li>
+                    <li><span class="hl">Improvements:</span> Estimated rehab/cleanup costs</li>
+                    <li><span class="hl">Monthly Holding:</span> Mortgage payments + prorated tax/insurance + HOA</li>
+                    <li><span class="hl">Lender:</span> Our loan cost at 15% annualized, 24-month minimum term</li>
+                </ul>
+            </div>
+            <div class="help-section">
+                <h3>Program Scenarios</h3>
+                <ul>
+                    <li><span class="hl">Save &amp; Stay:</span> Homeowner stays in the property and pays a monthly program payment (interest-only). We target $300/month profit. Customer payment cannot exceed 80% of market rent.</li>
+                    <li><span class="hl">Save &amp; Sell:</span> We buy and lease back to the seller for a term, then sell. Monthly rent = 50% of market rent. Tenant also pays holding costs.</li>
+                    <li><span class="hl">Save &amp; Stay STR:</span> We buy, hold as short-term rental for ~4 months, then sell. No utilities cost (paid by renter).</li>
+                    <li><span class="hl">Wholesaler:</span> Quick flip calculation. MAO = ARV &times; 70% minus repair costs minus acquisition costs.</li>
+                </ul>
+            </div>
+            <div class="help-section">
+                <h3>Saving &amp; Loading</h3>
+                <p>Click "Save Deal" to store the analysis to the database. Each save creates a new record. You can load previous analyses for the same property from the "Previous Analyses" section at the bottom.</p>
+                <p style="margin-top:8px;">Your work is also auto-saved to your browser every 5 seconds in case of a crash.</p>
+            </div>
+            <div class="help-section">
+                <h3>Glossary</h3>
+                <dl>
+                    <dt>ARV</dt><dd>After Repair Value - estimated value after renovations</dd>
+                    <dt>LTV</dt><dd>Loan-to-Value ratio - debt divided by property value</dd>
+                    <dt>I/O</dt><dd>Interest Only - loan payments cover only interest, no principal</dd>
+                    <dt>MAO</dt><dd>Maximum Allowable Offer - highest price to offer on a wholesale deal</dd>
+                    <dt>Escrow</dt><dd>Account held by lender for taxes &amp; insurance, included in mortgage payment</dd>
+                    <dt>Final Judgment</dt><dd>Court-ordered amount owed in foreclosure</dd>
+                    <dt>Reinstatement</dt><dd>Amount needed to bring a defaulted loan current</dd>
+                    <dt>HOA</dt><dd>Homeowners Association monthly fee</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div></div>
+
+    <!-- Save Toast -->
+    <div class="save-toast" id="saveToast">Deal saved successfully!</div>
+
+    <main class="main">
+        <!-- Section 1: Property Lookup -->
+        <div class="card" id="lookupCard">
+            <div class="card-header">Property Lookup</div>
+            <div class="card-body">
+                <div class="property-summary" id="propertySummary">
+                    <div class="ps-address" id="psAddress">--</div>
+                    <div class="ps-meta">
+                        <span id="psCaseCounty">--</span>
+                        <span id="psAuctionDate">--</span>
+                        <span id="psOwner">--</span>
+                        <span id="psBadges"></span>
+                    </div>
+                </div>
+                <div class="empty-state" id="emptyState">
+                    <div class="icon">&#x1F3E0;</div>
+                    <div>Search for a property above to begin your deal analysis</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Preliminary Analysis -->
+        <div class="card" id="prelimCard" style="display:none">
+            <div class="card-header">Preliminary Analysis</div>
+            <div class="card-body">
+                <div class="two-col">
+                    <!-- Left: Inputs -->
+                    <div>
+                        <div class="form-section-title">Property Details (Auto-filled)</div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label">Property Address</label><input type="text" class="readonly-input" id="fAddress" readonly></div>
+                            <div class="form-group"><label class="form-label">County</label><input type="text" class="readonly-input" id="fCounty" readonly></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label">Case Number</label><input type="text" class="readonly-input" id="fCase" readonly></div>
+                            <div class="form-group"><label class="form-label">Auction Date</label><input type="text" class="readonly-input" id="fAuctionDate" readonly></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label">Auction Type</label><input type="text" class="readonly-input" id="fAuctionType" readonly></div>
+                            <div class="form-group"><label class="form-label">Owner</label><input type="text" class="readonly-input" id="fOwner" readonly></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label">Final Judgment / Opening Bid</label><input type="text" class="readonly-input" id="fJudgment" readonly></div>
+                            <div class="form-group"><label class="form-label">Zestimate</label><input type="text" class="readonly-input" id="fZestimate" readonly></div>
+                        </div>
+                        <div class="form-group"><label class="form-label">Just Value (Public Records)</label><input type="text" class="readonly-input" id="fJustValue" readonly></div>
+
+                        <div class="form-section-title">Valuation &amp; Financials (Manual Entry)</div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label lever-label">AS IS Value</label><input type="number" class="lever-input" id="fAsIsValue" data-field="asIsValue" step="1000" placeholder="Defaults to Zestimate"></div>
+                            <div class="form-group"><label class="form-label lever-label">Market Rent</label><input type="number" class="lever-input" id="fMarketRent" data-field="marketRent" step="50"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label lever-label">Mortgage Balance</label><input type="number" class="lever-input" id="fMortgageBal" data-field="mortgageBalance" step="1000"></div>
+                            <div class="form-group"><label class="form-label lever-label">Reinstatement Amount</label><input type="number" class="lever-input" id="fReinstatement" data-field="reinstatementAmount" step="100"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label lever-label">Interest Rate (%)</label><input type="number" class="lever-input" id="fInterestRate" data-field="interestRate" step="0.125"></div>
+                            <div class="form-group"><label class="form-label lever-label">Prev Year Property Taxes</label><input type="number" class="lever-input" id="fPrevTaxes" data-field="prevYearTaxes" step="100"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label lever-label">First Mortgage Payment</label><input type="number" class="lever-input" id="fFirstMortgage" data-field="firstMortgagePayment" step="50"></div>
+                            <div class="form-group"><label class="form-label lever-label">Second Mortgage Payment</label><input type="number" class="lever-input" id="fSecondMortgage" data-field="secondMortgagePayment" step="50"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label lever-label">HOA Payment</label><input type="number" class="lever-input" id="fHoa" data-field="hoaPayment" step="25"></div>
+                            <div class="form-group"><label class="form-label lever-label">Flood Zone</label>
+                                <select class="lever-input" id="fFloodZone" data-field="floodZone">
+                                    <option value="">None</option><option value="X">X</option><option value="A">A</option><option value="AE">AE</option><option value="V">V</option><option value="VE">VE</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label lever-label">Occupancy</label>
+                                <select class="lever-input" id="fOccupancy" data-field="occupancy">
+                                    <option value="">Select...</option><option value="Owner">Owner Occupied</option><option value="Tenant">Tenant Occupied</option><option value="Vacant">Vacant</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label class="form-label lever-label">People Involved</label><input type="text" class="lever-input" id="fPeople" data-field="peopleInvolved"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label lever-label">Homestead</label>
+                                <div class="checkbox-row"><input type="checkbox" id="fHomestead" data-field="homestead"><label for="fHomestead" style="font-size:13px;color:var(--text-secondary);">Yes, homestead property</label></div>
+                            </div>
+                        </div>
+                        <div class="form-group"><label class="form-label lever-label">Situation Notes</label><textarea class="lever-input" id="fSituation" data-field="situation" placeholder="Describe the situation..."></textarea></div>
+                    </div>
+
+                    <!-- Right: Analysis Panel -->
+                    <div>
+                        <div class="analysis-panel">
+                            <div class="metric-card">
+                                <div class="metric-label">Days Until Auction</div>
+                                <div class="metric-value" id="mDays">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Equity</div>
+                                <div class="metric-value cyan" id="mEquity">--</div>
+                                <div class="metric-sub" id="mEquityPct">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Loan-to-Value (LTV)</div>
+                                <div class="metric-value" id="mLtv">--</div>
+                                <div class="ltv-bar-container">
+                                    <div class="ltv-threshold"></div>
+                                    <div class="ltv-marker" id="ltvMarker" style="left:0%"></div>
+                                </div>
+                                <div class="ltv-labels"><span>0%</span><span>25%</span><span>50%</span><span>55%</span><span>75%</span><span>100%</span></div>
+                                <div class="metric-sub">Max: 55% | Target: &le;50%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Reinstatement %</div>
+                                <div class="metric-value cyan" id="mReinstatePct">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Payment % of Rent</div>
+                                <div class="metric-value cyan" id="mPaymentPct">--</div>
+                                <div class="metric-sub">Monthly payments / Market rent</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Cost Breakdown -->
+        <div class="card" id="costCard" style="display:none">
+            <div class="card-header">Cost Breakdown</div>
+            <div class="card-body">
+                <div class="two-col">
+                    <div>
+                        <!-- 3A: Acquisition -->
+                        <div class="cost-section">
+                            <div class="cost-section-header" onclick="toggleSection(this)">3A - Acquisition Costs <span class="toggle">&#9660;</span></div>
+                            <div class="cost-section-body">
+                                <div class="cost-row"><span class="cost-label">Auction Amount (Judgment + Taxes)</span><span class="cost-value calc-val" id="cAuctionAmt">$0</span></div>
+                                <div class="cost-row"><span class="cost-label">Cash to Seller</span><input type="number" class="lever-input cost-input" id="cCashToSeller" data-field="cashToSeller" value="0" step="500"></div>
+                                <div class="cost-row"><span class="cost-label">Notary</span><span class="cost-value fixed-val">$100</span></div>
+                                <div class="cost-row total"><span class="cost-label">TOTAL ACQUISITION</span><span class="cost-value" id="cAcqTotal">$0</span></div>
+                            </div>
+                        </div>
+                        <!-- 3B: Closing -->
+                        <div class="cost-section">
+                            <div class="cost-section-header" onclick="toggleSection(this)">3B - Front Side Closing Costs <span class="toggle">&#9660;</span></div>
+                            <div class="cost-section-body">
+                                <div class="cost-row"><span class="cost-label">Trans. Coordinator</span><span class="cost-value fixed-val">$675</span></div>
+                                <div class="cost-row"><span class="cost-label">Lender Policy</span><span class="cost-value fixed-val">$350</span></div>
+                                <div class="cost-row"><span class="cost-label">Tech Fee</span><span class="cost-value fixed-val">$100</span></div>
+                                <div class="cost-row"><span class="cost-label">Recording Fee</span><span class="cost-value fixed-val">$35</span></div>
+                                <div class="cost-row"><span class="cost-label">Title Search</span><span class="cost-value fixed-val">$85</span></div>
+                                <div class="cost-row"><span class="cost-label">Lien Search</span><span class="cost-value fixed-val">$150</span></div>
+                                <div class="cost-row"><span class="cost-label">Closing Co Fee</span><span class="cost-value fixed-val">$400</span></div>
+                                <div class="cost-row"><span class="cost-label">Estoppel</span><span class="cost-value fixed-val">$350</span></div>
+                                <div class="cost-row"><span class="cost-label">Application Fee</span><span class="cost-value fixed-val">$150</span></div>
+                                <div class="cost-row"><span class="cost-label">Wiring Fee</span><span class="cost-value fixed-val">$100</span></div>
+                                <div class="cost-row"><span class="cost-label">Prorated Taxes</span><span class="cost-value calc-val" id="cProratedTax">$0</span></div>
+                                <div class="cost-row"><span class="cost-label">Title Policy</span><span class="cost-value calc-val" id="cTitlePolicy">$0</span></div>
+                                <div class="cost-row"><span class="cost-label">Doc Stamps</span><span class="cost-value calc-val" id="cDocStamps">$0</span></div>
+                                <div class="cost-row"><span class="cost-label">Special Assessment</span><input type="number" class="lever-input cost-input" id="cSpecialAssess" data-field="specialAssessment" value="0" step="100"></div>
+                                <div class="cost-row total"><span class="cost-label">TOTAL CLOSING</span><span class="cost-value" id="cCloseTotal">$0</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <!-- 3C: Improvements -->
+                        <div class="cost-section">
+                            <div class="cost-section-header" onclick="toggleSection(this)">3C - Property Improvements <span class="toggle">&#9660;</span></div>
+                            <div class="cost-section-body">
+                                <div class="cost-row"><span class="cost-label">Estimated Improvements</span><input type="number" class="lever-input cost-input" id="cImprovements" data-field="estimatedImprovements" value="5000" step="500"></div>
+                                <div class="cost-row total"><span class="cost-label">TOTAL IMPROVEMENTS</span><span class="cost-value" id="cImpTotal">$5,000</span></div>
+                            </div>
+                        </div>
+                        <!-- 3D: Monthly Holding -->
+                        <div class="cost-section">
+                            <div class="cost-section-header" onclick="toggleSection(this)">3D - Monthly Holding Costs <span class="toggle">&#9660;</span></div>
+                            <div class="cost-section-body">
+                                <div class="cost-row"><span class="cost-label">First Mortgage Payment</span><span class="cost-value calc-val" id="cFirstMtg">$0</span></div>
+                                <div class="cost-row"><span class="cost-label">Second Mortgage Payment</span><span class="cost-value calc-val" id="cSecondMtg">$0</span></div>
+                                <div class="cost-row"><span class="cost-label">Property Tax (monthly)</span><span class="cost-value calc-val" id="cMonthlyTax">$0</span></div>
+                                <div class="cost-row"><span class="cost-label">Insurance (monthly)</span><span class="cost-value calc-val" id="cMonthlyIns">$0</span></div>
+                                <div class="cost-row"><span class="cost-label">HOA</span><span class="cost-value calc-val" id="cMonthlyHoa">$0</span></div>
+                                <div class="cost-row total"><span class="cost-label">TOTAL MONTHLY HOLDING</span><span class="cost-value" id="cHoldTotal">$0</span></div>
+                            </div>
+                        </div>
+                        <!-- 3E: Lender Cost -->
+                        <div class="cost-section">
+                            <div class="cost-section-header" onclick="toggleSection(this)">3E - Lender Cost <span class="toggle">&#9660;</span></div>
+                            <div class="cost-section-body">
+                                <div class="cost-row"><span class="cost-label">Based on AS IS Value</span><span class="cost-value calc-val" id="cLenderBasis">$0</span></div>
+                                <div class="cost-row">
+                                    <span class="cost-label">Loan LTV %</span>
+                                    <div class="slider-row" style="width:200px">
+                                        <input type="range" id="cLoanLtvSlider" min="10" max="60" value="30" data-field="loanLtvPercent">
+                                        <span class="slider-val" id="cLoanLtvVal">30%</span>
+                                    </div>
+                                </div>
+                                <div class="cost-row"><span class="cost-label">Loan Amount</span><span class="cost-value calc-val" id="cLoanAmt">$0</span></div>
+                                <div class="cost-row">
+                                    <span class="cost-label">Annual Interest Rate</span>
+                                    <input type="number" class="lever-input cost-input" id="cAnnualRate" data-field="annualInterestRate" value="15" step="0.5" style="width:80px">
+                                    <span style="color:var(--text-muted);font-size:12px">%</span>
+                                </div>
+                                <div class="cost-row"><span class="cost-label">Monthly Interest Payment</span><span class="cost-value calc-val" id="cMonthlyInt">$0</span></div>
+                                <div class="cost-row"><span class="cost-label">Minimum Term</span><span class="cost-value fixed-val">24 months</span></div>
+                                <div class="cost-row">
+                                    <span class="cost-label">Expected Hold Period</span>
+                                    <input type="number" class="lever-input cost-input" id="cHoldPeriod" data-field="expectedHoldMonths" value="24" min="1" step="1" style="width:80px">
+                                    <span style="color:var(--text-muted);font-size:12px">months</span>
+                                </div>
+                                <div class="cost-row" id="cMinTermNote" style="display:none"><span class="cost-label" style="color:var(--warning-orange);font-size:12px">&#9888; 24-month minimum term applies</span><span></span></div>
+                                <div class="cost-row total"><span class="cost-label">TOTAL LENDER COST</span><span class="cost-value" id="cLenderTotal">$0</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Program Scenarios -->
+        <div class="card" id="scenarioCard" style="display:none">
+            <div class="card-header">Program Scenarios</div>
+            <div class="card-body">
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('saveStay')">Save &amp; Stay</div>
+                    <div class="tab" onclick="switchTab('saveSell')">Save &amp; Sell</div>
+                    <div class="tab" onclick="switchTab('str')">Save &amp; Stay STR</div>
+                    <div class="tab" onclick="switchTab('wholesaler')">Wholesaler</div>
+                </div>
+
+                <!-- Tab: Save & Stay -->
+                <div class="tab-content active" id="tab-saveStay">
+                    <div class="scenario-row"><span class="sc-label">Option Price (Acq + Closing)</span><span class="sc-value" id="ssOptionPrice">$0</span></div>
+                    <div class="scenario-row"><span class="sc-label">Term</span><input type="number" class="lever-input" id="ssTerm" data-field="saveStayTerm" value="60" step="12" style="width:80px"><span style="color:var(--text-muted);font-size:12px;margin-left:4px">months</span></div>
+                    <div class="scenario-row"><span class="sc-label">Interest Rate / Type</span><span class="sc-value">15% I/O</span></div>
+                    <div class="scenario-section-title">Customer Monthly Payment</div>
+                    <div class="scenario-row"><span class="sc-label">Monthly Profit</span><input type="number" class="lever-input" id="ssProfit" data-field="monthlyProfit" value="300" step="50" style="width:100px"></div>
+                    <div class="scenario-row"><span class="sc-label">Program Payment (Option &times; 15% / 12)</span><span class="sc-value" id="ssProgramPmt">$0</span></div>
+                    <div class="scenario-row"><span class="sc-label">First Mortgage</span><span class="sc-value" id="ssFirstMtg">$0</span></div>
+                    <div class="scenario-row"><span class="sc-label">Second Mortgage</span><span class="sc-value" id="ssSecondMtg">$0</span></div>
+                    <div class="scenario-row"><span class="sc-label">Property Tax</span><span class="sc-value" id="ssTax">$0</span></div>
+                    <div class="scenario-row"><span class="sc-label">Insurance</span><span class="sc-value" id="ssInsurance">$0</span></div>
+                    <div class="scenario-row"><span class="sc-label">HOA</span><span class="sc-value" id="ssHoa">$0</span></div>
+                    <div class="scenario-row total"><span class="sc-label">TOTAL CUSTOMER PAYMENT</span><span class="sc-value" id="ssTotal">$0</span></div>
+                    <div class="scenario-row highlight"><span class="sc-label">MAX (80% of Market Rent)</span><span class="sc-value" id="ssMax">$0</span></div>
+                    <div class="warning-banner" id="ssWarning">&#9888; Customer payment exceeds 80% of market rent! This deal may not be viable for Save &amp; Stay.</div>
+                </div>
+
+                <!-- Tab: Save & Sell -->
+                <div class="tab-content" id="tab-saveSell">
+                    <div class="scenario-section-title">Maximums</div>
+                    <div class="scenario-row"><span class="sc-label">Max Purchase Price (95% - Closing - Improvements - Cushion)</span><span class="sc-value" id="selMaxPurchase">$0</span></div>
+                    <div class="scenario-row"><span class="sc-label">Cushion</span><input type="number" class="lever-input" id="selCushion" data-field="saveSellCushion" value="40000" step="5000" style="width:120px"></div>
+                    <div class="scenario-row"><span class="sc-label">Upfront Cash to Seller</span><input type="number" class="lever-input" id="selUpfrontCash" data-field="saveSellUpfrontCash" value="0" step="1000" style="width:120px"></div>
+                    <div class="scenario-row"><span class="sc-label">Lease Term</span><input type="number" class="lever-input" id="selLeaseTerm" data-field="saveSellLeaseTerm" value="6" step="1" style="width:80px"><span style="color:var(--text-muted);font-size:12px;margin-left:4px">months</span></div>
+                    <div class="scenario-row"><span class="sc-label">Monthly Rent (50% of Market)</span><span class="sc-value" id="selMonthlyRent">$0</span></div>
+                    <div class="scenario-section-title">Tenant Monthly Payment</div>
+                    <div class="scenario-row"><span class="sc-label">Monthly Rent</span><span class="sc-value" id="selTenantRent">$0</span></div>
+                    <div class="scenario-row"><span class="sc-label">HOA</span><span class="sc-value" id="selTenantHoa">$0</span></div>
+                    <div class="scenario-row" id="selMtgRow1"><span class="sc-label">First Mortgage</span><span class="sc-value" id="selTenantMtg1">$0</span></div>
+                    <div class="scenario-row" id="selMtgRow2"><span class="sc-label">Second Mortgage</span><span class="sc-value" id="selTenantMtg2">$0</span></div>
+                    <div class="scenario-row" id="selTaxRow"><span class="sc-label">Property Tax (prorated)</span><span class="sc-value" id="selTenantTax">$0</span></div>
+                    <div class="scenario-row" id="selInsRow"><span class="sc-label">Insurance (prorated)</span><span class="sc-value" id="selTenantIns">$0</span></div>
+                    <div class="escrow-note" id="selEscrowNote"></div>
+                    <div class="scenario-row total"><span class="sc-label">TOTAL TENANT PAYMENT</span><span class="sc-value" id="selTenantTotal">$0</span></div>
+                    <div class="scenario-row"><span class="sc-label">Total Rent Collected (Lease &times; Rent)</span><span class="sc-value" id="selTotalRent">$0</span></div>
+                    <div class="scenario-section-title">Actuals</div>
+                    <div class="scenario-row"><span class="sc-label">Actual Purchase Price</span><input type="number" class="lever-input" id="selActualPrice" data-field="actualPurchasePrice" step="1000" style="width:140px"></div>
+                    <div class="scenario-row"><span class="sc-label">Actual Upfront Cash to Seller</span><input type="number" class="lever-input" id="selActualCash" data-field="actualUpfrontCashToSeller" step="500" style="width:140px"></div>
+                </div>
+
+                <!-- Tab: STR -->
+                <div class="tab-content" id="tab-str">
+                    <div class="scenario-section-title">Maximums</div>
+                    <div class="scenario-row"><span class="sc-label">Max Purchase Price</span><span class="sc-value" id="strMaxPurchase">$0</span></div>
+                    <div class="scenario-row"><span class="sc-label">Acquisition Cost</span><span class="sc-value" id="strAcqCost">$0</span></div>
+                    <div class="scenario-row"><span class="sc-label">4 Months Holding</span><span class="sc-value" id="strHolding4m">$0</span></div>
+                    <div class="scenario-row"><span class="sc-label">HOA (4 months)</span><span class="sc-value" id="strHoa4m">$0</span></div>
+                    <div class="scenario-row"><span class="sc-label">Liens / Code Violations</span><input type="number" class="lever-input" id="strLiens" data-field="strLiens" value="0" step="500" style="width:120px"></div>
+                    <div class="scenario-section-title">Actuals</div>
+                    <div class="scenario-row"><span class="sc-label">Actual Purchase Price</span><input type="number" class="lever-input" id="strActualPrice" data-field="strActualPurchasePrice" step="1000" style="width:140px"></div>
+                    <div class="scenario-row"><span class="sc-label">Actual Upfront Cash to Seller</span><input type="number" class="lever-input" id="strActualCash" data-field="strActualCashToSeller" step="500" style="width:140px"></div>
+                </div>
+
+                <!-- Tab: Wholesaler -->
+                <div class="tab-content" id="tab-wholesaler">
+                    <div class="scenario-section-title">Wholesale Deal Calculator</div>
+                    <div class="scenario-row"><span class="sc-label">After Repair Value (ARV)</span><input type="number" class="lever-input" id="whArv" data-field="wholesalerArv" step="5000" style="width:140px" placeholder="Enter ARV"></div>
+                    <div class="scenario-row"><span class="sc-label">Repair Costs</span><input type="number" class="lever-input" id="whRepairs" data-field="wholesalerRepairCosts" step="1000" style="width:140px" placeholder="Enter repairs"></div>
+                    <div class="scenario-row"><span class="sc-label">Acquisition Cost (from 3A)</span><span class="sc-value" id="whAcqCost">$0</span></div>
+                    <div class="scenario-row"><span class="sc-label">Formula: ARV &times; 70% - Repairs - Acquisition</span><span></span></div>
+                    <div class="mao-display">
+                        <div class="mao-label">Maximum Allowable Offer (MAO)</div>
+                        <div class="mao-value" id="whMao">$0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 5: Deal Summary -->
+        <div class="card" id="summaryCard" style="display:none">
+            <div class="card-header">Deal Summary</div>
+            <div class="card-body">
+                <div class="summary-grid">
+                    <div class="summary-metric"><div class="sm-label">Total All-In Cost</div><div class="sm-value cyan" id="smAllIn">--</div></div>
+                    <div class="summary-metric"><div class="sm-label">LTV %</div><div class="sm-value" id="smLtv">--</div></div>
+                    <div class="summary-metric"><div class="sm-label">Days Until Auction</div><div class="sm-value" id="smDays">--</div></div>
+                </div>
+                <div class="gauge-container">
+                    <canvas id="ltvGauge" width="300" height="180"></canvas>
+                    <div class="gauge-center-text">
+                        <div class="gc-value" id="gcLtv">--</div>
+                        <div class="gc-label">LTV</div>
+                    </div>
+                </div>
+                <div class="save-section">
+                    <div class="notes-area">
+                        <label class="form-label">Analyst Notes</label>
+                        <textarea id="analystNotes" placeholder="Add notes about this deal..."></textarea>
+                    </div>
+                    <div class="save-actions">
+                        <select class="status-select" id="dealStatus">
+                            <option value="draft">Draft</option>
+                            <option value="under_review">Under Review</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="saveDeal()">Save Deal</button>
+                        <button class="btn btn-secondary" onclick="window.print()">Print / Export</button>
+                    </div>
+                </div>
+                <div class="prev-analyses" id="prevAnalyses" style="display:none">
+                    <div class="form-section-title">Previous Analyses for This Property</div>
+                    <div id="prevList"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // ============================================================
+        // CONFIGURATION
+        // ============================================================
+        const SUPABASE_URL = 'https://saksbjogtkagedmlsrsv.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha3Niam9ndGthZ2VkbWxzcnN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNTUxMDMsImV4cCI6MjA4NDYxNTEwM30.FvfTxotEWZlkmQNiekbt4KyxvDk_7GBqfWn55pKTjho';
+
+        const FIXED_COSTS = { transCoord:675, lenderPolicy:350, techFee:100, recordingFee:35, titleSearch:85, lienSearch:150, closingCoFee:400, estoppel:350, applicationFee:150, wiringFee:100, notary:100, pictures:50 };
+        const FIXED_CLOSING_SUM = FIXED_COSTS.transCoord + FIXED_COSTS.lenderPolicy + FIXED_COSTS.techFee + FIXED_COSTS.recordingFee + FIXED_COSTS.titleSearch + FIXED_COSTS.lienSearch + FIXED_COSTS.closingCoFee + FIXED_COSTS.estoppel + FIXED_COSTS.applicationFee + FIXED_COSTS.wiringFee;
+
+        // ============================================================
+        // STATE
+        // ============================================================
+        let supabaseClient = null;
+        let currentProperty = null;
+        let currentDealId = null;
+        let ltvGaugeChart = null;
+        let inputs = {
+            asIsValue:0, marketRent:0, mortgageBalance:0, reinstatementAmount:0,
+            interestRate:0, firstMortgagePayment:0, secondMortgagePayment:0,
+            prevYearTaxes:0, hoaPayment:0, floodZone:'', occupancy:'', peopleInvolved:'',
+            homestead:false, situation:'',
+            cashToSeller:0, specialAssessment:0, estimatedImprovements:5000,
+            loanLtvPercent:30, annualInterestRate:15, expectedHoldMonths:24,
+            saveStayTerm:60, monthlyProfit:300,
+            saveSellCushion:40000, saveSellLeaseTerm:6, saveSellUpfrontCash:0,
+            strLiens:0,
+            wholesalerArv:0, wholesalerRepairCosts:0,
+            actualPurchasePrice:0, actualUpfrontCashToSeller:0
+        };
+
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', async () => {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            // Check connection
+            try {
+                await supabaseClient.from('v_agent_contact_context').select('raw_row_id').limit(1);
+                document.getElementById('connDot').className = 'status-dot green';
+                document.getElementById('connText').textContent = 'CONNECTED';
+            } catch(e) {
+                document.getElementById('connDot').className = 'status-dot red';
+                document.getElementById('connText').textContent = 'OFFLINE';
+            }
+
+            // URL params
+            const params = new URLSearchParams(window.location.search);
+            const rawRowId = params.get('raw_row_id');
+            const caseNum = params.get('case');
+            const dealId = params.get('deal_id');
+
+            if (dealId) {
+                await loadDeal(dealId);
+            } else if (rawRowId) {
+                await loadProperty('raw_row_id', rawRowId);
+            } else if (caseNum) {
+                await loadProperty('case_number', caseNum);
+            } else {
+                // Check localStorage for crash recovery
+                const saved = localStorage.getItem('deal_analysis_autosave');
+                if (saved) {
+                    try {
+                        const d = JSON.parse(saved);
+                        if (d.raw_row_id && confirm('Restore unsaved work from your last session?')) {
+                            await loadProperty('raw_row_id', d.raw_row_id);
+                            Object.assign(inputs, d.inputs || {});
+                            syncInputsToDOM();
+                            recalculateAll();
+                        }
+                    } catch(e) { /* ignore */ }
+                }
+            }
+
+            // Setup event listeners
+            setupEventListeners();
+
+            // Auto-save every 5 seconds
+            setInterval(autoSave, 5000);
+        });
+
+        function setupEventListeners() {
+            // Search
+            const search = document.getElementById('propertySearch');
+            let searchTimeout = null;
+            search.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                const q = e.target.value.trim();
+                if (q.length < 2) { hideSearch(); return; }
+                searchTimeout = setTimeout(() => searchProperties(q), 300);
+            });
+            search.addEventListener('blur', () => setTimeout(hideSearch, 200));
+
+            // All lever inputs
+            document.addEventListener('input', (e) => {
+                const field = e.target.dataset?.field;
+                if (!field) return;
+                if (e.target.type === 'checkbox') {
+                    inputs[field] = e.target.checked;
+                } else if (e.target.type === 'range') {
+                    inputs[field] = parseFloat(e.target.value) || 0;
+                    const valEl = document.getElementById(e.target.id.replace('Slider','Val'));
+                    if (valEl) valEl.textContent = inputs[field] + '%';
+                } else if (e.target.tagName === 'SELECT' || e.target.type === 'text' || e.target.tagName === 'TEXTAREA') {
+                    inputs[field] = e.target.value;
+                } else {
+                    inputs[field] = parseFloat(e.target.value) || 0;
+                }
+                recalculateAll();
+            });
+            document.addEventListener('change', (e) => {
+                const field = e.target.dataset?.field;
+                if (!field) return;
+                if (e.target.type === 'checkbox') {
+                    inputs[field] = e.target.checked;
+                } else if (e.target.tagName === 'SELECT') {
+                    inputs[field] = e.target.value;
+                }
+                recalculateAll();
+            });
+
+            // Help panel
+            document.getElementById('helpBtn').addEventListener('click', () => {
+                document.getElementById('helpPanel').classList.add('open');
+                document.getElementById('helpBackdrop').classList.add('open');
+            });
+            document.getElementById('helpClose').addEventListener('click', closeHelp);
+            document.getElementById('helpBackdrop').addEventListener('click', closeHelp);
+        }
+
+        function closeHelp() {
+            document.getElementById('helpPanel').classList.remove('open');
+            document.getElementById('helpBackdrop').classList.remove('open');
+        }
+
+        // ============================================================
+        // SEARCH & LOAD
+        // ============================================================
+        async function searchProperties(query) {
+            const { data, error } = await supabaseClient
+                .from('v_agent_contact_context')
+                .select('raw_row_id, case_number, property_address, city, county, auction_date, auction_type')
+                .or(`case_number.ilike.%${query}%,property_address.ilike.%${query}%`)
+                .order('auction_date', { ascending: true })
+                .limit(10);
+
+            if (error || !data?.length) { hideSearch(); return; }
+
+            // Deduplicate by raw_row_id
+            const seen = new Set();
+            const unique = data.filter(d => { if (seen.has(d.raw_row_id)) return false; seen.add(d.raw_row_id); return true; });
+
+            const container = document.getElementById('searchResults');
+            container.innerHTML = unique.map(d => `
+                <div class="search-result-item" onclick="selectProperty('${d.raw_row_id}')">
+                    <div class="sr-address">${d.property_address || 'No address'}, ${d.city || ''}</div>
+                    <div class="sr-meta">${d.case_number || ''} | ${d.county || ''} | ${d.auction_date || ''} | ${d.auction_type || ''}</div>
+                </div>
+            `).join('');
+            container.style.display = 'block';
+        }
+
+        function hideSearch() { document.getElementById('searchResults').style.display = 'none'; }
+
+        async function selectProperty(rawRowId) {
+            hideSearch();
+            document.getElementById('propertySearch').value = '';
+            await loadProperty('raw_row_id', rawRowId);
+        }
+
+        async function loadProperty(field, value) {
+            showLoading();
+            const { data, error } = await supabaseClient
+                .from('v_agent_contact_context')
+                .select('*')
+                .eq(field, value)
+                .limit(1);
+
+            if (error || !data?.length) { hideLoading(); return; }
+
+            currentProperty = data[0];
+            currentDealId = null;
+
+            // Populate readonly fields
+            populateReadonly();
+            // Default AS IS Value to zestimate
+            if (!inputs.asIsValue) {
+                inputs.asIsValue = currentProperty.zestimate || currentProperty.just_value || 0;
+                document.getElementById('fAsIsValue').value = inputs.asIsValue || '';
+            }
+
+            // Show all sections
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('propertySummary').classList.add('visible');
+            ['prelimCard','costCard','scenarioCard','summaryCard'].forEach(id => document.getElementById(id).style.display = '');
+
+            recalculateAll();
+            await loadPreviousAnalyses();
+            hideLoading();
+        }
+
+        function populateReadonly() {
+            const p = currentProperty;
+            document.getElementById('fAddress').value = [p.property_address, p.city, p.state, p.zip].filter(Boolean).join(', ');
+            document.getElementById('fCounty').value = p.county || '';
+            document.getElementById('fCase').value = p.case_number || '';
+            document.getElementById('fAuctionDate').value = p.auction_date || '';
+            document.getElementById('fAuctionType').value = p.auction_type || '';
+            document.getElementById('fOwner').value = p.owners_name || '';
+            document.getElementById('fJudgment').value = fmt(p.final_judgment_or_opening_bid);
+            document.getElementById('fZestimate').value = fmt(p.zestimate);
+            document.getElementById('fJustValue').value = fmt(p.just_value);
+
+            // Property summary
+            document.getElementById('psAddress').textContent = p.property_address || 'Unknown Address';
+            document.getElementById('psCaseCounty').textContent = `${p.case_number || ''} | ${p.county || ''}`;
+            document.getElementById('psAuctionDate').textContent = p.auction_date ? `Auction: ${p.auction_date}` : '';
+            document.getElementById('psOwner').textContent = p.owners_name || '';
+
+            let badges = '';
+            if (p.auction_type === 'Foreclosure') badges += '<span class="badge badge-fc">Foreclosure</span> ';
+            else if (p.auction_type === 'Taxdeed') badges += '<span class="badge badge-td">Tax Deed</span> ';
+            if (p.dec) badges += '<span class="badge badge-dec">Deceased</span> ';
+            if (p.llc) badges += '<span class="badge badge-llc">LLC</span> ';
+            if (p.auction_date) {
+                const days = Math.ceil((new Date(p.auction_date) - new Date()) / 86400000);
+                if (days < 0) badges += '<span class="badge badge-passed">Auction Passed</span> ';
+            }
+            document.getElementById('psBadges').innerHTML = badges;
+        }
+
+        // ============================================================
+        // CALCULATION ENGINE
+        // ============================================================
+        function recalculateAll() {
+            if (!currentProperty) return;
+
+            const p = currentProperty;
+            const asIs = inputs.asIsValue || p.zestimate || p.just_value || 0;
+            const judgment = p.final_judgment_or_opening_bid || 0;
+
+            // Preliminary
+            const daysUntil = p.auction_date ? Math.ceil((new Date(p.auction_date) - new Date()) / 86400000) : null;
+            const equity = asIs - judgment;
+            const equityPct = asIs > 0 ? (equity / asIs) * 100 : 0;
+            const ltv = asIs > 0 ? (judgment / asIs) * 100 : 0;
+            const reinstatePct = asIs > 0 ? ((inputs.reinstatementAmount || 0) / asIs) * 100 : 0;
+            const totalMtg = (inputs.firstMortgagePayment || 0) + (inputs.secondMortgagePayment || 0);
+            const paymentPct = (inputs.marketRent || 0) > 0 ? ((totalMtg + (inputs.hoaPayment || 0)) / inputs.marketRent) * 100 : 0;
+
+            // Render Preliminary
+            renderDays(daysUntil);
+            setText('mEquity', fmt(equity));
+            setText('mEquityPct', fmtPct(equityPct) + ' of AS IS Value');
+            renderLTV(ltv);
+            setText('mReinstatePct', fmtPct(reinstatePct));
+            setText('mPaymentPct', fmtPct(paymentPct));
+
+            // Acquisition
+            const auctionAmt = judgment + (inputs.prevYearTaxes || 0);
+            const acqTotal = auctionAmt + (inputs.cashToSeller || 0) + FIXED_COSTS.notary;
+            setText('cAuctionAmt', fmt(auctionAmt));
+            setText('cAcqTotal', fmt(acqTotal));
+
+            // Closing
+            const proratedTax = acqTotal * 0.002;
+            const titlePolicy = (acqTotal / 1000) * 5.75;
+            const docStamps = (acqTotal / 100) * 1.05;
+            const closeTotal = FIXED_CLOSING_SUM + proratedTax + titlePolicy + docStamps + (inputs.specialAssessment || 0);
+            setText('cProratedTax', fmt(proratedTax));
+            setText('cTitlePolicy', fmt(titlePolicy));
+            setText('cDocStamps', fmt(docStamps));
+            setText('cCloseTotal', fmt(closeTotal));
+
+            // Improvements
+            const impTotal = inputs.estimatedImprovements || 0;
+            setText('cImpTotal', fmt(impTotal));
+
+            // Monthly Holding
+            const monthlyTax = (inputs.prevYearTaxes || 0) * 1.1 / 12;
+            const monthlyIns = (inputs.prevYearTaxes || 0) * 1.1 / 12;
+            const holdTotal = (inputs.firstMortgagePayment || 0) + (inputs.secondMortgagePayment || 0) + monthlyTax + monthlyIns + (inputs.hoaPayment || 0);
+            setText('cFirstMtg', fmt(inputs.firstMortgagePayment || 0));
+            setText('cSecondMtg', fmt(inputs.secondMortgagePayment || 0));
+            setText('cMonthlyTax', fmt(monthlyTax));
+            setText('cMonthlyIns', fmt(monthlyIns));
+            setText('cMonthlyHoa', fmt(inputs.hoaPayment || 0));
+            setText('cHoldTotal', fmt(holdTotal));
+
+            // Lender
+            const loanAmt = asIs * ((inputs.loanLtvPercent || 30) / 100);
+            const annualRate = (inputs.annualInterestRate || 15) / 100;
+            const monthlyInt = loanAmt * annualRate / 12;
+            const holdMonths = Math.max(24, inputs.expectedHoldMonths || 24);
+            const lenderTotal = monthlyInt * holdMonths;
+            setText('cLenderBasis', fmt(asIs));
+            setText('cLoanAmt', fmt(loanAmt));
+            setText('cMonthlyInt', fmt(monthlyInt));
+            setText('cLenderTotal', fmt(lenderTotal));
+            document.getElementById('cMinTermNote').style.display = (inputs.expectedHoldMonths || 24) < 24 ? '' : 'none';
+
+            // All-In Cost
+            const allInCost = acqTotal + closeTotal + impTotal + lenderTotal;
+
+            // Save & Stay
+            const optionPrice = acqTotal + closeTotal;
+            const programPmt = optionPrice * 0.15 / 12;
+            const ssCustomerTotal = (inputs.monthlyProfit || 300) + programPmt + (inputs.firstMortgagePayment || 0) + (inputs.secondMortgagePayment || 0) + monthlyTax + monthlyIns + (inputs.hoaPayment || 0);
+            const ssMax = (inputs.marketRent || 0) * 0.80;
+            setText('ssOptionPrice', fmt(optionPrice));
+            setText('ssProgramPmt', fmt(programPmt));
+            setText('ssFirstMtg', fmt(inputs.firstMortgagePayment || 0));
+            setText('ssSecondMtg', fmt(inputs.secondMortgagePayment || 0));
+            setText('ssTax', fmt(monthlyTax));
+            setText('ssInsurance', fmt(monthlyIns));
+            setText('ssHoa', fmt(inputs.hoaPayment || 0));
+            setText('ssTotal', fmt(ssCustomerTotal));
+            setText('ssMax', fmt(ssMax));
+            const ssWarn = document.getElementById('ssWarning');
+            ssWarn.classList.toggle('visible', ssMax > 0 && ssCustomerTotal > ssMax);
+
+            // Save & Sell
+            const cushion = inputs.saveSellCushion || 40000;
+            const selMaxPurchase = (asIs * 0.95) - closeTotal - impTotal - cushion;
+            const selMonthlyRent = (inputs.marketRent || 0) * 0.50;
+            const hasMortgage = (inputs.firstMortgagePayment || 0) > 0 || (inputs.secondMortgagePayment || 0) > 0;
+            let tenantPayment;
+            if (hasMortgage) {
+                tenantPayment = selMonthlyRent + (inputs.hoaPayment || 0) + (inputs.firstMortgagePayment || 0) + (inputs.secondMortgagePayment || 0);
+            } else {
+                tenantPayment = selMonthlyRent + (inputs.hoaPayment || 0) + monthlyTax + monthlyIns;
+            }
+            const selLeaseTerm = inputs.saveSellLeaseTerm || 6;
+            const selTotalRent = selLeaseTerm * selMonthlyRent;
+
+            setText('selMaxPurchase', fmt(selMaxPurchase));
+            colorValue('selMaxPurchase', selMaxPurchase);
+            setText('selMonthlyRent', fmt(selMonthlyRent));
+            setText('selTenantRent', fmt(selMonthlyRent));
+            setText('selTenantHoa', fmt(inputs.hoaPayment || 0));
+            setText('selTenantMtg1', fmt(inputs.firstMortgagePayment || 0));
+            setText('selTenantMtg2', fmt(inputs.secondMortgagePayment || 0));
+            setText('selTenantTax', fmt(monthlyTax));
+            setText('selTenantIns', fmt(monthlyIns));
+            setText('selTenantTotal', fmt(tenantPayment));
+            setText('selTotalRent', fmt(selTotalRent));
+
+            // Show/hide mortgage vs tax/insurance rows based on escrow logic
+            document.getElementById('selMtgRow1').style.display = hasMortgage ? '' : 'none';
+            document.getElementById('selMtgRow2').style.display = hasMortgage && (inputs.secondMortgagePayment || 0) > 0 ? '' : 'none';
+            document.getElementById('selTaxRow').style.display = hasMortgage ? 'none' : '';
+            document.getElementById('selInsRow').style.display = hasMortgage ? 'none' : '';
+            document.getElementById('selEscrowNote').textContent = hasMortgage
+                ? 'Taxes & insurance are in escrow (included in mortgage payment), so not listed separately.'
+                : 'No mortgage - tenant pays taxes & insurance directly.';
+
+            // STR
+            const strMaxPurchase = selMaxPurchase; // same formula
+            const strHolding4m = holdTotal * 4;
+            const strHoa4m = (inputs.hoaPayment || 0) * 4;
+            setText('strMaxPurchase', fmt(strMaxPurchase));
+            colorValue('strMaxPurchase', strMaxPurchase);
+            setText('strAcqCost', fmt(acqTotal));
+            setText('strHolding4m', fmt(strHolding4m));
+            setText('strHoa4m', fmt(strHoa4m));
+
+            // Wholesaler
+            const arv = inputs.wholesalerArv || 0;
+            const repairs = inputs.wholesalerRepairCosts || 0;
+            const mao = (arv * 0.70) - repairs - acqTotal;
+            setText('whAcqCost', fmt(acqTotal));
+            const maoEl = document.getElementById('whMao');
+            maoEl.textContent = fmt(mao);
+            maoEl.style.color = mao >= 0 ? 'var(--success-green)' : 'var(--alert-red)';
+
+            // Summary
+            setText('smAllIn', fmt(allInCost));
+            const smLtvEl = document.getElementById('smLtv');
+            smLtvEl.textContent = fmtPct(ltv);
+            smLtvEl.style.color = ltvColor(ltv);
+            const smDaysEl = document.getElementById('smDays');
+            smDaysEl.textContent = daysUntil !== null ? daysUntil : '--';
+            smDaysEl.style.color = daysUntil !== null ? (daysUntil > 30 ? 'var(--success-green)' : daysUntil > 5 ? 'var(--warning-orange)' : 'var(--alert-red)') : '';
+
+            renderLTVGauge(ltv);
+        }
+
+        // ============================================================
+        // RENDERING HELPERS
+        // ============================================================
+        function setText(id, text) { const el = document.getElementById(id); if(el) el.textContent = text; }
+        function fmt(n) { if(n == null || isNaN(n)) return '$0'; return '$' + Math.round(n).toLocaleString('en-US'); }
+        function fmtPct(n) { return (n || 0).toFixed(1) + '%'; }
+        function ltvColor(ltv) { return ltv > 55 ? 'var(--alert-red)' : ltv > 50 ? 'var(--warning-orange)' : 'var(--success-green)'; }
+
+        function colorValue(id, val) {
+            const el = document.getElementById(id);
+            if (el) el.style.color = val < 0 ? 'var(--alert-red)' : '';
+        }
+
+        function renderDays(days) {
+            const el = document.getElementById('mDays');
+            if (days === null) { el.textContent = '--'; el.className = 'metric-value'; return; }
+            el.textContent = days;
+            if (days < 0) { el.textContent = days + ' (PASSED)'; el.className = 'metric-value red'; }
+            else if (days <= 5) el.className = 'metric-value red';
+            else if (days <= 30) el.className = 'metric-value orange';
+            else el.className = 'metric-value green';
+        }
+
+        function renderLTV(ltv) {
+            const el = document.getElementById('mLtv');
+            el.textContent = fmtPct(ltv);
+            el.style.color = ltvColor(ltv);
+            const marker = document.getElementById('ltvMarker');
+            marker.style.left = Math.min(100, Math.max(0, ltv)) + '%';
+        }
+
+        function renderLTVGauge(ltv) {
+            const ctx = document.getElementById('ltvGauge').getContext('2d');
+            if (ltvGaugeChart) ltvGaugeChart.destroy();
+
+            const clampedLtv = Math.min(100, Math.max(0, ltv));
+            ltvGaugeChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [50, 5, 45],
+                        backgroundColor: ['rgba(0,200,83,0.3)', 'rgba(255,136,0,0.3)', 'rgba(196,30,58,0.3)'],
+                        borderWidth: 0
+                    }, {
+                        data: [clampedLtv, 100 - clampedLtv],
+                        backgroundColor: [ltv > 55 ? '#c41e3a' : ltv > 50 ? '#ff8800' : '#00c853', 'transparent'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    rotation: -90,
+                    circumference: 180,
+                    cutout: '70%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                }
+            });
+
+            const gcLtv = document.getElementById('gcLtv');
+            gcLtv.textContent = fmtPct(ltv);
+            gcLtv.style.color = ltvColor(ltv);
+        }
+
+        // ============================================================
+        // UI HELPERS
+        // ============================================================
+        function toggleSection(header) {
+            const body = header.nextElementSibling;
+            const toggle = header.querySelector('.toggle');
+            body.classList.toggle('collapsed');
+            toggle.classList.toggle('collapsed');
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[onclick="switchTab('${tabId}')"]`).classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+
+        // ============================================================
+        // SAVE / LOAD
+        // ============================================================
+        async function saveDeal() {
+            if (!currentProperty) { alert('No property selected.'); return; }
+
+            const p = currentProperty;
+            const asIs = inputs.asIsValue || p.zestimate || p.just_value || 0;
+            const judgment = p.final_judgment_or_opening_bid || 0;
+            const ltv = asIs > 0 ? (judgment / asIs) * 100 : 0;
+            const auctionAmt = judgment + (inputs.prevYearTaxes || 0);
+            const acqTotal = auctionAmt + (inputs.cashToSeller || 0) + FIXED_COSTS.notary;
+            const proratedTax = acqTotal * 0.002;
+            const titlePolicy = (acqTotal / 1000) * 5.75;
+            const docStamps = (acqTotal / 100) * 1.05;
+            const closeTotal = FIXED_CLOSING_SUM + proratedTax + titlePolicy + docStamps + (inputs.specialAssessment || 0);
+            const loanAmt = asIs * ((inputs.loanLtvPercent || 30) / 100);
+            const monthlyInt = loanAmt * ((inputs.annualInterestRate || 15) / 100) / 12;
+            const lenderTotal = monthlyInt * Math.max(24, inputs.expectedHoldMonths || 24);
+            const allIn = acqTotal + closeTotal + (inputs.estimatedImprovements || 0) + lenderTotal;
+            const optionPrice = acqTotal + closeTotal;
+            const ssPmt = (inputs.monthlyProfit || 300) + (optionPrice * 0.15 / 12) + (inputs.firstMortgagePayment || 0) + (inputs.secondMortgagePayment || 0) + ((inputs.prevYearTaxes || 0) * 1.1 / 12) * 2 + (inputs.hoaPayment || 0);
+            const selMaxPurchase = (asIs * 0.95) - closeTotal - (inputs.estimatedImprovements || 0) - (inputs.saveSellCushion || 40000);
+            const arv = inputs.wholesalerArv || 0;
+            const mao = (arv * 0.70) - (inputs.wholesalerRepairCosts || 0) - acqTotal;
+
+            const dealData = {
+                raw_row_id: p.raw_row_id,
+                case_number: p.case_number,
+                property_address: p.property_address,
+                city: p.city, state: p.state, zip: p.zip, county: p.county,
+                auction_date: p.auction_date, auction_type: p.auction_type, owners_name: p.owners_name,
+                final_judgment_amount: judgment,
+                just_value: p.just_value, zestimate: p.zestimate,
+                as_is_value: asIs, market_rent: inputs.marketRent,
+                flood_zone: inputs.floodZone, people_involved: inputs.peopleInvolved,
+                mortgage_balance: inputs.mortgageBalance, reinstatement_amount: inputs.reinstatementAmount,
+                interest_rate: inputs.interestRate,
+                first_mortgage_payment: inputs.firstMortgagePayment,
+                second_mortgage_payment: inputs.secondMortgagePayment,
+                prev_year_taxes: inputs.prevYearTaxes, hoa_payment: inputs.hoaPayment,
+                homestead: inputs.homestead, occupancy: inputs.occupancy, situation: inputs.situation,
+                cash_to_seller: inputs.cashToSeller, special_assessment: inputs.specialAssessment,
+                estimated_improvements: inputs.estimatedImprovements,
+                loan_ltv_percent: inputs.loanLtvPercent, annual_interest_rate: inputs.annualInterestRate,
+                expected_hold_months: inputs.expectedHoldMonths,
+                save_stay_term: inputs.saveStayTerm, monthly_profit: inputs.monthlyProfit,
+                save_sell_cushion: inputs.saveSellCushion, save_sell_lease_term: inputs.saveSellLeaseTerm,
+                str_liens: inputs.strLiens,
+                wholesaler_arv: inputs.wholesalerArv || null, wholesaler_repair_costs: inputs.wholesalerRepairCosts || null,
+                calc_ltv: Math.round(ltv * 100) / 100,
+                calc_equity: Math.round((asIs - judgment) * 100) / 100,
+                calc_acq_total: Math.round(acqTotal * 100) / 100,
+                calc_closing_total: Math.round(closeTotal * 100) / 100,
+                calc_lender_cost_total: Math.round(lenderTotal * 100) / 100,
+                calc_all_in_cost: Math.round(allIn * 100) / 100,
+                calc_save_stay_payment: Math.round(ssPmt * 100) / 100,
+                calc_save_sell_max_purchase: Math.round(selMaxPurchase * 100) / 100,
+                calc_wholesaler_mao: arv > 0 ? Math.round(mao * 100) / 100 : null,
+                actual_purchase_price: inputs.actualPurchasePrice || null,
+                actual_upfront_cash_to_seller: inputs.actualUpfrontCashToSeller || null,
+                save_sell_upfront_cash: inputs.saveSellUpfrontCash || null,
+                status: document.getElementById('dealStatus').value,
+                notes: document.getElementById('analystNotes').value,
+                analyzed_by: 'Gabe Clements'
+            };
+
+            const headers = {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json',
+                'Content-Profile': 'ops',
+                'Accept-Profile': 'ops',
+                'Prefer': 'return=representation'
+            };
+
+            try {
+                let resp;
+                if (currentDealId) {
+                    dealData.updated_at = new Date().toISOString();
+                    resp = await fetch(`${SUPABASE_URL}/rest/v1/deal_analyses?id=eq.${currentDealId}`, {
+                        method: 'PATCH', headers, body: JSON.stringify(dealData)
+                    });
+                } else {
+                    resp = await fetch(`${SUPABASE_URL}/rest/v1/deal_analyses`, {
+                        method: 'POST', headers, body: JSON.stringify(dealData)
+                    });
+                }
+
+                if (!resp.ok) { const e = await resp.text(); alert('Save failed: ' + e); return; }
+                const saved = await resp.json();
+                if (saved?.length) currentDealId = saved[0].id;
+
+                // Show toast
+                const toast = document.getElementById('saveToast');
+                toast.style.display = 'block';
+                setTimeout(() => toast.style.display = 'none', 3000);
+
+                // Clear localStorage
+                localStorage.removeItem('deal_analysis_autosave');
+
+                // Refresh previous analyses
+                await loadPreviousAnalyses();
+            } catch(e) {
+                alert('Save error: ' + e.message);
+            }
+        }
+
+        async function loadDeal(dealId) {
+            showLoading();
+            const headers = {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Accept-Profile': 'ops'
+            };
+            const resp = await fetch(`${SUPABASE_URL}/rest/v1/deal_analyses?id=eq.${dealId}`, { headers });
+            if (!resp.ok) { hideLoading(); return; }
+            const data = await resp.json();
+            if (!data?.length) { hideLoading(); return; }
+
+            const deal = data[0];
+            currentDealId = deal.id;
+
+            // Load the property first
+            await loadProperty('raw_row_id', deal.raw_row_id);
+
+            // Restore all inputs from saved deal
+            inputs.asIsValue = deal.as_is_value || 0;
+            inputs.marketRent = deal.market_rent || 0;
+            inputs.mortgageBalance = deal.mortgage_balance || 0;
+            inputs.reinstatementAmount = deal.reinstatement_amount || 0;
+            inputs.interestRate = deal.interest_rate || 0;
+            inputs.firstMortgagePayment = deal.first_mortgage_payment || 0;
+            inputs.secondMortgagePayment = deal.second_mortgage_payment || 0;
+            inputs.prevYearTaxes = deal.prev_year_taxes || 0;
+            inputs.hoaPayment = deal.hoa_payment || 0;
+            inputs.floodZone = deal.flood_zone || '';
+            inputs.occupancy = deal.occupancy || '';
+            inputs.peopleInvolved = deal.people_involved || '';
+            inputs.homestead = deal.homestead || false;
+            inputs.situation = deal.situation || '';
+            inputs.cashToSeller = deal.cash_to_seller || 0;
+            inputs.specialAssessment = deal.special_assessment || 0;
+            inputs.estimatedImprovements = deal.estimated_improvements || 5000;
+            inputs.loanLtvPercent = deal.loan_ltv_percent || 30;
+            inputs.annualInterestRate = deal.annual_interest_rate || 15;
+            inputs.expectedHoldMonths = deal.expected_hold_months || 24;
+            inputs.saveStayTerm = deal.save_stay_term || 60;
+            inputs.monthlyProfit = deal.monthly_profit || 300;
+            inputs.saveSellCushion = deal.save_sell_cushion || 40000;
+            inputs.saveSellLeaseTerm = deal.save_sell_lease_term || 6;
+            inputs.saveSellUpfrontCash = deal.save_sell_upfront_cash || 0;
+            inputs.strLiens = deal.str_liens || 0;
+            inputs.wholesalerArv = deal.wholesaler_arv || 0;
+            inputs.wholesalerRepairCosts = deal.wholesaler_repair_costs || 0;
+            inputs.actualPurchasePrice = deal.actual_purchase_price || 0;
+            inputs.actualUpfrontCashToSeller = deal.actual_upfront_cash_to_seller || 0;
+
+            // Restore metadata
+            document.getElementById('dealStatus').value = deal.status || 'draft';
+            document.getElementById('analystNotes').value = deal.notes || '';
+
+            syncInputsToDOM();
+            recalculateAll();
+            hideLoading();
+        }
+
+        function syncInputsToDOM() {
+            // Sync all input values to their DOM elements
+            const fieldMap = {
+                fAsIsValue:'asIsValue', fMarketRent:'marketRent', fMortgageBal:'mortgageBalance',
+                fReinstatement:'reinstatementAmount', fInterestRate:'interestRate',
+                fFirstMortgage:'firstMortgagePayment', fSecondMortgage:'secondMortgagePayment',
+                fPrevTaxes:'prevYearTaxes', fHoa:'hoaPayment', fPeople:'peopleInvolved',
+                fSituation:'situation',
+                cCashToSeller:'cashToSeller', cSpecialAssess:'specialAssessment',
+                cImprovements:'estimatedImprovements', cAnnualRate:'annualInterestRate',
+                cHoldPeriod:'expectedHoldMonths',
+                ssTerm:'saveStayTerm', ssProfit:'monthlyProfit',
+                selCushion:'saveSellCushion', selLeaseTerm:'saveSellLeaseTerm',
+                selUpfrontCash:'saveSellUpfrontCash',
+                strLiens:'strLiens',
+                whArv:'wholesalerArv', whRepairs:'wholesalerRepairCosts',
+                selActualPrice:'actualPurchasePrice', selActualCash:'actualUpfrontCashToSeller'
+            };
+            for (const [domId, field] of Object.entries(fieldMap)) {
+                const el = document.getElementById(domId);
+                if (el) el.value = inputs[field] || '';
+            }
+            // Dropdowns
+            document.getElementById('fFloodZone').value = inputs.floodZone || '';
+            document.getElementById('fOccupancy').value = inputs.occupancy || '';
+            // Checkbox
+            document.getElementById('fHomestead').checked = inputs.homestead;
+            // Slider
+            document.getElementById('cLoanLtvSlider').value = inputs.loanLtvPercent || 30;
+            document.getElementById('cLoanLtvVal').textContent = (inputs.loanLtvPercent || 30) + '%';
+        }
+
+        async function loadPreviousAnalyses() {
+            if (!currentProperty) return;
+            const headers = {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Accept-Profile': 'ops'
+            };
+            const resp = await fetch(`${SUPABASE_URL}/rest/v1/deal_analyses?raw_row_id=eq.${currentProperty.raw_row_id}&order=created_at.desc&limit=20`, { headers });
+            if (!resp.ok) return;
+            const deals = await resp.json();
+            const container = document.getElementById('prevAnalyses');
+            const list = document.getElementById('prevList');
+
+            if (!deals?.length) { container.style.display = 'none'; return; }
+            container.style.display = '';
+            list.innerHTML = deals.map(d => {
+                const date = new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const statusColor = d.status === 'approved' ? 'var(--success-green)' : d.status === 'rejected' ? 'var(--alert-red)' : 'var(--text-muted)';
+                const isCurrent = d.id === currentDealId;
+                return `<div class="prev-item"${isCurrent ? ' style="border-left:3px solid var(--accent-cyan)"' : ''} onclick="loadDeal('${d.id}')">
+                    <span>${date} - LTV: ${d.calc_ltv ? d.calc_ltv.toFixed(1) + '%' : '--'} | All-In: ${d.calc_all_in_cost ? '$' + Math.round(d.calc_all_in_cost).toLocaleString() : '--'}${isCurrent ? ' (current)' : ''}</span>
+                    <span class="pi-status" style="color:${statusColor}">${d.status || 'draft'}</span>
+                </div>`;
+            }).join('');
+        }
+
+        function autoSave() {
+            if (!currentProperty) return;
+            const data = {
+                raw_row_id: currentProperty.raw_row_id,
+                inputs: { ...inputs },
+                timestamp: Date.now()
+            };
+            localStorage.setItem('deal_analysis_autosave', JSON.stringify(data));
+        }
+    </script>
+</body>
+</html>
