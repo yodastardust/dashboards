@@ -292,6 +292,43 @@
         .contacts-suppressed .contact-row { opacity: 0.5; }
         .contacts-suppressed .contact-row:hover { opacity: 0.7; }
 
+        /* Suppress action buttons */
+        .btn-suppress {
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            background: transparent;
+            border: 1px solid var(--alert-red);
+            color: var(--alert-red);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn-suppress:hover {
+            background: rgba(196, 30, 58, 0.15);
+        }
+        .btn-suppress:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .btn-suppress-property {
+            padding: 4px 12px;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+            background: transparent;
+            border: 1px solid var(--alert-red);
+            color: var(--alert-red);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: 8px;
+        }
+        .btn-suppress-property:hover {
+            background: rgba(196, 30, 58, 0.15);
+        }
+
         /* Contacts Table */
         .contacts-table {
             width: 100%;
@@ -610,6 +647,7 @@
                                 <th>Role</th>
                                 <th>Type</th>
                                 <th>Status</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody id="contacts-body">
@@ -889,6 +927,9 @@
             }
             if (p.dec === true) badges += '<span class="badge badge-deceased">Deceased Owner</span> ';
             if (p.llc) badges += '<span class="badge badge-llc">LLC</span> ';
+            if (!propertySuppressionData) {
+                badges += `<button class="btn-suppress-property" onclick="suppressProperty()" title="Suppress all contacts on this property">Suppress Property</button>`;
+            }
             document.getElementById('prop-badges').innerHTML = badges;
 
             // Property grid
@@ -944,7 +985,7 @@
             }
 
             if (currentContacts.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">No contacts found for this property</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">No contacts found for this property</td></tr>';
                 return;
             }
 
@@ -977,6 +1018,14 @@
                     statusBadge = '<span class="badge badge-active" style="background:#f59e0b">Delayed</span>';
                 }
 
+                // Determine if contact is already suppressed/inactive
+                const isContactInactive = (
+                    convo?.status === 'stopped' ||
+                    supp?.active ||
+                    propertySuppressionData ||
+                    ['wrong_number', 'not_interested', 'suppress_person', 'suppress_property'].includes(convo?.resolution)
+                );
+
                 html += `<tr class="contact-row ${isExpanded ? 'expanded' : ''}" onclick="toggleHistory(${idx})">
                     <td><span class="expand-arrow ${isExpanded ? 'open' : ''}">&#9654;</span></td>
                     <td>${escapeHtml(c.full_name || '-')}</td>
@@ -984,11 +1033,12 @@
                     <td>${escapeHtml(c.role || '-')}${c.likely_relationship ? ' <span style="color:var(--text-muted);font-size:0.75rem">(' + escapeHtml(c.likely_relationship) + ')</span>' : ''}</td>
                     <td>${escapeHtml(c.phone_type || '-')}</td>
                     <td>${statusBadge}</td>
+                    <td>${isContactInactive ? '' : `<button class="btn-suppress" onclick="event.stopPropagation(); suppressContact(${idx})" title="Suppress this contact">Suppress</button>`}</td>
                 </tr>`;
 
                 // History row (hidden by default)
                 html += `<tr class="contact-history ${isExpanded ? 'show' : ''}" id="history-${idx}">
-                    <td colspan="6">
+                    <td colspan="7">
                         <div class="history-container" id="history-content-${idx}">
                             ${isExpanded ? '' : ''}
                         </div>
@@ -1189,6 +1239,107 @@
             } finally {
                 addBtn.textContent = 'Add Contact';
                 addBtn.disabled = false;
+            }
+        }
+
+        // Suppress a single contact
+        async function suppressContact(idx) {
+            const contact = currentContacts[idx];
+            if (!contact) return;
+
+            const name = contact.full_name || 'Unknown';
+            const phone = formatPhone(contact.phone_digits);
+
+            if (!confirm(`Suppress "${name}" (${phone})?\n\nThis will:\n- Stop all outreach to this contact\n- Cancel any queued messages\n- Create a suppression record\n\nThis cannot be easily undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(DISPO_WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone_digits: contact.phone_digits,
+                        action: 'suppress_person',
+                        raw_row_id: currentRawRowId,
+                        auction_date: currentProperty.auction_date || null
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Webhook returned ' + response.status);
+                }
+
+                let result = { success: true };
+                try {
+                    const text = await response.text();
+                    if (text) result = JSON.parse(text);
+                } catch (e) { /* empty/non-JSON OK */ }
+
+                if (result.success === false) {
+                    throw new Error(result.error || 'Unknown error');
+                }
+
+                showToast(`Suppressed ${name}`);
+
+                expandedContactIdx = null;
+                contactHistoryCache = {};
+                await loadContacts();
+                renderContacts();
+
+            } catch (err) {
+                console.error('Suppress contact error:', err);
+                showToast('Error: ' + err.message, true);
+            }
+        }
+
+        // Suppress entire property (all contacts)
+        async function suppressProperty() {
+            const address = currentProperty.property_address || 'this property';
+            const contactCount = currentContacts.length;
+
+            if (!confirm(`Suppress ENTIRE property at "${address}"?\n\nThis will block ALL ${contactCount} contact(s) from receiving any outreach.\n\nThis cannot be easily undone.`)) {
+                return;
+            }
+
+            const firstPhone = currentContacts.length > 0 ? currentContacts[0].phone_digits : null;
+
+            try {
+                const response = await fetch(DISPO_WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone_digits: firstPhone,
+                        action: 'suppress_property',
+                        raw_row_id: currentRawRowId,
+                        auction_date: currentProperty.auction_date || null
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Webhook returned ' + response.status);
+                }
+
+                let result = { success: true };
+                try {
+                    const text = await response.text();
+                    if (text) result = JSON.parse(text);
+                } catch (e) { /* empty/non-JSON OK */ }
+
+                if (result.success === false) {
+                    throw new Error(result.error || 'Unknown error');
+                }
+
+                showToast('Property suppressed - all contacts blocked');
+
+                expandedContactIdx = null;
+                contactHistoryCache = {};
+                await loadContacts();
+                renderProperty();
+
+            } catch (err) {
+                console.error('Suppress property error:', err);
+                showToast('Error: ' + err.message, true);
             }
         }
 
