@@ -4,45 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Needs Response - Mission Control</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Share+Tech+Mono&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --bg-primary: #0b0b0f;
-            --bg-secondary: #1a1a1e;
-            --bg-panel: #141418;
-            --bg-hover: #252529;
-            --accent-blue: #005288;
-            --accent-cyan: #00bcd4;
-            --alert-red: #c41e3a;
-            --success-green: #00c853;
-            --warning-yellow: #ffc107;
+            --bg-deep: #06060c;
+            --bg-primary: #06060c;
+            --bg-secondary: #0c0c16;
+            --bg-panel: #0a0a14;
+            --bg-card: #0a0a14;
+            --bg-hover: #0f0f1c;
+            --bg-card-hover: #0f0f1c;
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --glass-border-hover: rgba(255, 255, 255, 0.1);
+            --border-color: rgba(255, 255, 255, 0.06);
+            --neon-cyan: #00e5ff;
+            --neon-cyan-rgb: 0, 229, 255;
+            --neon-pink: #ff2d7b;
+            --neon-pink-rgb: 255, 45, 123;
+            --neon-purple: #a855f7;
+            --neon-purple-rgb: 168, 85, 247;
+            --neon-green: #00ff88;
+            --neon-green-rgb: 0, 255, 136;
+            --neon-amber: #ffb800;
+            --neon-amber-rgb: 255, 184, 0;
+            --accent-cyan: #00e5ff;
+            --accent-blue: #0066cc;
+            --accent-purple: #a855f7;
+            --alert-red: #ff2d55;
+            --success-green: #00ff88;
+            --warning-yellow: #ffb800;
             --warning-orange: #ff8800;
-            --text-primary: #ffffff;
-            --text-secondary: #9e9e9e;
-            --text-muted: #666666;
-            --border-color: #2a2a2e;
+            --text-primary: #e2e2f0;
+            --text-secondary: #7a7a96;
+            --text-muted: #4a4a66;
+            --text-ghost: #32324a;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Inter', -apple-system, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
         }
 
         .header {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
+            background: rgba(6, 6, 12, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
             padding: 12px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: 10000;
         }
 
         .logo {
@@ -64,6 +86,8 @@
         }
 
         .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 0.06em;
             font-weight: 500;
             font-size: 18px;
         }
@@ -87,7 +111,7 @@
             font-size: 1.5rem;
             font-weight: 700;
             color: var(--warning-orange);
-            font-family: 'Roboto Mono', monospace;
+            font-family: 'Share Tech Mono', monospace;
         }
 
         .header-stat-label {
@@ -104,7 +128,7 @@
             background: var(--bg-panel);
             border-radius: 20px;
             font-size: 0.75rem;
-            font-family: 'Roboto Mono', monospace;
+            font-family: 'Share Tech Mono', monospace;
         }
 
         .status-dot {
@@ -125,11 +149,16 @@
         .container {
             display: flex;
             height: calc(100vh - 65px);
+            position: relative;
+            z-index: 10000;
         }
 
         .queue-panel {
             width: 450px;
-            border-right: 1px solid var(--border-color);
+            background: rgba(10, 10, 20, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-right: 1px solid var(--glass-border);
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -137,8 +166,9 @@
 
         .queue-header {
             padding: 16px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
+            background: rgba(10, 10, 20, 0.6);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
         }
 
         .queue-title {
@@ -171,8 +201,8 @@
         }
 
         .queue-item.selected {
-            background: var(--bg-secondary);
-            border-left: 3px solid var(--accent-cyan);
+            background: rgba(0, 229, 255, 0.04);
+            border-left: 3px solid var(--neon-cyan);
         }
 
         .queue-item-header {
@@ -191,7 +221,7 @@
         .queue-item-time {
             font-size: 0.75rem;
             color: var(--warning-orange);
-            font-family: 'Roboto Mono', monospace;
+            font-family: 'Share Tech Mono', monospace;
             white-space: nowrap;
         }
 
@@ -203,7 +233,7 @@
         .queue-item-phone {
             font-size: 0.8rem;
             color: var(--accent-cyan);
-            font-family: 'Roboto Mono', monospace;
+            font-family: 'Share Tech Mono', monospace;
             margin-bottom: 6px;
         }
 
@@ -237,10 +267,10 @@
             text-transform: uppercase;
         }
 
-        .badge-deceased { background: var(--alert-red); color: white; }
-        .badge-llc { background: var(--accent-blue); color: white; }
-        .badge-owner { background: var(--success-green); color: black; }
-        .badge-relative { background: var(--warning-yellow); color: black; }
+        .badge-deceased { background: rgba(255, 45, 55, 0.15); color: var(--alert-red); border: 1px solid rgba(255, 45, 55, 0.3); box-shadow: 0 0 8px rgba(255, 45, 55, 0.2); }
+        .badge-llc { background: rgba(0, 102, 204, 0.15); color: var(--accent-blue); border: 1px solid rgba(0, 102, 204, 0.3); box-shadow: 0 0 8px rgba(0, 102, 204, 0.2); }
+        .badge-owner { background: rgba(0, 255, 136, 0.15); color: var(--success-green); border: 1px solid rgba(0, 255, 136, 0.3); box-shadow: 0 0 8px rgba(0, 255, 136, 0.2); }
+        .badge-relative { background: rgba(255, 184, 0, 0.15); color: var(--neon-amber); border: 1px solid rgba(255, 184, 0, 0.3); box-shadow: 0 0 8px rgba(255, 184, 0, 0.2); }
 
         .main-content {
             flex: 1;
@@ -274,8 +304,9 @@
 
         .conversation-header {
             padding: 16px 24px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
+            background: rgba(10, 10, 20, 0.6);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
         }
 
         .conversation-header h2 {
@@ -315,14 +346,15 @@
         }
 
         .message.inbound {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
             align-self: flex-start;
             border-bottom-left-radius: 4px;
         }
 
         .message.outbound {
-            background: var(--accent-blue);
+            background: rgba(0, 229, 255, 0.08);
+            border: 1px solid rgba(0, 229, 255, 0.15);
             align-self: flex-end;
             border-bottom-right-radius: 4px;
         }
@@ -334,13 +366,159 @@
         }
 
         .message.outbound .message-time {
-            color: rgba(255,255,255,0.6);
+            color: var(--text-secondary);
+        }
+
+        /* AI Classification Badge */
+        .ai-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        .ai-badge.interested, .ai-badge.call_request, .ai-badge.wants_to_sell {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--success-green);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            box-shadow: 0 0 8px rgba(0, 255, 136, 0.2);
+        }
+        .ai-badge.who_is_this, .ai-badge.confused, .ai-badge.how_got_number,
+        .ai-badge.has_lawyer, .ai-badge.spanish {
+            background: rgba(0, 229, 255, 0.1);
+            color: var(--neon-cyan);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            box-shadow: 0 0 8px rgba(0, 229, 255, 0.2);
+        }
+        .ai-badge.wrong_number, .ai-badge.deceased, .ai-badge.relative_referral {
+            background: rgba(255, 184, 0, 0.1);
+            color: var(--neon-amber);
+            border: 1px solid rgba(255, 184, 0, 0.3);
+            box-shadow: 0 0 8px rgba(255, 184, 0, 0.2);
+        }
+        .ai-badge.angry, .ai-badge.not_interested {
+            background: rgba(255, 45, 55, 0.1);
+            color: var(--alert-red);
+            border: 1px solid rgba(255, 45, 55, 0.3);
+            box-shadow: 0 0 8px rgba(255, 45, 55, 0.2);
+        }
+        .ai-badge.already_resolved {
+            background: rgba(122, 122, 150, 0.1);
+            color: var(--text-secondary);
+            border: 1px solid rgba(122, 122, 150, 0.3);
+            box-shadow: 0 0 8px rgba(122, 122, 150, 0.15);
+        }
+
+        /* AI Draft Panel */
+        .draft-panel {
+            padding: 14px 24px;
+            background: rgba(10, 10, 20, 0.6);
+            border-top: 1px solid var(--glass-border);
+            display: none;
+        }
+        .draft-panel.visible {
+            display: block;
+        }
+        .draft-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .draft-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .draft-body {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: var(--text-primary);
+            font-size: 0.88rem;
+            line-height: 1.5;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
+        .draft-extracted-phone {
+            font-size: 0.8rem;
+            color: var(--warning-orange);
+            margin-bottom: 8px;
+            font-family: 'Share Tech Mono', monospace;
+        }
+        .draft-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .draft-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid;
+        }
+        .draft-btn.approve {
+            background: rgba(0, 200, 83, 0.15);
+            border-color: var(--success-green);
+            color: var(--success-green);
+        }
+        .draft-btn.approve:hover {
+            background: rgba(0, 200, 83, 0.25);
+        }
+        .draft-btn.edit {
+            background: rgba(0, 188, 212, 0.1);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+        .draft-btn.edit:hover {
+            background: rgba(0, 188, 212, 0.2);
+        }
+        .draft-btn.dismiss {
+            background: transparent;
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+        .draft-btn.dismiss:hover {
+            background: var(--bg-hover);
+        }
+        .draft-btn.add-phone {
+            background: rgba(255, 136, 0, 0.1);
+            border-color: var(--warning-orange);
+            color: var(--warning-orange);
+        }
+        .draft-btn.add-phone:hover {
+            background: rgba(255, 136, 0, 0.2);
+        }
+        .draft-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        /* Auto-dispo info panel */
+        .auto-dispo-panel {
+            padding: 10px 24px;
+            background: rgba(158, 158, 158, 0.08);
+            border-top: 1px solid var(--border-color);
+            display: none;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+        .auto-dispo-panel.visible {
+            display: block;
         }
 
         .reply-panel {
             padding: 12px 24px;
-            background: var(--bg-panel);
-            border-top: 1px solid var(--border-color);
+            background: rgba(10, 10, 20, 0.6);
+            border-top: 1px solid var(--glass-border);
         }
 
         .reply-input-container {
@@ -367,20 +545,21 @@
         }
 
         .reply-input-container button {
-            background: var(--accent-blue);
-            border: none;
+            background: transparent;
+            border: 1px solid rgba(0, 229, 255, 0.3);
             border-radius: 8px;
             padding: 10px 16px;
-            color: white;
+            color: var(--neon-cyan);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.2s;
+            transition: all 0.2s;
         }
 
         .reply-input-container button:hover {
-            background: #0066aa;
+            background: rgba(0, 229, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
         }
 
         .reply-input-container button:disabled {
@@ -396,13 +575,13 @@
 
         .reply-info span {
             color: var(--accent-cyan);
-            font-family: 'Roboto Mono', monospace;
+            font-family: 'Share Tech Mono', monospace;
         }
 
         .dispo-panel {
             padding: 16px 24px;
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
+            background: rgba(10, 10, 20, 0.6);
+            border-top: 1px solid var(--glass-border);
         }
 
         .dispo-title {
@@ -421,8 +600,8 @@
 
         .dispo-btn {
             padding: 10px 16px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-panel);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: transparent;
             color: var(--text-primary);
             border-radius: 6px;
             cursor: pointer;
@@ -434,44 +613,48 @@
         }
 
         .dispo-btn:hover {
-            background: var(--bg-hover);
-            border-color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.15);
         }
 
         .dispo-btn.responded {
-            border-color: var(--success-green);
+            border-color: rgba(0, 255, 136, 0.3);
             color: var(--success-green);
         }
 
         .dispo-btn.responded:hover {
-            background: rgba(0, 200, 83, 0.1);
+            background: rgba(0, 255, 136, 0.1);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.15);
         }
 
         .dispo-btn.suppress {
-            border-color: var(--alert-red);
+            border-color: rgba(255, 45, 55, 0.3);
             color: var(--alert-red);
         }
 
         .dispo-btn.suppress:hover {
-            background: rgba(196, 30, 58, 0.1);
+            background: rgba(255, 45, 55, 0.1);
+            box-shadow: 0 0 15px rgba(255, 45, 55, 0.15);
         }
 
         .dispo-btn.book-appt {
-            border-color: var(--accent-cyan);
-            color: var(--accent-cyan);
+            border-color: rgba(0, 229, 255, 0.3);
+            color: var(--neon-cyan);
         }
 
         .dispo-btn.book-appt:hover {
-            background: rgba(0, 188, 212, 0.1);
+            background: rgba(0, 229, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.15);
         }
 
         .dispo-btn.postpone {
-            border-color: var(--warning-yellow);
-            color: var(--warning-yellow);
+            border-color: rgba(255, 184, 0, 0.3);
+            color: var(--neon-amber);
         }
 
         .dispo-btn.postpone:hover {
-            background: rgba(255, 193, 7, 0.1);
+            background: rgba(255, 184, 0, 0.1);
+            box-shadow: 0 0 15px rgba(255, 184, 0, 0.15);
         }
 
         /* Delay Day-Picker Modal */
@@ -485,7 +668,7 @@
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 10001;
         }
 
         .delay-modal-overlay.show {
@@ -493,7 +676,10 @@
         }
 
         .delay-modal {
-            background: var(--bg-secondary);
+            background: rgba(10, 10, 20, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
             border-radius: 12px;
             width: 90%;
             max-width: 420px;
@@ -574,7 +760,7 @@
         .delay-day-btn .day-date {
             font-size: 0.85rem;
             font-weight: 500;
-            font-family: 'Roboto Mono', monospace;
+            font-family: 'Share Tech Mono', monospace;
         }
 
         .delay-day-btn .day-offset {
@@ -631,7 +817,7 @@
             border: 1px solid var(--border-color);
             border-radius: 6px;
             color: var(--text-primary);
-            font-family: 'Roboto Mono', monospace;
+            font-family: 'Share Tech Mono', monospace;
             font-size: 0.8rem;
             outline: none;
         }
@@ -646,10 +832,10 @@
 
         .phone-lookup-bar button {
             padding: 6px 12px;
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
+            background: transparent;
+            border: 1px solid rgba(0, 229, 255, 0.3);
             border-radius: 6px;
-            color: var(--accent-cyan);
+            color: var(--neon-cyan);
             cursor: pointer;
             font-size: 0.75rem;
             font-weight: 500;
@@ -658,8 +844,8 @@
         }
 
         .phone-lookup-bar button:hover {
-            background: var(--accent-cyan);
-            color: var(--bg-primary);
+            background: rgba(0, 229, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
         }
 
         .phone-lookup-bar .lookup-label {
@@ -681,7 +867,7 @@
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 10001;
         }
 
         .lookup-modal-overlay.show {
@@ -689,7 +875,10 @@
         }
 
         .lookup-modal {
-            background: var(--bg-secondary);
+            background: rgba(10, 10, 20, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
             border-radius: 12px;
             width: 90%;
             max-width: 500px;
@@ -712,7 +901,7 @@
         .lookup-modal-header p {
             font-size: 0.85rem;
             color: var(--text-secondary);
-            font-family: 'Roboto Mono', monospace;
+            font-family: 'Share Tech Mono', monospace;
         }
 
         .lookup-modal-body {
@@ -771,7 +960,7 @@
 
         .lookup-result-row .value {
             color: var(--text-primary);
-            font-family: 'Roboto Mono', monospace;
+            font-family: 'Share Tech Mono', monospace;
             text-align: right;
         }
 
@@ -783,10 +972,10 @@
             font-weight: 500;
         }
 
-        .lookup-badge.found { background: var(--success-green); color: black; }
-        .lookup-badge.not-found { background: var(--text-muted); color: white; }
-        .lookup-badge.active { background: var(--accent-cyan); color: black; }
-        .lookup-badge.suppressed { background: var(--alert-red); color: white; }
+        .lookup-badge.found { background: rgba(0, 255, 136, 0.15); color: var(--success-green); border: 1px solid rgba(0, 255, 136, 0.3); box-shadow: 0 0 8px rgba(0, 255, 136, 0.2); }
+        .lookup-badge.not-found { background: rgba(74, 74, 102, 0.15); color: var(--text-secondary); border: 1px solid rgba(74, 74, 102, 0.3); }
+        .lookup-badge.active { background: rgba(0, 229, 255, 0.15); color: var(--neon-cyan); border: 1px solid rgba(0, 229, 255, 0.3); box-shadow: 0 0 8px rgba(0, 229, 255, 0.2); }
+        .lookup-badge.suppressed { background: rgba(255, 45, 55, 0.15); color: var(--alert-red); border: 1px solid rgba(255, 45, 55, 0.3); box-shadow: 0 0 8px rgba(255, 45, 55, 0.2); }
 
         .lookup-section-label {
             font-size: 0.7rem;
@@ -829,33 +1018,36 @@
         }
 
         .lookup-btn-suppress {
-            background: var(--alert-red);
-            color: white;
-            border-color: var(--alert-red);
+            background: transparent;
+            color: var(--alert-red);
+            border-color: rgba(255, 45, 55, 0.3);
         }
 
         .lookup-btn-suppress:hover {
-            opacity: 0.85;
+            background: rgba(255, 45, 55, 0.1);
+            box-shadow: 0 0 15px rgba(255, 45, 55, 0.2);
         }
 
         .lookup-btn-view {
-            background: var(--accent-cyan);
-            color: var(--bg-primary);
-            border-color: var(--accent-cyan);
+            background: transparent;
+            color: var(--neon-cyan);
+            border-color: rgba(0, 229, 255, 0.3);
         }
 
         .lookup-btn-view:hover {
-            opacity: 0.85;
+            background: rgba(0, 229, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
         }
 
         .lookup-btn-add {
-            background: var(--success-green);
-            color: var(--bg-primary);
-            border-color: var(--success-green);
+            background: transparent;
+            color: var(--success-green);
+            border-color: rgba(0, 255, 136, 0.3);
         }
 
         .lookup-btn-add:hover {
-            opacity: 0.85;
+            background: rgba(0, 255, 136, 0.1);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
         }
 
         /* Booking Modal */
@@ -869,7 +1061,7 @@
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 10001;
         }
 
         .booking-modal-overlay.show {
@@ -877,7 +1069,10 @@
         }
 
         .booking-modal {
-            background: var(--bg-secondary);
+            background: rgba(10, 10, 20, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
             border-radius: 12px;
             width: 90%;
             max-width: 500px;
@@ -932,7 +1127,7 @@
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.9rem;
-            font-family: 'Roboto Mono', monospace;
+            font-family: 'Share Tech Mono', monospace;
             transition: all 0.2s;
             color: var(--text-primary);
             font-weight: 500;
@@ -1041,7 +1236,7 @@
             color: var(--bg-primary);
             border-radius: 8px;
             font-weight: 500;
-            z-index: 1000;
+            z-index: 10000;
             animation: slideIn 0.3s ease;
         }
 
@@ -1123,7 +1318,7 @@
                 left: 0;
                 right: 0;
                 bottom: 0;
-                z-index: 200;
+                z-index: 10002;
                 background: var(--bg-primary);
                 transform: translateX(100%);
                 transition: transform 0.3s ease;
@@ -1242,9 +1437,128 @@
                 gap: 4px;
             }
         }
+        /* ═══════════════════════════════════════════════
+           ATMOSPHERE LAYERS
+           ═══════════════════════════════════════════════ */
+        .layer-grid {
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 229, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 229, 255, 0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            transform: perspective(500px) rotateX(35deg);
+            transform-origin: center top;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent 60%);
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent 60%);
+            animation: grid-crawl 25s linear infinite;
+            pointer-events: none; z-index: 0;
+        }
+        @keyframes grid-crawl { from { background-position: 0 0; } to { background-position: 0 50px; } }
+
+        .layer-fog { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+        .layer-fog::before {
+            content: ''; position: absolute; bottom: -15%; left: -10%; width: 55%; height: 65%;
+            background: radial-gradient(ellipse, rgba(255, 45, 123, 0.05), transparent 65%);
+            animation: fog-drift 14s ease-in-out infinite alternate;
+        }
+        .layer-fog::after {
+            content: ''; position: absolute; top: -10%; right: -8%; width: 45%; height: 55%;
+            background: radial-gradient(ellipse, rgba(0, 229, 255, 0.04), transparent 65%);
+            animation: fog-drift 18s ease-in-out infinite alternate-reverse;
+        }
+        @keyframes fog-drift { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(25px, -15px) scale(1.08); } }
+
+        .layer-scanlines {
+            position: fixed; inset: 0;
+            background: repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(255,255,255,0.01) 2px, rgba(255,255,255,0.01) 3px);
+            pointer-events: none; z-index: 9999;
+        }
+        .layer-noise {
+            position: fixed; inset: -50%; width: 200%; height: 200%;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+            animation: noise-jitter 0.4s steps(4) infinite;
+            pointer-events: none; z-index: 9998;
+        }
+        @keyframes noise-jitter {
+            0% { transform: translate(0,0); } 25% { transform: translate(-1.5%,0.5%); }
+            50% { transform: translate(0.5%,-1%); } 75% { transform: translate(-0.5%,1.5%); }
+            100% { transform: translate(0,0); }
+        }
+
+        /* HALO BACKDROP */
+        .halo-stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+        .halo-stars::before, .halo-stars::after { content: ''; position: absolute; inset: 0; }
+        .halo-stars::before {
+            background-image:
+                radial-gradient(1px 1px at 15% 12%, rgba(255,255,255,0.4), transparent),
+                radial-gradient(1px 1px at 42% 8%, rgba(255,255,255,0.3), transparent),
+                radial-gradient(1.5px 1.5px at 78% 15%, rgba(0,229,255,0.4), transparent),
+                radial-gradient(1px 1px at 5% 45%, rgba(255,255,255,0.25), transparent),
+                radial-gradient(1px 1px at 92% 38%, rgba(255,255,255,0.3), transparent),
+                radial-gradient(1px 1px at 58% 52%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1.5px 1.5px at 25% 68%, rgba(168,85,247,0.35), transparent),
+                radial-gradient(1px 1px at 88% 72%, rgba(255,255,255,0.3), transparent),
+                radial-gradient(1px 1px at 35% 88%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1px 1px at 68% 92%, rgba(255,255,255,0.25), transparent),
+                radial-gradient(1px 1px at 12% 78%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1.5px 1.5px at 52% 28%, rgba(0,229,255,0.3), transparent),
+                radial-gradient(1px 1px at 82% 55%, rgba(255,255,255,0.15), transparent),
+                radial-gradient(1px 1px at 45% 42%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1px 1px at 72% 35%, rgba(255,255,255,0.3), transparent);
+            animation: star-drift 120s linear infinite;
+        }
+        .halo-stars::after {
+            background-image:
+                radial-gradient(1px 1px at 22% 32%, rgba(255,255,255,0.3), transparent),
+                radial-gradient(1.5px 1.5px at 65% 18%, rgba(255,45,123,0.3), transparent),
+                radial-gradient(1px 1px at 8% 62%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1px 1px at 48% 75%, rgba(255,255,255,0.25), transparent),
+                radial-gradient(1px 1px at 95% 85%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1px 1px at 32% 18%, rgba(255,255,255,0.15), transparent),
+                radial-gradient(1px 1px at 75% 48%, rgba(255,255,255,0.3), transparent),
+                radial-gradient(1.5px 1.5px at 18% 92%, rgba(0,229,255,0.25), transparent),
+                radial-gradient(1px 1px at 55% 65%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1px 1px at 85% 22%, rgba(255,255,255,0.25), transparent);
+            animation: star-drift 150s linear infinite reverse;
+        }
+        @keyframes star-drift { from { transform: translate(0, 0); } to { transform: translate(-10px, 5px); } }
+
+        .halo-ring { position: fixed; pointer-events: none; z-index: 0; }
+        .halo-ring::before {
+            content: ''; position: fixed; top: -140vh; left: 50%;
+            transform: translateX(-50%) rotate(-8deg);
+            width: 250vmax; height: 250vmax; border-radius: 50%;
+            border: 1.5px solid rgba(0, 229, 255, 0.04);
+            box-shadow: 0 0 60px 2px rgba(0, 229, 255, 0.015), 0 0 120px 4px rgba(0, 229, 255, 0.008), inset 0 0 60px 2px rgba(0, 229, 255, 0.01);
+            mask-image: linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.8) 45%, black 50%, rgba(0,0,0,0.8) 55%, transparent 70%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.8) 45%, black 50%, rgba(0,0,0,0.8) 55%, transparent 70%);
+        }
+        .halo-ring::after {
+            content: ''; position: fixed; top: -130vh; left: 48%;
+            transform: translateX(-50%) rotate(12deg);
+            width: 260vmax; height: 260vmax; border-radius: 50%;
+            border: 1px solid rgba(168, 85, 247, 0.025);
+            box-shadow: 0 0 40px 2px rgba(168, 85, 247, 0.01), 0 0 100px 4px rgba(168, 85, 247, 0.005);
+            mask-image: linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.5) 55%, transparent 70%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.5) 55%, transparent 70%);
+        }
+        .halo-horizon {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 30vh;
+            background: linear-gradient(to top, rgba(0, 229, 255, 0.015), rgba(0, 229, 255, 0.005) 40%, transparent);
+            pointer-events: none; z-index: 0;
+        }
     </style>
 </head>
 <body>
+<!-- Atmosphere -->
+<div class="layer-grid"></div>
+<div class="layer-fog"></div>
+<div class="layer-noise"></div>
+<div class="layer-scanlines"></div>
+<!-- Halo Backdrop -->
+<div class="halo-stars"></div>
+<div class="halo-ring"></div>
+<div class="halo-horizon"></div>
     <div class="header">
         <div class="logo">
             <div class="logo-icon">NR</div>
@@ -1311,6 +1625,25 @@
 
                 <div class="messages-container" id="messages-container">
                     <!-- Messages loaded dynamically -->
+                </div>
+
+                <div class="draft-panel" id="draft-panel">
+                    <div class="draft-header">
+                        <span class="draft-label">AI Draft Response</span>
+                        <span class="ai-badge" id="draft-category-badge">-</span>
+                    </div>
+                    <div class="draft-extracted-phone" id="draft-extracted-phone" style="display:none;"></div>
+                    <div class="draft-body" id="draft-body">-</div>
+                    <div class="draft-actions">
+                        <button class="draft-btn approve" id="draft-approve-btn" onclick="approveDraft()">Approve &amp; Send</button>
+                        <button class="draft-btn edit" onclick="editDraft()">Edit</button>
+                        <button class="draft-btn dismiss" onclick="dismissDraft()">Dismiss</button>
+                        <button class="draft-btn add-phone" id="draft-add-phone-btn" style="display:none;" onclick="addPhoneToProperty()">Add Phone to Property</button>
+                    </div>
+                </div>
+
+                <div class="auto-dispo-panel" id="auto-dispo-panel">
+                    <span id="auto-dispo-text">-</span>
                 </div>
 
                 <div class="reply-panel">
@@ -1567,6 +1900,12 @@
                 const lastMsg = item.lastMessage?.body || (hasContext ? 'No message' : '...');
 
                 let badges = '';
+                // AI classification badge
+                const ai = item.agent_state;
+                if (ai?.ai_classification && ai.draft_status !== 'dismissed' && ai.draft_status !== 'sent') {
+                    const aiColor = AI_BADGE_COLORS[ai.ai_classification] || 'gray';
+                    badges += `<span class="ai-badge ${aiColor}" style="font-size:0.65rem;padding:1px 6px;">${ai.ai_classification.replace(/_/g, ' ')}</span>`;
+                }
                 if (hasContext) {
                     if (ctx.dec === true) badges += '<span class="badge badge-deceased">Deceased</span>';
                     if (ctx.llc) badges += '<span class="badge badge-llc">LLC</span>';
@@ -1665,6 +2004,9 @@
 
             // Load messages
             await loadMessages(selectedItem.phone_digits);
+
+            // Show AI draft panel if available
+            showDraftPanel(selectedItem.agent_state);
 
             // Update queue list to show we have context now
             renderQueue();
@@ -2146,6 +2488,221 @@
 
         // ==================== END BOOKING FUNCTIONS ====================
 
+        // ==================== AI DRAFT FUNCTIONS ====================
+
+        const AI_BADGE_COLORS = {
+            interested: 'green', call_request: 'green', wants_to_sell: 'green',
+            who_is_this: 'blue', confused: 'blue', how_got_number: 'blue', has_lawyer: 'blue', spanish: 'blue',
+            wrong_number: 'orange', deceased: 'orange', relative_referral: 'orange',
+            angry: 'red', not_interested: 'red',
+            already_resolved: 'gray', stop: 'gray'
+        };
+
+        const DISPO_ONLY_CATEGORIES = ['wrong_number', 'not_interested', 'already_resolved', 'angry'];
+        const DISPO_LABELS = {
+            wrong_number: 'wrong_number',
+            not_interested: 'not_interested',
+            already_resolved: 'responded',
+            angry: 'suppress_person'
+        };
+
+        function showDraftPanel(agentState) {
+            const draftPanel = document.getElementById('draft-panel');
+            const dispoPanel = document.getElementById('auto-dispo-panel');
+
+            // Hide both panels by default
+            draftPanel.classList.remove('visible');
+            dispoPanel.classList.remove('visible');
+
+            if (!agentState || !agentState.ai_classification) return;
+
+            const category = agentState.ai_classification;
+            const badgeColor = AI_BADGE_COLORS[category] || 'gray';
+
+            // Check if this was a dispo-only category that was auto-handled
+            if (DISPO_ONLY_CATEGORIES.includes(category) && !agentState.ai_draft) {
+                const resolution = DISPO_LABELS[category] || category;
+                document.getElementById('auto-dispo-text').innerHTML =
+                    `<span class="ai-badge ${badgeColor}">${category.replace(/_/g, ' ')}</span> ` +
+                    `Auto-resolved: <strong>${resolution.replace(/_/g, ' ')}</strong> — No response sent`;
+                dispoPanel.classList.add('visible');
+                return;
+            }
+
+            // Draft response panel
+            if (agentState.ai_draft && agentState.draft_status !== 'dismissed') {
+                document.getElementById('draft-category-badge').textContent = category.replace(/_/g, ' ');
+                document.getElementById('draft-category-badge').className = `ai-badge ${badgeColor}`;
+                document.getElementById('draft-body').textContent = agentState.ai_draft;
+
+                // Show extracted phone for relative_referral
+                const phoneEl = document.getElementById('draft-extracted-phone');
+                const addPhoneBtn = document.getElementById('draft-add-phone-btn');
+                if (category === 'relative_referral' && agentState.ai_extracted_phone) {
+                    phoneEl.innerHTML = `Extracted Phone: <strong>${formatPhone(agentState.ai_extracted_phone)}</strong>`;
+                    phoneEl.style.display = 'block';
+                    addPhoneBtn.style.display = 'inline-block';
+                } else {
+                    phoneEl.style.display = 'none';
+                    addPhoneBtn.style.display = 'none';
+                }
+
+                // Show appointment info if available
+                if (agentState.ai_appointment_display) {
+                    document.getElementById('draft-approve-btn').textContent =
+                        `Approve & Send (${agentState.ai_appointment_display})`;
+                } else {
+                    document.getElementById('draft-approve-btn').textContent = 'Approve & Send';
+                }
+
+                draftPanel.classList.add('visible');
+            }
+        }
+
+        async function approveDraft() {
+            if (!selectedItem) return;
+
+            const agentState = selectedItem.agent_state;
+            if (!agentState?.ai_draft) {
+                showToast('No draft to approve', true);
+                return;
+            }
+
+            const btn = document.getElementById('draft-approve-btn');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+
+            try {
+                // If this is an appointment category with a slot, book the appointment first
+                if (agentState.ai_appointment_slot && ['interested', 'call_request', 'wants_to_sell'].includes(agentState.ai_classification)) {
+                    const bookResp = await fetch(BOOK_APPT_WEBHOOK, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            slot_start: agentState.ai_appointment_slot,
+                            phone_digits: selectedItem.phone_digits
+                        })
+                    });
+                    if (!bookResp.ok) {
+                        const errText = await bookResp.text();
+                        throw new Error('Booking failed: ' + errText.substring(0, 100));
+                    }
+                }
+
+                // Send the draft SMS via existing webhook
+                const response = await fetch(SMS_REPLY_WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: '+1' + selectedItem.phone_digits,
+                        from: agentState.ai_from_number || twilioFromNumber,
+                        body: agentState.ai_draft,
+                        phone_digits: selectedItem.phone_digits
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to send message');
+
+                // Update agent_state to mark draft as sent
+                await supabaseClient
+                    .from('conversations')
+                    .update({
+                        agent_state: { ...agentState, draft_status: 'sent' },
+                        resolution: agentState.ai_appointment_slot ? 'appointment_booked' : 'responded'
+                    })
+                    .eq('phone_digits', selectedItem.phone_digits);
+
+                showToast('Draft approved and sent!');
+
+                // Remove from queue
+                queueData = queueData.filter(q => q.phone_digits !== selectedItem.phone_digits);
+                selectedItem = null;
+
+                // Mobile: slide back
+                if (window.innerWidth <= 768) {
+                    document.querySelector('.queue-panel').classList.remove('hidden-mobile');
+                    document.querySelector('.main-content').classList.remove('show-mobile');
+                }
+
+                document.getElementById('conversation-view').style.display = 'none';
+                document.getElementById('no-selection').style.display = 'flex';
+                document.getElementById('draft-panel').classList.remove('visible');
+                renderQueue();
+                updateStats();
+
+            } catch (err) {
+                console.error('Error approving draft:', err);
+                showToast('Error: ' + err.message, true);
+                btn.disabled = false;
+                btn.textContent = 'Approve & Send';
+            }
+        }
+
+        function editDraft() {
+            if (!selectedItem?.agent_state?.ai_draft) return;
+
+            // Copy draft into reply textarea
+            document.getElementById('reply-input').value = selectedItem.agent_state.ai_draft;
+
+            // Set the from number from the draft if available
+            if (selectedItem.agent_state.ai_from_number) {
+                twilioFromNumber = selectedItem.agent_state.ai_from_number;
+                document.getElementById('from-number').textContent =
+                    formatPhone(twilioFromNumber.replace('+1', ''));
+            }
+
+            // Hide draft panel
+            document.getElementById('draft-panel').classList.remove('visible');
+
+            // Focus the textarea
+            document.getElementById('reply-input').focus();
+            showToast('Draft copied to reply box — edit and send manually');
+        }
+
+        async function dismissDraft() {
+            if (!selectedItem) return;
+
+            try {
+                const agentState = selectedItem.agent_state || {};
+                await supabaseClient
+                    .from('conversations')
+                    .update({
+                        agent_state: { ...agentState, draft_status: 'dismissed' }
+                    })
+                    .eq('phone_digits', selectedItem.phone_digits);
+
+                // Update local state
+                selectedItem.agent_state = { ...agentState, draft_status: 'dismissed' };
+
+                // Hide panel
+                document.getElementById('draft-panel').classList.remove('visible');
+                showToast('Draft dismissed');
+
+            } catch (err) {
+                console.error('Error dismissing draft:', err);
+                showToast('Error dismissing draft', true);
+            }
+        }
+
+        function addPhoneToProperty() {
+            if (!selectedItem?.agent_state) return;
+
+            const agentState = selectedItem.agent_state;
+            const rawRowId = agentState.ai_raw_row_id || selectedItem.context?.raw_row_id;
+            const phone = agentState.ai_extracted_phone;
+
+            if (!rawRowId || !phone) {
+                showToast('Missing property or phone data', true);
+                return;
+            }
+
+            // Open property detail page with deep-link to add contact
+            const url = `property_detail.html?raw_row_id=${encodeURIComponent(rawRowId)}&add_phone=${encodeURIComponent(phone)}`;
+            window.open(url, '_blank');
+        }
+
+        // ==================== END AI DRAFT FUNCTIONS ====================
+
         async function createSuppression(rawRowId, personId, reason, expiresAt) {
             // Note: contact_channel_suppressions is in the ops schema
             // We need to use a different approach since Supabase JS client defaults to public schema
@@ -2182,6 +2739,10 @@
                 queuePanel.classList.remove('hidden-mobile');
                 mainContent.classList.remove('show-mobile');
             }
+
+            // Hide draft/dispo panels
+            document.getElementById('draft-panel').classList.remove('visible');
+            document.getElementById('auto-dispo-panel').classList.remove('visible');
 
             selectedItem = null;
             view.style.display = 'none';

@@ -3,297 +3,865 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboards | Stop My Auction Now</title>
+    <title>Dashboards | Stop My Auction</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Share+Tech+Mono&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
+        /* ═══════════════════════════════════════════════
+           DESIGN TOKENS
+           ═══════════════════════════════════════════════ */
         :root {
-            --bg-primary: #0a0f1a;
-            --bg-secondary: #111827;
-            --bg-panel: #1a2234;
-            --border-color: #2a3548;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --accent-cyan: #22d3ee;
-            --accent-blue: #3b82f6;
-            --accent-green: #10b981;
-            --accent-yellow: #f59e0b;
-            --accent-red: #ef4444;
-            --accent-purple: #a855f7;
+            --bg-deep: #06060c;
+            --bg-card: #0a0a14;
+            --bg-card-hover: #0f0f1c;
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --glass-border-hover: rgba(255, 255, 255, 0.1);
+
+            --neon-cyan: #00e5ff;
+            --neon-cyan-rgb: 0, 229, 255;
+            --neon-pink: #ff2d7b;
+            --neon-pink-rgb: 255, 45, 123;
+            --neon-purple: #a855f7;
+            --neon-purple-rgb: 168, 85, 247;
+            --neon-green: #00ff88;
+            --neon-green-rgb: 0, 255, 136;
+            --neon-amber: #ffb800;
+            --neon-amber-rgb: 255, 184, 0;
+
+            --text-primary: #e2e2f0;
+            --text-secondary: #7a7a96;
+            --text-ghost: #32324a;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-deep);
             color: var(--text-primary);
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
+        /* ═══════════════════════════════════════════════
+           BACKGROUND LAYER 1: Perspective grid
+           ═══════════════════════════════════════════════ */
+        .layer-grid {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 229, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 229, 255, 0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            transform: perspective(500px) rotateX(35deg);
+            transform-origin: center top;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent 60%);
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent 60%);
+            animation: grid-crawl 25s linear infinite;
+            pointer-events: none;
+        }
+        @keyframes grid-crawl {
+            from { background-position: 0 0; }
+            to { background-position: 0 50px; }
+        }
+
+        /* ═══════════════════════════════════════════════
+           BACKGROUND LAYER 2: Neon fog
+           ═══════════════════════════════════════════════ */
+        .layer-fog {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+        }
+        .layer-fog::before {
+            content: '';
+            position: absolute;
+            bottom: -15%;
+            left: -10%;
+            width: 55%;
+            height: 65%;
+            background: radial-gradient(ellipse, rgba(var(--neon-pink-rgb), 0.05), transparent 65%);
+            animation: fog-a 14s ease-in-out infinite alternate;
+        }
+        .layer-fog::after {
+            content: '';
+            position: absolute;
+            top: -10%;
+            right: -8%;
+            width: 45%;
+            height: 55%;
+            background: radial-gradient(ellipse, rgba(var(--neon-cyan-rgb), 0.04), transparent 65%);
+            animation: fog-a 18s ease-in-out infinite alternate-reverse;
+        }
+        @keyframes fog-a {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(25px, -15px) scale(1.08); }
+        }
+
+        /* ═══════════════════════════════════════════════
+           BACKGROUND LAYER 3: Scanlines + noise
+           ═══════════════════════════════════════════════ */
+        .layer-scanlines {
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent 0px, transparent 2px,
+                rgba(255,255,255,0.01) 2px, rgba(255,255,255,0.01) 3px
+            );
+            pointer-events: none;
+            z-index: 9999;
+        }
+        .layer-noise {
+            position: fixed;
+            inset: -50%;
+            width: 200%;
+            height: 200%;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+            animation: noise-jitter 0.4s steps(4) infinite;
+            pointer-events: none;
+            z-index: 9998;
+        }
+        @keyframes noise-jitter {
+            0% { transform: translate(0,0); }
+            25% { transform: translate(-1.5%,0.5%); }
+            50% { transform: translate(0.5%,-1%); }
+            75% { transform: translate(-0.5%,1.5%); }
+            100% { transform: translate(0,0); }
+        }
+
+        /* ═══════════════════════════════════════════════
+           HEADER
+           ═══════════════════════════════════════════════ */
         .header {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-            padding: 20px 32px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
+            position: relative;
+            padding: 40px 48px 32px;
+            z-index: 10;
         }
 
-        .logo {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.2rem;
-        }
+        .glitch-wrap { position: relative; display: inline-block; }
 
-        .header-text h1 {
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-
-        .header-text p {
-            color: var(--text-muted);
-            font-size: 0.875rem;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 40px 32px;
-        }
-
-        .section-title {
-            font-size: 0.75rem;
-            font-weight: 600;
+        .glitch-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: 0.18em;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--text-muted);
+            color: var(--text-primary);
+        }
+        .glitch-text::before,
+        .glitch-text::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+        }
+        .glitch-text::before {
+            color: var(--neon-cyan);
+            clip-path: inset(0 0 55% 0);
+            animation: g1 4s infinite linear alternate-reverse;
+        }
+        .glitch-text::after {
+            color: var(--neon-pink);
+            clip-path: inset(45% 0 0 0);
+            animation: g2 3.5s infinite linear alternate-reverse;
+        }
+        @keyframes g1 {
+            0%,93% { transform: translate(0); }
+            94% { transform: translate(-3px, 1px); }
+            95% { transform: translate(2px, -1px); }
+            96%,100% { transform: translate(0); }
+        }
+        @keyframes g2 {
+            0%,91% { transform: translate(0); }
+            92% { transform: translate(2px, -1px); }
+            93% { transform: translate(-2px, 2px); }
+            94%,100% { transform: translate(0); }
+        }
+
+        .header-sub {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--text-ghost);
+            margin-top: 10px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+        }
+        .header-sub .accent { color: var(--neon-cyan); opacity: 0.5; }
+        .header-sub .cursor {
+            animation: blink 1s steps(1) infinite;
+            color: var(--neon-pink);
+        }
+        @keyframes blink {
+            0%,50% { opacity: 1; }
+            51%,100% { opacity: 0; }
+        }
+
+        .header-line {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg,
+                var(--neon-pink), var(--neon-cyan) 40%, transparent 75%);
+        }
+        .header-line::after {
+            content: '';
+            position: absolute;
+            bottom: -3px; left: 0;
+            width: 35%;
+            height: 6px;
+            background: linear-gradient(90deg,
+                rgba(var(--neon-pink-rgb), 0.25),
+                rgba(var(--neon-cyan-rgb), 0.1),
+                transparent);
+            filter: blur(3px);
+        }
+
+        /* ═══════════════════════════════════════════════
+           MAIN CONTENT
+           ═══════════════════════════════════════════════ */
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 44px 48px 60px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* ═══════════════════════════════════════════════
+           HERO CARD — Today's Queue (rotating border)
+           ═══════════════════════════════════════════════ */
+        .hero-wrap {
+            position: relative;
             margin-bottom: 20px;
-        }
-
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 24px;
-            margin-bottom: 48px;
-        }
-
-        .dashboard-card {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
             border-radius: 16px;
-            padding: 24px;
+            padding: 2px;
+            background: conic-gradient(
+                from var(--border-angle, 0deg),
+                transparent 0%,
+                var(--neon-cyan) 10%,
+                transparent 20%,
+                transparent 40%,
+                var(--neon-pink) 50%,
+                transparent 60%,
+                transparent 80%,
+                var(--neon-cyan) 90%,
+                transparent 100%
+            );
+            animation: rotate-border 4s linear infinite;
+        }
+
+        @property --border-angle {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
+        @keyframes rotate-border {
+            to { --border-angle: 360deg; }
+        }
+
+        .hero-card {
+            --accent: var(--neon-cyan);
+            --accent-rgb: var(--neon-cyan-rgb);
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            background: var(--bg-card);
+            border-radius: 14px;
+            padding: 40px 44px;
             text-decoration: none;
             color: inherit;
-            transition: all 0.2s ease;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
         }
 
-        .dashboard-card:hover {
-            border-color: var(--accent-cyan);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 32px rgba(34, 211, 238, 0.1);
+        /* Hero scanlines */
+        .hero-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent 0px, transparent 3px,
+                rgba(255,255,255,0.006) 3px, rgba(255,255,255,0.006) 4px
+            );
+            pointer-events: none;
+            z-index: 1;
         }
 
-        .card-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 12px;
+        /* Hero ambient glow */
+        .hero-card::after {
+            content: '';
+            position: absolute;
+            top: -40%;
+            right: -10%;
+            width: 50%;
+            height: 180%;
+            background: radial-gradient(ellipse, rgba(var(--neon-cyan-rgb), 0.03), transparent 60%);
+            pointer-events: none;
+        }
+
+        .hero-card:hover {
+            background: var(--bg-card-hover);
+            box-shadow:
+                0 0 30px -6px rgba(var(--neon-cyan-rgb), 0.3),
+                0 0 80px -12px rgba(var(--neon-cyan-rgb), 0.15),
+                inset 0 0 60px -30px rgba(var(--neon-cyan-rgb), 0.04);
+        }
+
+        /* Hero icon with pulse ring */
+        .hero-icon {
+            position: relative;
+            width: 72px;
+            height: 72px;
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
 
-        .card-icon svg {
-            width: 28px;
-            height: 28px;
+        .hero-icon svg {
+            width: 34px;
+            height: 34px;
+            stroke: var(--neon-cyan);
+            filter: drop-shadow(0 0 10px var(--neon-cyan));
+            position: relative;
+            z-index: 2;
+            transition: filter 0.4s ease;
         }
 
-        .card-icon.cyan { background: rgba(34, 211, 238, 0.15); color: var(--accent-cyan); }
-        .card-icon.blue { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
-        .card-icon.green { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
-        .card-icon.yellow { background: rgba(245, 158, 11, 0.15); color: var(--accent-yellow); }
-        .card-icon.red { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
-        .card-icon.purple { background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); }
-
-        .card-content h2 {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 6px;
+        .hero-card:hover .hero-icon svg {
+            filter: drop-shadow(0 0 18px var(--neon-cyan)) drop-shadow(0 0 6px var(--neon-cyan));
         }
 
-        .card-content p {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
+        /* Pulse ring behind icon */
+        .hero-icon::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 1px solid var(--neon-cyan);
+            border-radius: 14px;
+            opacity: 0.15;
+            animation: pulse-ring 3s ease-in-out infinite;
+        }
+        .hero-icon::after {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border: 1px solid var(--neon-cyan);
+            border-radius: 18px;
+            opacity: 0.06;
+            animation: pulse-ring 3s ease-in-out infinite 0.5s;
+        }
+        @keyframes pulse-ring {
+            0%, 100% { opacity: 0.06; transform: scale(1); }
+            50% { opacity: 0.2; transform: scale(1.05); }
         }
 
-        .card-badge {
-            display: inline-block;
-            font-size: 0.7rem;
-            font-weight: 500;
+        .hero-body { flex: 1; position: relative; z-index: 2; }
+
+        .hero-body .hero-tag {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.6rem;
+            letter-spacing: 0.2em;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 4px 8px;
-            border-radius: 4px;
-            margin-top: auto;
+            color: var(--neon-cyan);
+            opacity: 0.6;
+            margin-bottom: 10px;
         }
 
-        .badge-primary { background: rgba(34, 211, 238, 0.15); color: var(--accent-cyan); }
-        .badge-analytics { background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); }
-        .badge-operations { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+        .hero-body h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            transition: text-shadow 0.4s ease;
+        }
 
-        .divider {
+        .hero-card:hover .hero-body h2 {
+            text-shadow: 0 0 25px rgba(var(--neon-cyan-rgb), 0.4);
+        }
+
+        .hero-body p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            max-width: 560px;
+        }
+
+        /* Hero bottom data strip */
+        .hero-strip {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 18px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.6rem;
+            color: var(--text-ghost);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .hero-strip .bar {
+            display: flex;
+            gap: 2px;
+        }
+        .hero-strip .bar span {
+            display: block;
+            width: 8px;
+            height: 12px;
+            background: var(--neon-cyan);
+            opacity: 0.2;
+            border-radius: 1px;
+        }
+        .hero-strip .bar span.lit {
+            opacity: 0.7;
+            box-shadow: 0 0 4px var(--neon-cyan);
+        }
+
+        .hero-strip .dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--neon-cyan);
+            box-shadow: 0 0 6px var(--neon-cyan);
+            animation: breathe 2s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* ═══════════════════════════════════════════════
+           CARD GRID (3 columns)
+           ═══════════════════════════════════════════════ */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        /* ═══════════════════════════════════════════════
+           STANDARD CARDS
+           ═══════════════════════════════════════════════ */
+        .card {
+            --accent: var(--neon-cyan);
+            --accent-rgb: var(--neon-cyan-rgb);
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 28px 24px;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+            overflow: hidden;
+            animation: card-in 0.7s ease-out both;
+        }
+
+        /* Card scanline texture */
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent 0px, transparent 2px,
+                rgba(255,255,255,0.006) 2px, rgba(255,255,255,0.006) 3px
+            );
+            pointer-events: none;
+            border-radius: 14px;
+            z-index: 1;
+        }
+
+        /* Top accent edge */
+        .card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 20px; right: 20px;
             height: 1px;
-            background: var(--border-color);
-            margin: 16px 0 32px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0.15;
+            transition: opacity 0.4s ease;
+            z-index: 2;
+        }
+
+        /* HUD corner brackets */
+        .hud-tl, .hud-br {
+            position: absolute;
+            width: 12px; height: 12px;
+            border-style: solid;
+            border-color: var(--accent);
+            opacity: 0.1;
+            transition: opacity 0.4s ease;
+            z-index: 3;
+        }
+        .hud-tl {
+            top: 8px; left: 8px;
+            border-width: 1px 0 0 1px;
+            border-radius: 3px 0 0 0;
+        }
+        .hud-br {
+            bottom: 8px; right: 8px;
+            border-width: 0 1px 1px 0;
+            border-radius: 0 0 3px 0;
+        }
+
+        /* Hover state */
+        .card:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(var(--accent-rgb), 0.15);
+            transform: translateY(-5px);
+            box-shadow:
+                0 0 20px -4px rgba(var(--accent-rgb), 0.3),
+                0 0 50px -8px rgba(var(--accent-rgb), 0.15),
+                0 0 100px -16px rgba(var(--accent-rgb), 0.08),
+                inset 0 0 40px -20px rgba(var(--accent-rgb), 0.03);
+        }
+        .card:hover::after { opacity: 0.5; }
+        .card:hover .hud-tl,
+        .card:hover .hud-br { opacity: 0.5; }
+
+        .card:hover .card-title {
+            animation: chroma-flash 0.15s ease-out;
+            text-shadow: 0 0 18px rgba(var(--accent-rgb), 0.35);
+        }
+
+        @keyframes chroma-flash {
+            0% { text-shadow: -2px 0 var(--neon-cyan), 2px 0 var(--neon-pink); }
+            50% { text-shadow: 1px 0 var(--neon-cyan), -1px 0 var(--neon-pink); }
+            100% { text-shadow: none; }
+        }
+
+        /* Staggered entrance */
+        .card:nth-child(1) { animation-delay: 0.2s; }
+        .card:nth-child(2) { animation-delay: 0.32s; }
+        .card:nth-child(3) { animation-delay: 0.44s; }
+        .hero-wrap { animation: card-in 0.7s ease-out both; animation-delay: 0.05s; }
+
+        @keyframes card-in {
+            from { opacity: 0; transform: translateY(24px); filter: blur(3px); }
+            to { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+
+        /* Card accent variants */
+        .card-response { --accent: var(--neon-green); --accent-rgb: 0, 255, 136; }
+        .card-kpi      { --accent: var(--neon-purple); --accent-rgb: 168, 85, 247; }
+        .card-audit    { --accent: var(--neon-amber); --accent-rgb: 255, 184, 0; }
+
+        /* Card icon */
+        .card-icon {
+            width: 44px; height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .card-icon svg {
+            width: 22px; height: 22px;
+            stroke: var(--accent);
+            filter: drop-shadow(0 0 6px var(--accent));
+            transition: filter 0.4s ease;
+        }
+        .card:hover .card-icon svg {
+            filter: drop-shadow(0 0 14px var(--accent)) drop-shadow(0 0 4px var(--accent));
+        }
+        .card-icon::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 1px solid var(--accent);
+            border-radius: 10px;
+            opacity: 0.08;
+            transition: opacity 0.4s ease;
+        }
+        .card:hover .card-icon::after { opacity: 0.25; }
+
+        /* Card typography */
+        .card-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            transition: text-shadow 0.3s ease;
+        }
+        .card-desc {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Card bottom data strip */
+        .card-strip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: auto;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.03);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.58rem;
+            color: var(--text-ghost);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .card-strip .pulse {
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 5px var(--accent);
+            animation: breathe 2.5s ease-in-out infinite;
+        }
+        .card:hover .card-strip { color: var(--text-secondary); }
+
+        /* ═══════════════════════════════════════════════
+           FOOTER STATUS
+           ═══════════════════════════════════════════════ */
+        .sys-footer {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.52rem;
+            color: var(--text-ghost);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            text-align: center;
+            padding: 24px 20px 40px;
+            position: relative;
+            z-index: 10;
+        }
+        .sys-footer .hl { color: var(--neon-cyan); opacity: 0.35; }
+
+        /* ═══════════════════════════════════════════════
+           HALO BACKDROP
+           ═══════════════════════════════════════════════ */
+        .halo-stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+        .halo-stars::before, .halo-stars::after { content: ''; position: absolute; inset: 0; }
+        .halo-stars::before {
+            background-image:
+                radial-gradient(1px 1px at 15% 12%, rgba(255,255,255,0.4), transparent),
+                radial-gradient(1px 1px at 42% 8%, rgba(255,255,255,0.3), transparent),
+                radial-gradient(1.5px 1.5px at 78% 15%, rgba(0,229,255,0.4), transparent),
+                radial-gradient(1px 1px at 5% 45%, rgba(255,255,255,0.25), transparent),
+                radial-gradient(1px 1px at 92% 38%, rgba(255,255,255,0.3), transparent),
+                radial-gradient(1px 1px at 58% 52%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1.5px 1.5px at 25% 68%, rgba(168,85,247,0.35), transparent),
+                radial-gradient(1px 1px at 88% 72%, rgba(255,255,255,0.3), transparent),
+                radial-gradient(1px 1px at 35% 88%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1px 1px at 68% 92%, rgba(255,255,255,0.25), transparent),
+                radial-gradient(1px 1px at 12% 78%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1.5px 1.5px at 52% 28%, rgba(0,229,255,0.3), transparent),
+                radial-gradient(1px 1px at 82% 55%, rgba(255,255,255,0.15), transparent),
+                radial-gradient(1px 1px at 45% 42%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1px 1px at 72% 35%, rgba(255,255,255,0.3), transparent);
+            animation: star-drift 120s linear infinite;
+        }
+        .halo-stars::after {
+            background-image:
+                radial-gradient(1px 1px at 22% 32%, rgba(255,255,255,0.3), transparent),
+                radial-gradient(1.5px 1.5px at 65% 18%, rgba(255,45,123,0.3), transparent),
+                radial-gradient(1px 1px at 8% 62%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1px 1px at 48% 75%, rgba(255,255,255,0.25), transparent),
+                radial-gradient(1px 1px at 95% 85%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1px 1px at 32% 18%, rgba(255,255,255,0.15), transparent),
+                radial-gradient(1px 1px at 75% 48%, rgba(255,255,255,0.3), transparent),
+                radial-gradient(1.5px 1.5px at 18% 92%, rgba(0,229,255,0.25), transparent),
+                radial-gradient(1px 1px at 55% 65%, rgba(255,255,255,0.2), transparent),
+                radial-gradient(1px 1px at 85% 22%, rgba(255,255,255,0.25), transparent);
+            animation: star-drift 150s linear infinite reverse;
+        }
+        @keyframes star-drift { from { transform: translate(0, 0); } to { transform: translate(-10px, 5px); } }
+
+        .halo-ring { position: fixed; pointer-events: none; z-index: 0; }
+        .halo-ring::before {
+            content: ''; position: fixed; top: -140vh; left: 50%;
+            transform: translateX(-50%) rotate(-8deg);
+            width: 250vmax; height: 250vmax; border-radius: 50%;
+            border: 1.5px solid rgba(0, 229, 255, 0.04);
+            box-shadow: 0 0 60px 2px rgba(0, 229, 255, 0.015), 0 0 120px 4px rgba(0, 229, 255, 0.008), inset 0 0 60px 2px rgba(0, 229, 255, 0.01);
+            mask-image: linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.8) 45%, black 50%, rgba(0,0,0,0.8) 55%, transparent 70%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.8) 45%, black 50%, rgba(0,0,0,0.8) 55%, transparent 70%);
+        }
+        .halo-ring::after {
+            content: ''; position: fixed; top: -130vh; left: 48%;
+            transform: translateX(-50%) rotate(12deg);
+            width: 260vmax; height: 260vmax; border-radius: 50%;
+            border: 1px solid rgba(168, 85, 247, 0.025);
+            box-shadow: 0 0 40px 2px rgba(168, 85, 247, 0.01), 0 0 100px 4px rgba(168, 85, 247, 0.005);
+            mask-image: linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.5) 55%, transparent 70%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.5) 55%, transparent 70%);
+        }
+        .halo-horizon {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 30vh;
+            background: linear-gradient(to top, rgba(0, 229, 255, 0.015), rgba(0, 229, 255, 0.005) 40%, transparent);
+            pointer-events: none; z-index: 0;
+        }
+
+        /* ═══════════════════════════════════════════════
+           RESPONSIVE
+           ═══════════════════════════════════════════════ */
+        @media (max-width: 960px) {
+            .hero-card {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+                padding: 32px 28px;
+            }
+            .card-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .card-grid .card:nth-child(3) {
+                grid-column: 1 / -1;
+            }
+            .glitch-text { font-size: 1.3rem; }
+            .header, .main { padding-left: 28px; padding-right: 28px; }
+        }
+
+        @media (max-width: 600px) {
+            .header { padding: 28px 20px 24px; }
+            .main { padding: 28px 16px 48px; }
+            .glitch-text { font-size: 1rem; letter-spacing: 0.1em; }
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+            .card-grid .card:nth-child(3) {
+                grid-column: auto;
+            }
+            .hero-card { padding: 24px 20px; }
+            .hero-icon { width: 56px; height: 56px; }
+            .hero-icon svg { width: 28px; height: 28px; }
         }
     </style>
 </head>
 <body>
+
+    <!-- Atmosphere -->
+    <div class="layer-grid"></div>
+    <div class="layer-fog"></div>
+    <div class="layer-noise"></div>
+    <div class="layer-scanlines"></div>
+    <!-- Halo Backdrop -->
+    <div class="halo-stars"></div>
+    <div class="halo-ring"></div>
+    <div class="halo-horizon"></div>
+
+    <!-- ═══ HEADER ═══ -->
     <header class="header">
-        <div class="logo">SM</div>
-        <div class="header-text">
-            <h1>Stop My Auction Now</h1>
-            <p>Operations & Analytics Dashboards</p>
+        <div class="glitch-wrap">
+            <h1 class="glitch-text" data-text="Stop My Auction">Stop My Auction</h1>
         </div>
+        <p class="header-sub">
+            <span class="accent">//</span> system online
+            <span class="accent">&nbsp;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9608;&#9617;&#9617;</span>
+            4 modules active <span class="cursor">_</span>
+        </p>
+        <div class="header-line"></div>
     </header>
 
-    <div class="container">
-        <h3 class="section-title">Operations</h3>
-        <div class="dashboard-grid">
-            <a href="needs_response.html" class="dashboard-card">
-                <div class="card-icon cyan">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <h2>Needs Response</h2>
-                    <p>Queue of inbound messages awaiting response. Sorted oldest first - work through the waiting line.</p>
-                </div>
-                <span class="card-badge badge-primary">Priority Queue</span>
-            </a>
+    <!-- ═══ MAIN ═══ -->
+    <div class="main">
 
-            <a href="todays_queue.html" class="dashboard-card">
-                <div class="card-icon blue">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <!-- HERO: Today's Queue -->
+        <div class="hero-wrap">
+            <a href="todays_queue.html" target="_blank" class="hero-card">
+                <div class="hero-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                         <line x1="16" y1="2" x2="16" y2="6"></line>
                         <line x1="8" y1="2" x2="8" y2="6"></line>
                         <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
                 </div>
-                <div class="card-content">
+                <div class="hero-body">
+                    <div class="hero-tag"><span class="dot" style="display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--neon-cyan);box-shadow:0 0 6px var(--neon-cyan);animation:breathe 2s ease-in-out infinite;vertical-align:middle;margin-right:8px;"></span> outreach pipeline // live</div>
                     <h2>Today's Queue</h2>
-                    <p>View and manage today's outreach queue. See scheduled touches and their status.</p>
+                    <p>View and manage today's outreach queue. See every scheduled touch, track delivery status in real-time, and keep the pipeline moving.</p>
+                    <div class="hero-strip">
+                        <div class="bar">
+                            <span class="lit"></span><span class="lit"></span><span class="lit"></span>
+                            <span class="lit"></span><span class="lit"></span><span class="lit"></span>
+                            <span class="lit"></span><span></span><span></span><span></span>
+                        </div>
+                        <span>queue active</span>
+                        <span class="accent" style="color:var(--neon-cyan);opacity:0.35;">//</span>
+                        <span>sms + voice</span>
+                    </div>
                 </div>
-                <span class="card-badge badge-operations">Outreach</span>
-            </a>
-
-            <a href="deal_oversight.html" class="dashboard-card">
-                <div class="card-icon green">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <h2>Deal Oversight</h2>
-                    <p>Track active deals through the pipeline. Monitor progress and identify blockers.</p>
-                </div>
-                <span class="card-badge badge-operations">Pipeline</span>
-            </a>
-
-            <a href="activity_monitor.html" class="dashboard-card">
-                <div class="card-icon yellow">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <h2>Activity Monitor</h2>
-                    <p>Real-time view of system activity. Track messages, calls, and workflow executions.</p>
-                </div>
-                <span class="card-badge badge-operations">Live</span>
             </a>
         </div>
 
-        <div class="divider"></div>
+        <!-- GRID: 3 cards -->
+        <div class="card-grid">
 
-        <h3 class="section-title">Analytics & Reporting</h3>
-        <div class="dashboard-grid">
-            <a href="kpi_dashboard.html" class="dashboard-card">
-                <div class="card-icon purple">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <!-- Needs Response -->
+            <a href="needs_response.html" target="_blank" class="card card-response">
+                <span class="hud-tl"></span>
+                <span class="hud-br"></span>
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                </div>
+                <div class="card-title">Needs Response</div>
+                <div class="card-desc">Inbound message queue sorted oldest first. Work through the waiting line.</div>
+                <div class="card-strip">
+                    <span class="pulse"></span>
+                    <span>priority queue</span>
+                </div>
+            </a>
+
+            <!-- KPI Dashboard -->
+            <a href="kpi_dashboard.html" target="_blank" class="card card-kpi">
+                <span class="hud-tl"></span>
+                <span class="hud-br"></span>
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="20" x2="18" y2="10"></line>
                         <line x1="12" y1="20" x2="12" y2="4"></line>
                         <line x1="6" y1="20" x2="6" y2="14"></line>
                     </svg>
                 </div>
-                <div class="card-content">
-                    <h2>KPI Dashboard</h2>
-                    <p>Business metrics and performance indicators. Track costs, conversions, and response rates.</p>
+                <div class="card-title">KPI Dashboard</div>
+                <div class="card-desc">Performance metrics. Costs, conversions, and response rates at a glance.</div>
+                <div class="card-strip">
+                    <span class="pulse"></span>
+                    <span>metrics</span>
                 </div>
-                <span class="card-badge badge-analytics">Metrics</span>
             </a>
 
-            <a href="property_detail.html" class="dashboard-card">
-                <div class="card-icon blue">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <!-- Property Audit -->
+            <a href="property_detail.html" target="_blank" class="card card-audit">
+                <span class="hud-tl"></span>
+                <span class="hud-br"></span>
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                         <polyline points="9 22 9 12 15 12 15 22"></polyline>
                     </svg>
                 </div>
-                <div class="card-content">
-                    <h2>Property Audit</h2>
-                    <p>Full property record with all contacts, communication history, and contact management.</p>
+                <div class="card-title">Property Audit</div>
+                <div class="card-desc">Full property record. All contacts, communication history, and management tools.</div>
+                <div class="card-strip">
+                    <span class="pulse"></span>
+                    <span>audit</span>
                 </div>
-                <span class="card-badge badge-operations">Audit</span>
             </a>
 
-            <a href="conversations.html" class="dashboard-card">
-                <div class="card-icon cyan">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <h2>Conversations</h2>
-                    <p>Full conversation history with search. View all SMS exchanges and call transcripts.</p>
-                </div>
-                <span class="card-badge badge-analytics">History</span>
-            </a>
-
-            <a href="marketing_presentation.html" class="dashboard-card">
-                <div class="card-icon red">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                        <polyline points="2 17 12 22 22 17"></polyline>
-                        <polyline points="2 12 12 17 22 12"></polyline>
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <h2>Marketing Analysis</h2>
-                    <p>Touches-to-appointment analysis. Understand what drives conversions.</p>
-                </div>
-                <span class="card-badge badge-analytics">Insights</span>
-            </a>
         </div>
     </div>
+
+    <!-- Footer -->
+    <div class="sys-footer">
+        <span class="hl">&gt;</span> sys.hub.v3.0 <span class="hl">//</span> 4 modules online <span class="hl">//</span> status: <span class="hl">nominal</span>
+    </div>
+
 </body>
 </html>
